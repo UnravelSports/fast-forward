@@ -4,10 +4,11 @@ use polars::prelude::*;
 
 /// Build long format tracking DataFrame
 /// Ball is included as a row with team_id="ball", player_id="ball"
-pub fn build(frames: &[StandardFrame]) -> Result<DataFrame, KloppyError> {
+pub fn build(frames: &[StandardFrame], game_id: Option<&str>) -> Result<DataFrame, KloppyError> {
     // Estimate capacity: ~23 entities per frame (22 players + 1 ball)
     let estimated_rows = frames.len() * 23;
 
+    let mut game_ids: Vec<&str> = Vec::with_capacity(estimated_rows);
     let mut frame_ids: Vec<u32> = Vec::with_capacity(estimated_rows);
     let mut period_ids: Vec<i32> = Vec::with_capacity(estimated_rows);
     let mut timestamps: Vec<i64> = Vec::with_capacity(estimated_rows);
@@ -24,6 +25,9 @@ pub fn build(frames: &[StandardFrame]) -> Result<DataFrame, KloppyError> {
         let ball_owning = frame.ball_owning_team_id.as_deref();
 
         // Add ball row
+        if let Some(gid) = game_id {
+            game_ids.push(gid);
+        }
         frame_ids.push(frame.frame_id);
         period_ids.push(frame.period_id as i32);
         timestamps.push(frame.timestamp_ms);
@@ -37,6 +41,9 @@ pub fn build(frames: &[StandardFrame]) -> Result<DataFrame, KloppyError> {
 
         // Add player rows
         for player in &frame.players {
+            if let Some(gid) = game_id {
+                game_ids.push(gid);
+            }
             frame_ids.push(frame.frame_id);
             period_ids.push(frame.period_id as i32);
             timestamps.push(frame.timestamp_ms);
@@ -54,7 +61,14 @@ pub fn build(frames: &[StandardFrame]) -> Result<DataFrame, KloppyError> {
     let timestamp_series = Series::new("timestamp".into(), timestamps)
         .cast(&DataType::Duration(TimeUnit::Milliseconds))?;
 
-    let df = DataFrame::new(vec![
+    let mut columns: Vec<Column> = Vec::new();
+
+    // Add game_id column first if provided
+    if game_id.is_some() {
+        columns.push(Column::new("game_id".into(), game_ids));
+    }
+
+    columns.extend([
         Column::new("frame_id".into(), frame_ids),
         Column::new("period_id".into(), period_ids),
         timestamp_series.into_column(),
@@ -65,7 +79,9 @@ pub fn build(frames: &[StandardFrame]) -> Result<DataFrame, KloppyError> {
         Column::new("x".into(), x_coords),
         Column::new("y".into(), y_coords),
         Column::new("z".into(), z_coords),
-    ])?;
+    ]);
+
+    let df = DataFrame::new(columns)?;
 
     Ok(df)
 }

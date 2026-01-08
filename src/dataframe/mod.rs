@@ -36,11 +36,11 @@ impl Layout {
 }
 
 /// Build tracking DataFrame based on layout
-pub fn build_tracking_df(frames: &[StandardFrame], layout: Layout) -> Result<DataFrame, KloppyError> {
+pub fn build_tracking_df(frames: &[StandardFrame], layout: Layout, game_id: Option<&str>) -> Result<DataFrame, KloppyError> {
     match layout {
-        Layout::Long => tracking_long::build(frames),
-        Layout::LongBall => tracking_long_ball::build(frames),
-        Layout::Wide => tracking_wide::build(frames),
+        Layout::Long => tracking_long::build(frames, game_id),
+        Layout::LongBall => tracking_long_ball::build(frames, game_id),
+        Layout::Wide => tracking_wide::build(frames, game_id),
     }
 }
 

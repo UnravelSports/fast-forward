@@ -354,15 +354,52 @@ fn parse_tracking_frames(
 // Python Interface
 // ============================================================================
 
+/// Resolve the game_id parameter from Python
+/// - None (default) -> Some(metadata_game_id) (default: True behavior)
+/// - bool True -> Some(metadata_game_id)
+/// - bool False -> None
+/// - str -> Some(custom_string)
+fn resolve_game_id(
+    _py: Python<'_>,
+    include_game_id: Option<Bound<'_, PyAny>>,
+    metadata_game_id: &str,
+) -> PyResult<Option<String>> {
+    match include_game_id {
+        None => {
+            // Default behavior: include game_id from metadata (True)
+            Ok(Some(metadata_game_id.to_string()))
+        }
+        Some(val) => {
+            // Try to extract as bool first
+            if let Ok(b) = val.extract::<bool>() {
+                if b {
+                    Ok(Some(metadata_game_id.to_string()))
+                } else {
+                    Ok(None)
+                }
+            // Try to extract as string
+            } else if let Ok(s) = val.extract::<String>() {
+                Ok(Some(s))
+            } else {
+                Err(pyo3::exceptions::PyValueError::new_err(
+                    "include_game_id must be bool or str",
+                ))
+            }
+        }
+    }
+}
+
 #[pyfunction]
-#[pyo3(signature = (raw_data, meta_data, layout="long", coordinates="cdf", orientation="static_home_away", only_alive=false))]
+#[pyo3(signature = (raw_data, meta_data, layout="long", coordinates="cdf", orientation="static_home_away", only_alive=true, include_game_id=None))]
 fn load_tracking(
+    py: Python<'_>,
     raw_data: &str,
     meta_data: &str,
     layout: &str,
     coordinates: &str,
     orientation: &str,
     only_alive: bool,
+    include_game_id: Option<Bound<'_, PyAny>>,
 ) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
     let coordinate_system = CoordinateSystem::from_str(coordinates)?;
     let layout_enum = Layout::from_str(layout)?;
@@ -371,6 +408,9 @@ fn load_tracking(
     // Parse metadata first to get team IDs and periods
     let (metadata_struct, home_team_id, away_team_id, periods) =
         parse_metadata(meta_data, coordinates, orientation)?;
+
+    // Determine game_id based on include_game_id parameter
+    let game_id: Option<String> = resolve_game_id(py, include_game_id, &metadata_struct.game_id)?;
 
     // Parse tracking frames
     let mut frames = parse_tracking_frames(
@@ -420,10 +460,15 @@ fn load_tracking(
     }
 
     // Build DataFrames
-    let tracking_df = build_tracking_df(&frames, layout_enum)?;
-    let metadata_df = build_metadata_df(&metadata_struct)?;
-    let team_df = build_team_df(&metadata_struct.teams)?;
-    let player_df = build_player_df(&metadata_struct.players)?;
+    // For metadata_df, we only pass game_id_override when it's a custom string (not from metadata)
+    let game_id_override = game_id
+        .as_ref()
+        .filter(|id| *id != &metadata_struct.game_id)
+        .map(|s| s.as_str());
+    let tracking_df = build_tracking_df(&frames, layout_enum, game_id.as_deref())?;
+    let metadata_df = build_metadata_df(&metadata_struct, game_id_override)?;
+    let team_df = build_team_df(&metadata_struct.teams, game_id.as_deref())?;
+    let player_df = build_player_df(&metadata_struct.players, game_id.as_deref())?;
 
     Ok((
         PyDataFrame(tracking_df),
@@ -436,17 +481,27 @@ fn load_tracking(
 /// Load only metadata without parsing tracking data.
 /// This is used for lazy loading to avoid loading tracking data twice.
 #[pyfunction]
-#[pyo3(signature = (meta_data, coordinates="cdf", orientation="static_home_away"))]
+#[pyo3(signature = (meta_data, coordinates="cdf", orientation="static_home_away", include_game_id=None))]
 fn load_metadata_only(
+    py: Python<'_>,
     meta_data: &str,
     coordinates: &str,
     orientation: &str,
+    include_game_id: Option<Bound<'_, PyAny>>,
 ) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame)> {
     let (metadata_struct, _, _, _) = parse_metadata(meta_data, coordinates, orientation)?;
 
-    let metadata_df = build_metadata_df(&metadata_struct)?;
-    let team_df = build_team_df(&metadata_struct.teams)?;
-    let player_df = build_player_df(&metadata_struct.players)?;
+    // Determine game_id based on include_game_id parameter
+    let game_id: Option<String> = resolve_game_id(py, include_game_id, &metadata_struct.game_id)?;
+
+    // For metadata_df, we only pass game_id_override when it's a custom string (not from metadata)
+    let game_id_override = game_id
+        .as_ref()
+        .filter(|id| *id != &metadata_struct.game_id)
+        .map(|s| s.as_str());
+    let metadata_df = build_metadata_df(&metadata_struct, game_id_override)?;
+    let team_df = build_team_df(&metadata_struct.teams, game_id.as_deref())?;
+    let player_df = build_player_df(&metadata_struct.players, game_id.as_deref())?;
 
     Ok((
         PyDataFrame(metadata_df),

@@ -40,6 +40,13 @@ pub enum Position {
     RF,
     CF,
 
+    // Referees
+    REF,    // Main Referee
+    AREF,   // Assistant Referee
+    VAR,    // Video Assistant Referee
+    AVAR,   // Assistant VAR
+    FOURTH, // Fourth Official (outputs as "4TH")
+
     // Special
     SUB,
     Unknown,
@@ -87,9 +94,61 @@ impl Position {
             Position::RF => "RF",
             Position::CF => "CF",
 
+            // Referees
+            Position::REF => "REF",
+            Position::AREF => "AREF",
+            Position::VAR => "VAR",
+            Position::AVAR => "AVAR",
+            Position::FOURTH => "4TH",
+
             // Special
             Position::SUB => "SUB",
             Position::Unknown => "UNK",
+        }
+    }
+
+    /// Parse referee role from Sportec format
+    pub fn from_sportec_referee_role(role: &str) -> Self {
+        match role.to_lowercase().as_str() {
+            "referee" => Position::REF,
+            "firstassistant" | "secondassistant" => Position::AREF,
+            "fourthofficial" => Position::FOURTH,
+            "videoreferee" => Position::VAR,
+            "videorefereeassistant" => Position::AVAR,
+            _ => Position::Unknown,
+        }
+    }
+
+    /// Parse position from Sportec format
+    pub fn from_sportec(raw: &str) -> Self {
+        match raw.to_uppercase().as_str() {
+            "GK" => Position::GK,
+            "LB" => Position::LB,
+            "RB" => Position::RB,
+            "LCB" => Position::LCB,
+            "CB" => Position::CB,
+            "RCB" => Position::RCB,
+            "LWB" => Position::LWB,
+            "RWB" => Position::RWB,
+            "LDM" => Position::LDM,
+            "CDM" | "DM" => Position::CDM,
+            "RDM" => Position::RDM,
+            "LCM" | "HLM" => Position::LCM, // HLM = Half-left midfield
+            "CM" => Position::CM,
+            "RCM" | "HRM" => Position::RCM, // HRM = Half-right midfield
+            "LAM" => Position::LAM,
+            "CAM" | "AM" => Position::CAM,
+            "RAM" => Position::RAM,
+            "LW" => Position::LW,
+            "RW" => Position::RW,
+            "LM" => Position::LM,
+            "RM" => Position::RM,
+            "LF" => Position::LF,
+            "ST" | "FW" => Position::ST,
+            "RF" => Position::RF,
+            "CF" => Position::CF,
+            "SUB" => Position::SUB,
+            _ => Position::Unknown,
         }
     }
 
@@ -185,5 +244,34 @@ mod tests {
         assert_eq!(Position::from_skillcorner("GK"), Position::GK);
         assert_eq!(Position::from_skillcorner("CF"), Position::CF);
         assert_eq!(Position::from_skillcorner("DM"), Position::CDM);
+    }
+
+    #[test]
+    fn test_referee_positions() {
+        assert_eq!(Position::REF.as_str(), "REF");
+        assert_eq!(Position::AREF.as_str(), "AREF");
+        assert_eq!(Position::VAR.as_str(), "VAR");
+        assert_eq!(Position::AVAR.as_str(), "AVAR");
+        assert_eq!(Position::FOURTH.as_str(), "4TH");
+    }
+
+    #[test]
+    fn test_from_sportec_referee_role() {
+        assert_eq!(Position::from_sportec_referee_role("referee"), Position::REF);
+        assert_eq!(Position::from_sportec_referee_role("firstAssistant"), Position::AREF);
+        assert_eq!(Position::from_sportec_referee_role("secondAssistant"), Position::AREF);
+        assert_eq!(Position::from_sportec_referee_role("fourthOfficial"), Position::FOURTH);
+        assert_eq!(Position::from_sportec_referee_role("videoReferee"), Position::VAR);
+        assert_eq!(Position::from_sportec_referee_role("videoRefereeAssistant"), Position::AVAR);
+        assert_eq!(Position::from_sportec_referee_role("unknown"), Position::Unknown);
+    }
+
+    #[test]
+    fn test_from_sportec() {
+        assert_eq!(Position::from_sportec("GK"), Position::GK);
+        assert_eq!(Position::from_sportec("RW"), Position::RW);
+        assert_eq!(Position::from_sportec("HLM"), Position::LCM);
+        assert_eq!(Position::from_sportec("HRM"), Position::RCM);
+        assert_eq!(Position::from_sportec("CF"), Position::CF);
     }
 }

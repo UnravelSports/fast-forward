@@ -129,6 +129,10 @@ class LazyTrackingLoader:
         # Import from the Rust module directly to avoid recursion
         from kloppy_light._kloppy_light import secondspectrum as _ss
         from kloppy_light._kloppy_light import skillcorner as _sc
+        from kloppy_light._kloppy_light import sportec as _sp
+
+        # Get include_game_id from kwargs
+        include_game_id = self._kwargs.get("include_game_id", True)
 
         if self._provider == "secondspectrum":
             tracking_df, _, _, _ = _ss.load_tracking(
@@ -138,8 +142,11 @@ class LazyTrackingLoader:
                 coordinates=self._coordinates,
                 orientation=self._orientation,
                 only_alive=self._only_alive,
+                include_game_id=include_game_id,
             )
         elif self._provider == "skillcorner":
+            # Get skillcorner-specific kwargs
+            include_empty_frames = self._kwargs.get("include_empty_frames", False)
             tracking_df, _, _, _ = _sc.load_tracking(
                 self._raw_data,
                 self._meta_data,
@@ -147,7 +154,21 @@ class LazyTrackingLoader:
                 coordinates=self._coordinates,
                 orientation=self._orientation,
                 only_alive=self._only_alive,
-                **self._kwargs,
+                include_empty_frames=include_empty_frames,
+                include_game_id=include_game_id,
+            )
+        elif self._provider == "sportec":
+            # Get sportec-specific kwargs
+            include_referees = self._kwargs.get("include_referees", False)
+            tracking_df, _, _, _ = _sp.load_tracking(
+                self._raw_data,
+                self._meta_data,
+                layout=self._layout,
+                coordinates=self._coordinates,
+                orientation=self._orientation,
+                only_alive=self._only_alive,
+                include_game_id=include_game_id,
+                include_referees=include_referees,
             )
         else:
             raise ValueError(f"Unknown provider: {self._provider}")

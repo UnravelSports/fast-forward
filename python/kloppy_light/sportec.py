@@ -1,9 +1,9 @@
-"""SecondSpectrum provider wrapper with lazy loading support."""
+"""Sportec provider wrapper with lazy loading support."""
 
 from typing import Literal, Tuple, Union, overload
 import polars as pl
 
-from kloppy_light._kloppy_light import secondspectrum as _secondspectrum
+from kloppy_light._kloppy_light import sportec as _sportec
 from kloppy_light._lazy import LazyTrackingLoader
 
 
@@ -23,6 +23,7 @@ def load_tracking(
     ] = "static_home_away",
     only_alive: bool = True,
     include_game_id: Union[bool, str] = True,
+    include_referees: bool = False,
     *,
     lazy: Literal[False] = False,
 ) -> Tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame]: ...
@@ -44,6 +45,7 @@ def load_tracking(
     ] = "static_home_away",
     only_alive: bool = True,
     include_game_id: Union[bool, str] = True,
+    include_referees: bool = False,
     *,
     lazy: Literal[True],
 ) -> Tuple[LazyTrackingLoader, pl.DataFrame, pl.DataFrame, pl.DataFrame]: ...
@@ -64,6 +66,7 @@ def load_tracking(
     ] = "static_home_away",
     only_alive: bool = True,
     include_game_id: Union[bool, str] = True,
+    include_referees: bool = False,
     *,
     lazy: bool = False,
 ) -> Union[
@@ -71,14 +74,14 @@ def load_tracking(
     Tuple[LazyTrackingLoader, pl.DataFrame, pl.DataFrame, pl.DataFrame],
 ]:
     """
-    Load SecondSpectrum tracking data.
+    Load Sportec tracking data from XML files.
 
     Parameters
     ----------
     raw_data : str
-        Path to JSONL tracking file
+        Path to tracking XML file (e.g., *_tracking.xml)
     meta_data : str
-        Path to JSON metadata file
+        Path to match info XML file (e.g., *_match_info.xml)
     layout : {"long", "long_ball", "wide"}, default "long"
         DataFrame layout:
         - "long": Ball as row with team_id="ball", player_id="ball"
@@ -96,11 +99,15 @@ def load_tracking(
         - "attack_right": Attacking team always attacks right
         - "attack_left": Attacking team always attacks left
     only_alive : bool, default True
-        If True, only include frames where ball is in play (ball_state == "alive")
+        If True, only include frames where ball is in play (matches kloppy default)
     include_game_id : bool or str, default True
         If True, add game_id column to tracking_df, team_df, and player_df from metadata.
         If False, no game_id column is added.
         If str, use the provided string as the game_id value.
+    include_referees : bool, default False
+        If True, include referees in player_df with position codes:
+        REF (Main Referee), AREF (Assistant Referee), VAR (Video Assistant Referee),
+        AVAR (Assistant VAR), 4TH (Fourth Official)
     lazy : bool, default False
         If True, return a LazyTrackingLoader that defers parsing until .collect()
 
@@ -116,15 +123,16 @@ def load_tracking(
     """
     if lazy:
         # Get only metadata without loading tracking data
-        metadata_df, team_df, player_df = _secondspectrum.load_metadata_only(
+        metadata_df, team_df, player_df = _sportec.load_metadata_only(
             meta_data,
             coordinates=coordinates,
             orientation=orientation,
             include_game_id=include_game_id,
+            include_referees=include_referees,
         )
 
         lazy_loader = LazyTrackingLoader(
-            provider="secondspectrum",
+            provider="sportec",
             raw_data=raw_data,
             meta_data=meta_data,
             layout=layout,
@@ -132,11 +140,12 @@ def load_tracking(
             orientation=orientation,
             only_alive=only_alive,
             include_game_id=include_game_id,
+            include_referees=include_referees,
         )
 
         return lazy_loader, metadata_df, team_df, player_df
     else:
-        return _secondspectrum.load_tracking(
+        return _sportec.load_tracking(
             raw_data,
             meta_data,
             layout=layout,
@@ -144,4 +153,5 @@ def load_tracking(
             orientation=orientation,
             only_alive=only_alive,
             include_game_id=include_game_id,
+            include_referees=include_referees,
         )

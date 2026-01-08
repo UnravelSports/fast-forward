@@ -3,7 +3,7 @@ use crate::models::StandardPlayer;
 use polars::prelude::*;
 
 /// Build player DataFrame (one row per player)
-pub fn build_player_df(players: &[StandardPlayer]) -> Result<DataFrame, KloppyError> {
+pub fn build_player_df(players: &[StandardPlayer], game_id: Option<&str>) -> Result<DataFrame, KloppyError> {
     let team_ids: Vec<&str> = players.iter().map(|p| p.team_id.as_str()).collect();
     let player_ids: Vec<&str> = players.iter().map(|p| p.player_id.as_str()).collect();
     let names: Vec<Option<&str>> = players.iter().map(|p| p.name.as_deref()).collect();
@@ -13,16 +13,31 @@ pub fn build_player_df(players: &[StandardPlayer]) -> Result<DataFrame, KloppyEr
     let positions: Vec<&str> = players.iter().map(|p| p.position.as_str()).collect();
     let is_starters: Vec<Option<bool>> = players.iter().map(|p| p.is_starter).collect();
 
-    let df = df! {
-        "team_id" => team_ids,
-        "player_id" => player_ids,
-        "name" => names,
-        "first_name" => first_names,
-        "last_name" => last_names,
-        "jersey_number" => jersey_numbers,
-        "position" => positions,
-        "is_starter" => is_starters,
-    }?;
+    let df = if let Some(gid) = game_id {
+        let game_ids: Vec<&str> = vec![gid; players.len()];
+        df! {
+            "game_id" => game_ids,
+            "team_id" => team_ids,
+            "player_id" => player_ids,
+            "name" => names,
+            "first_name" => first_names,
+            "last_name" => last_names,
+            "jersey_number" => jersey_numbers,
+            "position" => positions,
+            "is_starter" => is_starters,
+        }?
+    } else {
+        df! {
+            "team_id" => team_ids,
+            "player_id" => player_ids,
+            "name" => names,
+            "first_name" => first_names,
+            "last_name" => last_names,
+            "jersey_number" => jersey_numbers,
+            "position" => positions,
+            "is_starter" => is_starters,
+        }?
+    };
 
     Ok(df)
 }
@@ -57,7 +72,7 @@ mod tests {
             },
         ];
 
-        let df = build_player_df(&players).unwrap();
+        let df = build_player_df(&players, None).unwrap();
 
         assert_eq!(df.height(), 2);
         assert_eq!(df.width(), 8);
@@ -78,6 +93,41 @@ mod tests {
     }
 
     #[test]
+    fn test_build_player_df_with_game_id() {
+        let players = vec![StandardPlayer {
+            team_id: "team1".to_string(),
+            player_id: "p1".to_string(),
+            name: Some("Player One".to_string()),
+            first_name: Some("Player".to_string()),
+            last_name: Some("One".to_string()),
+            jersey_number: 10,
+            position: Position::ST,
+            is_starter: Some(true),
+        }];
+
+        let df = build_player_df(&players, Some("match456")).unwrap();
+
+        assert_eq!(df.height(), 1);
+        assert_eq!(df.width(), 9);
+
+        let columns: Vec<String> = df
+            .get_column_names()
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+        assert!(columns.contains(&"game_id".to_string()));
+
+        let game_id = df
+            .column("game_id")
+            .unwrap()
+            .str()
+            .unwrap()
+            .get(0)
+            .unwrap();
+        assert_eq!(game_id, "match456");
+    }
+
+    #[test]
     fn test_build_player_df_values() {
         let players = vec![StandardPlayer {
             team_id: "home".to_string(),
@@ -90,7 +140,7 @@ mod tests {
             is_starter: Some(true),
         }];
 
-        let df = build_player_df(&players).unwrap();
+        let df = build_player_df(&players, None).unwrap();
 
         let jersey = df
             .column("jersey_number")
@@ -124,7 +174,7 @@ mod tests {
             is_starter: None,
         }];
 
-        let df = build_player_df(&players).unwrap();
+        let df = build_player_df(&players, None).unwrap();
 
         // Name should be null
         let name_col = df.column("name").unwrap();
@@ -144,7 +194,7 @@ mod tests {
     #[test]
     fn test_build_player_df_empty() {
         let players: Vec<StandardPlayer> = vec![];
-        let df = build_player_df(&players).unwrap();
+        let df = build_player_df(&players, None).unwrap();
         assert_eq!(df.height(), 0);
     }
 }

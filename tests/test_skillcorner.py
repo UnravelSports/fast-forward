@@ -129,7 +129,7 @@ class TestTeamDataFrame:
 
     def test_schema(self, team_df):
         """Test that team_df has expected columns."""
-        expected_columns = {"team_id", "name", "ground"}
+        expected_columns = {"game_id", "team_id", "name", "ground"}
         assert set(team_df.columns) == expected_columns
 
     def test_grounds(self, team_df):
@@ -149,7 +149,7 @@ class TestPlayerDataFrame:
 
     def test_schema(self, player_df):
         """Test that player_df has expected columns."""
-        expected_columns = {"team_id", "player_id", "name", "first_name", "last_name", "jersey_number", "position", "is_starter"}
+        expected_columns = {"game_id", "team_id", "player_id", "name", "first_name", "last_name", "jersey_number", "position", "is_starter"}
         assert set(player_df.columns) == expected_columns
 
     def test_has_players(self, player_df):
@@ -191,6 +191,7 @@ class TestTrackingDataFrameLong:
     def test_schema(self, tracking_df):
         """Test that long format has expected columns."""
         expected_columns = {
+            "game_id",
             "frame_id",
             "period_id",
             "timestamp",
@@ -236,6 +237,7 @@ class TestTrackingDataFrameLongBall:
     def test_schema(self, tracking_df):
         """Test that long_ball format has expected columns."""
         expected_columns = {
+            "game_id",
             "frame_id",
             "period_id",
             "timestamp",
@@ -423,3 +425,56 @@ class TestLazyParameter:
             RAW_DATA_PATH, META_DATA_PATH, lazy=False
         )
         assert t_lazy.collect().equals(t_eager)
+
+
+class TestTimestampBehavior:
+    """Tests for timestamp and FPS behavior."""
+
+    @pytest.fixture
+    def tracking_df(self):
+        """Load tracking data."""
+        tracking_df, _, _, _ = skillcorner.load_tracking(RAW_DATA_PATH, META_DATA_PATH)
+        return tracking_df
+
+    @pytest.fixture
+    def metadata_df(self):
+        """Load metadata."""
+        _, metadata_df, _, _ = skillcorner.load_tracking(RAW_DATA_PATH, META_DATA_PATH)
+        return metadata_df
+
+    def test_period_1_first_frame_timestamp_near_zero(self, tracking_df):
+        """Test that period 1 first frame timestamp is at or near 0ms."""
+        period_1 = tracking_df.filter(pl.col("period_id") == 1).sort("frame_id")
+        if len(period_1) > 0:
+            first_timestamp = period_1["timestamp"][0]
+            # Should be at 0ms or very close (within first 200ms for 10fps data)
+            assert first_timestamp.total_seconds() * 1000 < 200
+
+    def test_period_2_first_frame_timestamp_near_zero(self, tracking_df):
+        """Test that period 2 first frame timestamp is at or near 0ms (period-relative)."""
+        period_2 = tracking_df.filter(pl.col("period_id") == 2).sort("frame_id")
+        if len(period_2) > 0:
+            first_timestamp = period_2["timestamp"][0]
+            # Should be at 0ms or very close (within first 200ms for 10fps data)
+            # NOT 45 minutes (old cumulative timestamp behavior)
+            assert first_timestamp.total_seconds() * 1000 < 200
+
+    def test_timestamp_matches_fps(self, tracking_df, metadata_df):
+        """Test that timestamp increments match the FPS (10fps = 100ms per frame)."""
+        fps = metadata_df["fps"][0]
+        expected_delta_ms = 1000 / fps  # 100ms for 10fps
+
+        # Get first few frames of period 1 with unique frame_ids
+        period_1 = tracking_df.filter(pl.col("period_id") == 1).sort("frame_id")
+        unique_frames = period_1.unique(subset=["frame_id"], maintain_order=True).head(5)
+
+        if len(unique_frames) >= 2:
+            ts1 = unique_frames["timestamp"][0].total_seconds() * 1000
+            ts2 = unique_frames["timestamp"][1].total_seconds() * 1000
+            delta = ts2 - ts1
+            # Allow some tolerance (within 20ms)
+            assert abs(delta - expected_delta_ms) < 20
+
+    def test_metadata_fps_value(self, metadata_df):
+        """Test that FPS is correctly reported as 10."""
+        assert metadata_df["fps"][0] == pytest.approx(10.0, rel=0.01)

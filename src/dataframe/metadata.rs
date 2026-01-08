@@ -3,7 +3,14 @@ use crate::models::StandardMetadata;
 use polars::prelude::*;
 
 /// Build metadata DataFrame (single row with match-level fields)
-pub fn build_metadata_df(metadata: &StandardMetadata) -> Result<DataFrame, KloppyError> {
+///
+/// # Arguments
+/// * `metadata` - The standard metadata structure
+/// * `game_id_override` - Optional game_id to use instead of metadata.game_id (for custom include_game_id string)
+pub fn build_metadata_df(
+    metadata: &StandardMetadata,
+    game_id_override: Option<&str>,
+) -> Result<DataFrame, KloppyError> {
     // Convert NaiveDate to days since epoch for Polars Date type
     let game_date: Option<i32> = metadata.game_date.map(|d| {
         d.signed_duration_since(chrono::NaiveDate::from_ymd_opt(1970, 1, 1).unwrap())
@@ -27,9 +34,12 @@ pub fn build_metadata_df(metadata: &StandardMetadata) -> Result<DataFrame, Klopp
     let period_5_start: Option<u32> = get_period(5).map(|p| p.start_frame_id);
     let period_5_end: Option<u32> = get_period(5).map(|p| p.end_frame_id);
 
+    // Use override game_id if provided, otherwise use metadata game_id
+    let game_id = game_id_override.unwrap_or(metadata.game_id.as_str());
+
     let df = DataFrame::new(vec![
         Column::new("provider".into(), vec![metadata.provider.as_str()]),
-        Column::new("game_id".into(), vec![metadata.game_id.as_str()]),
+        Column::new("game_id".into(), vec![game_id]),
         Series::new("game_date".into(), &[game_date])
             .cast(&DataType::Date)?
             .into_column(),
@@ -113,14 +123,14 @@ mod tests {
     #[test]
     fn test_build_metadata_df_single_row() {
         let metadata = create_test_metadata();
-        let df = build_metadata_df(&metadata).unwrap();
+        let df = build_metadata_df(&metadata, None).unwrap();
         assert_eq!(df.height(), 1);
     }
 
     #[test]
     fn test_build_metadata_df_columns() {
         let metadata = create_test_metadata();
-        let df = build_metadata_df(&metadata).unwrap();
+        let df = build_metadata_df(&metadata, None).unwrap();
 
         let expected_columns = vec![
             "provider",
@@ -160,7 +170,7 @@ mod tests {
     #[test]
     fn test_build_metadata_df_values() {
         let metadata = create_test_metadata();
-        let df = build_metadata_df(&metadata).unwrap();
+        let df = build_metadata_df(&metadata, None).unwrap();
 
         let provider = df
             .column("provider")
@@ -195,8 +205,23 @@ mod tests {
         let mut metadata = create_test_metadata();
         metadata.game_date = None;
 
-        let df = build_metadata_df(&metadata).unwrap();
+        let df = build_metadata_df(&metadata, None).unwrap();
         let date_col = df.column("game_date").unwrap();
         assert!(date_col.is_null().get(0).unwrap());
+    }
+
+    #[test]
+    fn test_build_metadata_df_game_id_override() {
+        let metadata = create_test_metadata();
+        let df = build_metadata_df(&metadata, Some("custom-game-id")).unwrap();
+
+        let game_id = df
+            .column("game_id")
+            .unwrap()
+            .str()
+            .unwrap()
+            .get(0)
+            .unwrap();
+        assert_eq!(game_id, "custom-game-id");
     }
 }

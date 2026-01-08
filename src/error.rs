@@ -10,6 +10,12 @@ pub enum KloppyError {
     #[error("JSON parsing error: {0}")]
     Json(#[from] serde_json::Error),
 
+    #[error("XML parsing error: {0}")]
+    Xml(#[from] quick_xml::Error),
+
+    #[error("XML attribute parsing error: {0}")]
+    XmlAttr(#[from] quick_xml::events::attributes::AttrError),
+
     #[error("Polars error: {0}")]
     Polars(#[from] polars::error::PolarsError),
 

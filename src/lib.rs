@@ -23,5 +23,10 @@ fn _kloppy_light(m: &Bound<'_, PyModule>) -> PyResult<()> {
     providers::skillcorner::register_module(&skillcorner)?;
     m.add_submodule(&skillcorner)?;
 
+    // Register sportec submodule
+    let sportec = PyModule::new_bound(m.py(), "sportec")?;
+    providers::sportec::register_module(&sportec)?;
+    m.add_submodule(&sportec)?;
+
     Ok(())
 }

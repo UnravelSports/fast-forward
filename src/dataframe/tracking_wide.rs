@@ -5,7 +5,7 @@ use std::collections::{HashMap, HashSet};
 
 /// Build wide format tracking DataFrame
 /// One row per frame, player_id in column names
-pub fn build(frames: &[StandardFrame]) -> Result<DataFrame, KloppyError> {
+pub fn build(frames: &[StandardFrame], game_id: Option<&str>) -> Result<DataFrame, KloppyError> {
     if frames.is_empty() {
         return Err(KloppyError::InvalidInput("No frames to process".to_string()));
     }
@@ -83,7 +83,15 @@ pub fn build(frames: &[StandardFrame]) -> Result<DataFrame, KloppyError> {
     let timestamp_series = Series::new("timestamp".into(), timestamps)
         .cast(&DataType::Duration(TimeUnit::Milliseconds))?;
 
-    let mut columns: Vec<Column> = vec![
+    let mut columns: Vec<Column> = Vec::new();
+
+    // Add game_id column first if provided
+    if let Some(gid) = game_id {
+        let game_ids: Vec<&str> = vec![gid; num_frames];
+        columns.push(Column::new("game_id".into(), game_ids));
+    }
+
+    columns.extend([
         Column::new("frame_id".into(), frame_ids),
         Column::new("period_id".into(), period_ids),
         timestamp_series.into_column(),
@@ -92,7 +100,7 @@ pub fn build(frames: &[StandardFrame]) -> Result<DataFrame, KloppyError> {
         Column::new("ball_x".into(), ball_x),
         Column::new("ball_y".into(), ball_y),
         Column::new("ball_z".into(), ball_z),
-    ];
+    ]);
 
     // Add player columns
     for pid in &player_ids {

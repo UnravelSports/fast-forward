@@ -21,8 +21,9 @@ def load_tracking(
         "attack_right",
         "attack_left",
     ] = "static_home_away",
-    only_alive: bool = False,
+    only_alive: bool = True,
     include_empty_frames: bool = False,
+    include_game_id: Union[bool, str] = True,
     *,
     lazy: Literal[False] = False,
 ) -> Tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame]: ...
@@ -42,8 +43,9 @@ def load_tracking(
         "attack_right",
         "attack_left",
     ] = "static_home_away",
-    only_alive: bool = False,
+    only_alive: bool = True,
     include_empty_frames: bool = False,
+    include_game_id: Union[bool, str] = True,
     *,
     lazy: Literal[True],
 ) -> Tuple[LazyTrackingLoader, pl.DataFrame, pl.DataFrame, pl.DataFrame]: ...
@@ -62,8 +64,9 @@ def load_tracking(
         "attack_right",
         "attack_left",
     ] = "static_home_away",
-    only_alive: bool = False,
+    only_alive: bool = True,
     include_empty_frames: bool = False,
+    include_game_id: Union[bool, str] = True,
     *,
     lazy: bool = False,
 ) -> Union[
@@ -95,10 +98,14 @@ def load_tracking(
         - "away_home": Away attacks right 1st half, left 2nd half
         - "attack_right": Attacking team always attacks right
         - "attack_left": Attacking team always attacks left
-    only_alive : bool, default False
-        If True, only include frames where ball is in play
+    only_alive : bool, default True
+        If True, only include frames where ball is in play (matches kloppy default)
     include_empty_frames : bool, default False
         If True, include frames with no detected players
+    include_game_id : bool or str, default True
+        If True, add game_id column to tracking_df, team_df, and player_df from metadata.
+        If False, no game_id column is added.
+        If str, use the provided string as the game_id value.
     lazy : bool, default False
         If True, return a LazyTrackingLoader that defers parsing until .collect()
 
@@ -118,6 +125,7 @@ def load_tracking(
             meta_data,
             coordinates=coordinates,
             orientation=orientation,
+            include_game_id=include_game_id,
         )
 
         lazy_loader = LazyTrackingLoader(
@@ -129,6 +137,7 @@ def load_tracking(
             orientation=orientation,
             only_alive=only_alive,
             include_empty_frames=include_empty_frames,
+            include_game_id=include_game_id,
         )
 
         return lazy_loader, metadata_df, team_df, player_df
@@ -141,4 +150,5 @@ def load_tracking(
             orientation=orientation,
             only_alive=only_alive,
             include_empty_frames=include_empty_frames,
+            include_game_id=include_game_id,
         )
