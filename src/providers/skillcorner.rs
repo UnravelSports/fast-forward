@@ -5,14 +5,14 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
-use crate::coordinates::CoordinateSystem;
+use crate::coordinates::{transform_from_cdf, CoordinateSystem};
 use crate::dataframe::{build_metadata_df, build_player_df, build_team_df, build_tracking_df, Layout};
 use crate::error::KloppyError;
 use crate::models::{
     BallState, Ground, Position, StandardBall, StandardFrame, StandardMetadata, StandardPeriod,
     StandardPlayer, StandardPlayerPosition, StandardTeam,
 };
-use crate::orientation::{transform_frames, Orientation};
+use crate::orientation::{transform_frames, AttackingDirection, Orientation};
 
 // ============================================================================
 // SkillCorner JSON Types (raw format)
@@ -50,6 +50,7 @@ struct RawPlayer {
     team_id: i64,
     trackable_object: i64,
     player_role: RawPlayerRole,
+    start_time: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -195,6 +196,12 @@ fn parse_metadata(
         // Construct full name from first_name and last_name
         let full_name = format!("{} {}", p.first_name, p.last_name);
 
+        // Determine is_starter from start_time:
+        // - "00:00:00" means starter
+        // - null means never played (not a starter)
+        // - Any other time means came on as sub (not a starter)
+        let is_starter = p.start_time.as_ref().map(|st| st == "00:00:00");
+
         players.push(StandardPlayer {
             team_id,
             player_id,
@@ -203,32 +210,44 @@ fn parse_metadata(
             last_name: Some(p.last_name.clone()),
             jersey_number: p.number,
             position: Position::from_skillcorner(&p.player_role.acronym),
+            is_starter,
         });
     }
 
     // Determine home attacking direction from metadata
     // home_team_side[0] is first half direction: "right_to_left" or "left_to_right"
-    let home_attacking_positive_first_half = raw
+    let home_attacking_direction_first_half = raw
         .home_team_side
         .first()
-        .map(|s| s == "left_to_right")
-        .unwrap_or(true);
+        .map(|s| {
+            if s == "left_to_right" {
+                AttackingDirection::LeftToRight
+            } else {
+                AttackingDirection::RightToLeft
+            }
+        })
+        .unwrap_or(AttackingDirection::LeftToRight);
 
     let periods: Vec<StandardPeriod> = raw
         .match_periods
         .into_iter()
         .map(|p| {
             // Alternate attacking direction each period
-            let home_attacking_positive = if p.period % 2 == 1 {
-                home_attacking_positive_first_half
+            let home_attacking_direction = if p.period % 2 == 1 {
+                home_attacking_direction_first_half
             } else {
-                !home_attacking_positive_first_half
+                // Flip direction for even periods
+                match home_attacking_direction_first_half {
+                    AttackingDirection::LeftToRight => AttackingDirection::RightToLeft,
+                    AttackingDirection::RightToLeft => AttackingDirection::LeftToRight,
+                    AttackingDirection::Unknown => AttackingDirection::Unknown,
+                }
             };
             StandardPeriod {
                 period_id: p.period,
-                start_frame_idx: p.start_frame,
-                end_frame_idx: p.end_frame,
-                home_attacking_positive,
+                start_frame_id: p.start_frame,
+                end_frame_id: p.end_frame,
+                home_attacking_direction,
             }
         })
         .collect();
@@ -378,7 +397,7 @@ fn load_tracking(
     only_alive: bool,
     include_empty_frames: bool,
 ) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
-    let _coordinate_system = CoordinateSystem::from_str(coordinates)?;
+    let coordinate_system = CoordinateSystem::from_str(coordinates)?;
     let layout_enum = Layout::from_str(layout)?;
     let orientation_enum = Orientation::from_str(orientation)?;
 
@@ -398,6 +417,41 @@ fn load_tracking(
 
     // Apply orientation transformation
     transform_frames(&mut frames, &periods, &home_team_id, orientation_enum);
+
+    // Apply coordinate system transformation (CDF is native, transform if needed)
+    if coordinate_system != CoordinateSystem::Cdf {
+        let pitch_length = metadata_struct.pitch_length;
+        let pitch_width = metadata_struct.pitch_width;
+        for frame in &mut frames {
+            // Transform ball coordinates
+            let (bx, by, bz) = transform_from_cdf(
+                frame.ball.x,
+                frame.ball.y,
+                frame.ball.z,
+                coordinate_system,
+                pitch_length,
+                pitch_width,
+            );
+            frame.ball.x = bx;
+            frame.ball.y = by;
+            frame.ball.z = bz;
+
+            // Transform player coordinates
+            for player in &mut frame.players {
+                let (px, py, pz) = transform_from_cdf(
+                    player.x,
+                    player.y,
+                    player.z,
+                    coordinate_system,
+                    pitch_length,
+                    pitch_width,
+                );
+                player.x = px;
+                player.y = py;
+                player.z = pz;
+            }
+        }
+    }
 
     // Build DataFrames
     let tracking_df = build_tracking_df(&frames, layout_enum)?;

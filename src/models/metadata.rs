@@ -23,6 +23,7 @@ impl Ground {
 }
 
 use super::position::Position;
+use crate::orientation::AttackingDirection;
 
 /// Standardized player metadata
 #[derive(Debug, Clone)]
@@ -34,15 +35,16 @@ pub struct StandardPlayer {
     pub last_name: Option<String>,
     pub jersey_number: u8,
     pub position: Position,
+    pub is_starter: Option<bool>,
 }
 
 /// Standardized period metadata
 #[derive(Debug, Clone)]
 pub struct StandardPeriod {
     pub period_id: u8,
-    pub start_frame_idx: u32,
-    pub end_frame_idx: u32,
-    pub home_attacking_positive: bool,
+    pub start_frame_id: u32,
+    pub end_frame_id: u32,
+    pub home_attacking_direction: AttackingDirection,
 }
 
 /// Standardized match metadata

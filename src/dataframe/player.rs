@@ -11,6 +11,7 @@ pub fn build_player_df(players: &[StandardPlayer]) -> Result<DataFrame, KloppyEr
     let last_names: Vec<Option<&str>> = players.iter().map(|p| p.last_name.as_deref()).collect();
     let jersey_numbers: Vec<i32> = players.iter().map(|p| p.jersey_number as i32).collect();
     let positions: Vec<&str> = players.iter().map(|p| p.position.as_str()).collect();
+    let is_starters: Vec<Option<bool>> = players.iter().map(|p| p.is_starter).collect();
 
     let df = df! {
         "team_id" => team_ids,
@@ -20,6 +21,7 @@ pub fn build_player_df(players: &[StandardPlayer]) -> Result<DataFrame, KloppyEr
         "last_name" => last_names,
         "jersey_number" => jersey_numbers,
         "position" => positions,
+        "is_starter" => is_starters,
     }?;
 
     Ok(df)
@@ -41,6 +43,7 @@ mod tests {
                 last_name: Some("One".to_string()),
                 jersey_number: 10,
                 position: Position::ST,
+                is_starter: Some(true),
             },
             StandardPlayer {
                 team_id: "team1".to_string(),
@@ -50,13 +53,14 @@ mod tests {
                 last_name: Some("Two".to_string()),
                 jersey_number: 7,
                 position: Position::CM,
+                is_starter: Some(false),
             },
         ];
 
         let df = build_player_df(&players).unwrap();
 
         assert_eq!(df.height(), 2);
-        assert_eq!(df.width(), 7);
+        assert_eq!(df.width(), 8);
 
         let columns: Vec<String> = df
             .get_column_names()
@@ -70,6 +74,7 @@ mod tests {
         assert!(columns.contains(&"last_name".to_string()));
         assert!(columns.contains(&"jersey_number".to_string()));
         assert!(columns.contains(&"position".to_string()));
+        assert!(columns.contains(&"is_starter".to_string()));
     }
 
     #[test]
@@ -82,6 +87,7 @@ mod tests {
             last_name: Some("Player".to_string()),
             jersey_number: 99,
             position: Position::GK,
+            is_starter: Some(true),
         }];
 
         let df = build_player_df(&players).unwrap();
@@ -115,6 +121,7 @@ mod tests {
             last_name: Some("Doe".to_string()),
             jersey_number: 10,
             position: Position::ST,
+            is_starter: None,
         }];
 
         let df = build_player_df(&players).unwrap();

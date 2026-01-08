@@ -10,6 +10,23 @@ pub fn build_metadata_df(metadata: &StandardMetadata) -> Result<DataFrame, Klopp
             .num_days() as i32
     });
 
+    // Helper to get period info by period_id (1-indexed)
+    let get_period = |period_id: u8| -> Option<&crate::models::StandardPeriod> {
+        metadata.periods.iter().find(|p| p.period_id == period_id)
+    };
+
+    // Extract period frame IDs (up to 5 periods)
+    let period_1_start: Option<u32> = get_period(1).map(|p| p.start_frame_id);
+    let period_1_end: Option<u32> = get_period(1).map(|p| p.end_frame_id);
+    let period_2_start: Option<u32> = get_period(2).map(|p| p.start_frame_id);
+    let period_2_end: Option<u32> = get_period(2).map(|p| p.end_frame_id);
+    let period_3_start: Option<u32> = get_period(3).map(|p| p.start_frame_id);
+    let period_3_end: Option<u32> = get_period(3).map(|p| p.end_frame_id);
+    let period_4_start: Option<u32> = get_period(4).map(|p| p.start_frame_id);
+    let period_4_end: Option<u32> = get_period(4).map(|p| p.end_frame_id);
+    let period_5_start: Option<u32> = get_period(5).map(|p| p.start_frame_id);
+    let period_5_end: Option<u32> = get_period(5).map(|p| p.end_frame_id);
+
     let df = DataFrame::new(vec![
         Column::new("provider".into(), vec![metadata.provider.as_str()]),
         Column::new("game_id".into(), vec![metadata.game_id.as_str()]),
@@ -34,6 +51,17 @@ pub fn build_metadata_df(metadata: &StandardMetadata) -> Result<DataFrame, Klopp
             vec![metadata.coordinate_system.as_str()],
         ),
         Column::new("orientation".into(), vec![metadata.orientation.as_str()]),
+        // Period columns (wide format, up to 5 periods)
+        Column::new("period_1_start_frame_id".into(), vec![period_1_start]),
+        Column::new("period_1_end_frame_id".into(), vec![period_1_end]),
+        Column::new("period_2_start_frame_id".into(), vec![period_2_start]),
+        Column::new("period_2_end_frame_id".into(), vec![period_2_end]),
+        Column::new("period_3_start_frame_id".into(), vec![period_3_start]),
+        Column::new("period_3_end_frame_id".into(), vec![period_3_end]),
+        Column::new("period_4_start_frame_id".into(), vec![period_4_start]),
+        Column::new("period_4_end_frame_id".into(), vec![period_4_end]),
+        Column::new("period_5_start_frame_id".into(), vec![period_5_start]),
+        Column::new("period_5_end_frame_id".into(), vec![period_5_end]),
     ])?;
 
     Ok(df)
@@ -43,6 +71,7 @@ pub fn build_metadata_df(metadata: &StandardMetadata) -> Result<DataFrame, Klopp
 mod tests {
     use super::*;
     use crate::models::{Ground, StandardPeriod, StandardTeam};
+    use crate::orientation::AttackingDirection;
     use chrono::NaiveDate;
 
     fn create_test_metadata() -> StandardMetadata {
@@ -69,9 +98,9 @@ mod tests {
             players: vec![],
             periods: vec![StandardPeriod {
                 period_id: 1,
-                start_frame_idx: 0,
-                end_frame_idx: 1000,
-                home_attacking_positive: true,
+                start_frame_id: 0,
+                end_frame_id: 1000,
+                home_attacking_direction: AttackingDirection::LeftToRight,
             }],
             pitch_length: 105.0,
             pitch_width: 68.0,
@@ -106,6 +135,16 @@ mod tests {
             "fps",
             "coordinate_system",
             "orientation",
+            "period_1_start_frame_id",
+            "period_1_end_frame_id",
+            "period_2_start_frame_id",
+            "period_2_end_frame_id",
+            "period_3_start_frame_id",
+            "period_3_end_frame_id",
+            "period_4_start_frame_id",
+            "period_4_end_frame_id",
+            "period_5_start_frame_id",
+            "period_5_end_frame_id",
         ];
 
         assert_eq!(df.width(), expected_columns.len());

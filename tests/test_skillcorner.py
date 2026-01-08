@@ -64,6 +64,16 @@ class TestMetadataDataFrame:
             "fps",
             "coordinate_system",
             "orientation",
+            "period_1_start_frame_id",
+            "period_1_end_frame_id",
+            "period_2_start_frame_id",
+            "period_2_end_frame_id",
+            "period_3_start_frame_id",
+            "period_3_end_frame_id",
+            "period_4_start_frame_id",
+            "period_4_end_frame_id",
+            "period_5_start_frame_id",
+            "period_5_end_frame_id",
         }
         assert set(metadata_df.columns) == expected_columns
 
@@ -139,7 +149,7 @@ class TestPlayerDataFrame:
 
     def test_schema(self, player_df):
         """Test that player_df has expected columns."""
-        expected_columns = {"team_id", "player_id", "name", "first_name", "last_name", "jersey_number", "position"}
+        expected_columns = {"team_id", "player_id", "name", "first_name", "last_name", "jersey_number", "position", "is_starter"}
         assert set(player_df.columns) == expected_columns
 
     def test_has_players(self, player_df):

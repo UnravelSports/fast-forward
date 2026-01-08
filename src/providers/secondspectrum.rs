@@ -5,14 +5,14 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
-use crate::coordinates::CoordinateSystem;
+use crate::coordinates::{transform_from_cdf, CoordinateSystem};
 use crate::dataframe::{build_metadata_df, build_player_df, build_team_df, build_tracking_df, Layout};
 use crate::error::KloppyError;
 use crate::models::{
     BallState, Ground, Position, StandardBall, StandardFrame, StandardMetadata, StandardPeriod,
     StandardPlayer, StandardPlayerPosition, StandardTeam,
 };
-use crate::orientation::{transform_frames, Orientation};
+use crate::orientation::{transform_frames, AttackingDirection, Orientation};
 
 // ============================================================================
 // SecondSpectrum JSON Types (raw format)
@@ -92,8 +92,10 @@ struct RawPeriod {
     start_frame_clock: i64,
     #[allow(dead_code)]
     end_frame_clock: i64,
-    start_frame_idx: u32,
-    end_frame_idx: u32,
+    #[serde(rename = "startFrameIdx")]
+    start_frame_id: u32,
+    #[serde(rename = "endFrameIdx")]
+    end_frame_id: u32,
     home_att_positive: bool,
 }
 
@@ -179,6 +181,8 @@ fn parse_metadata(
 
     for p in raw.home_players {
         let (first_name, last_name) = split_name(&p.name);
+        // Infer is_starter from position: SUB means substitute, otherwise starter
+        let is_starter = Some(p.position.to_uppercase() != "SUB");
         players.push(StandardPlayer {
             team_id: home_team_id.clone(),
             player_id: p.ssi_id,
@@ -187,11 +191,14 @@ fn parse_metadata(
             last_name,
             jersey_number: p.number,
             position: Position::from_secondspectrum(&p.position),
+            is_starter,
         });
     }
 
     for p in raw.away_players {
         let (first_name, last_name) = split_name(&p.name);
+        // Infer is_starter from position: SUB means substitute, otherwise starter
+        let is_starter = Some(p.position.to_uppercase() != "SUB");
         players.push(StandardPlayer {
             team_id: away_team_id.clone(),
             player_id: p.ssi_id,
@@ -200,6 +207,7 @@ fn parse_metadata(
             last_name,
             jersey_number: p.number,
             position: Position::from_secondspectrum(&p.position),
+            is_starter,
         });
     }
 
@@ -208,9 +216,13 @@ fn parse_metadata(
         .into_iter()
         .map(|p| StandardPeriod {
             period_id: p.number,
-            start_frame_idx: p.start_frame_idx,
-            end_frame_idx: p.end_frame_idx,
-            home_attacking_positive: p.home_att_positive,
+            start_frame_id: p.start_frame_id,
+            end_frame_id: p.end_frame_id,
+            home_attacking_direction: if p.home_att_positive {
+                AttackingDirection::LeftToRight
+            } else {
+                AttackingDirection::RightToLeft
+            },
         })
         .collect();
 
@@ -371,6 +383,41 @@ fn load_tracking(
 
     // Apply orientation transformation
     transform_frames(&mut frames, &periods, &home_team_id, orientation_enum);
+
+    // Apply coordinate system transformation (CDF is native, transform if needed)
+    if coordinate_system != CoordinateSystem::Cdf {
+        let pitch_length = metadata_struct.pitch_length;
+        let pitch_width = metadata_struct.pitch_width;
+        for frame in &mut frames {
+            // Transform ball coordinates
+            let (bx, by, bz) = transform_from_cdf(
+                frame.ball.x,
+                frame.ball.y,
+                frame.ball.z,
+                coordinate_system,
+                pitch_length,
+                pitch_width,
+            );
+            frame.ball.x = bx;
+            frame.ball.y = by;
+            frame.ball.z = bz;
+
+            // Transform player coordinates
+            for player in &mut frame.players {
+                let (px, py, pz) = transform_from_cdf(
+                    player.x,
+                    player.y,
+                    player.z,
+                    coordinate_system,
+                    pitch_length,
+                    pitch_width,
+                );
+                player.x = px;
+                player.y = py;
+                player.z = pz;
+            }
+        }
+    }
 
     // Build DataFrames
     let tracking_df = build_tracking_df(&frames, layout_enum)?;
