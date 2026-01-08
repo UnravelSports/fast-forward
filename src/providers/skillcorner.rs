@@ -413,8 +413,31 @@ fn load_tracking(
     ))
 }
 
+/// Load only metadata without parsing tracking data.
+/// This is used for lazy loading to avoid loading tracking data twice.
+#[pyfunction]
+#[pyo3(signature = (meta_data, coordinates="cdf", orientation="static_home_away"))]
+fn load_metadata_only(
+    meta_data: &str,
+    coordinates: &str,
+    orientation: &str,
+) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame)> {
+    let (metadata_struct, _, _, _, _) = parse_metadata(meta_data, coordinates, orientation)?;
+
+    let metadata_df = build_metadata_df(&metadata_struct)?;
+    let team_df = build_team_df(&metadata_struct.teams)?;
+    let player_df = build_player_df(&metadata_struct.players)?;
+
+    Ok((
+        PyDataFrame(metadata_df),
+        PyDataFrame(team_df),
+        PyDataFrame(player_df),
+    ))
+}
+
 /// Register this module
 pub fn register_module(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(load_tracking, m)?)?;
+    m.add_function(wrap_pyfunction!(load_metadata_only, m)?)?;
     Ok(())
 }

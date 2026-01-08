@@ -108,15 +108,11 @@ def load_tracking(
             The tracking_lazy object supports .filter(), .select(), and .collect()
     """
     if lazy:
-        # Get metadata, team, and player DataFrames eagerly
-        # but defer tracking data parsing
-        _, metadata_df, team_df, player_df = _secondspectrum.load_tracking(
-            raw_data,
+        # Get only metadata without loading tracking data
+        metadata_df, team_df, player_df = _secondspectrum.load_metadata_only(
             meta_data,
-            layout=layout,
             coordinates=coordinates,
             orientation=orientation,
-            only_alive=only_alive,
         )
 
         lazy_loader = LazyTrackingLoader(
