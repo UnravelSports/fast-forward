@@ -661,6 +661,7 @@ dependencies = [
  "pyo3",
  "pyo3-polars",
  "quick-xml",
+ "regex",
  "serde",
  "serde_json",
  "thiserror 1.0.69",

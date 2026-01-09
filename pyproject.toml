@@ -25,13 +25,18 @@ classifiers = [
 ]
 dependencies = [
     "polars>=1.0.0",
+    "kloppy>=3.18.0",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0",
     "maturin>=1.7",
-    "memory-profiler>=0.61",
+]
+test-s3 = [
+    "moto[server]>=5.0.0",   # Mock AWS services
+    "s3fs>=2024.0.0",         # S3 filesystem for kloppy
+    "boto3>=1.35.0",          # AWS SDK
 ]
 
 [tool.maturin]

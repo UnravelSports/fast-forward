@@ -28,5 +28,10 @@ fn _kloppy_light(m: &Bound<'_, PyModule>) -> PyResult<()> {
     providers::sportec::register_module(&sportec)?;
     m.add_submodule(&sportec)?;
 
+    // Register hawkeye submodule
+    let hawkeye = PyModule::new_bound(m.py(), "hawkeye")?;
+    providers::hawkeye::register_module(&hawkeye)?;
+    m.add_submodule(&hawkeye)?;
+
     Ok(())
 }
