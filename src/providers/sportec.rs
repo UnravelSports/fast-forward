@@ -3,8 +3,7 @@ use pyo3_polars::PyDataFrame;
 use quick_xml::events::Event;
 use quick_xml::Reader;
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::BufReader;
+use std::io::{BufReader, Cursor};
 
 use crate::coordinates::{transform_from_cdf, CoordinateSystem};
 use crate::dataframe::{build_metadata_df, build_player_df, build_team_df, build_tracking_df, Layout};
@@ -95,7 +94,7 @@ fn game_section_to_period_id(game_section: &str) -> u8 {
 // ============================================================================
 
 fn parse_metadata(
-    meta_path: &str,
+    meta_data: &[u8],
     coordinate_system: &str,
     orientation: &str,
     include_referees: bool,
@@ -110,8 +109,8 @@ fn parse_metadata(
     ),
     KloppyError,
 > {
-    let file = File::open(meta_path)?;
-    let reader = BufReader::new(file);
+    let cursor = Cursor::new(meta_data);
+    let reader = BufReader::new(cursor);
     let mut xml_reader = Reader::from_reader(reader);
     xml_reader.trim_text(true);
 
@@ -356,13 +355,13 @@ fn parse_metadata(
 }
 
 fn parse_tracking_frames(
-    tracking_path: &str,
+    tracking_data: &[u8],
     player_id_map: &HashMap<String, (String, String)>,
     home_team_id: &str,
     only_alive: bool,
 ) -> Result<(Vec<StandardFrame>, Vec<StandardPeriod>), KloppyError> {
-    let file = File::open(tracking_path)?;
-    let reader = BufReader::new(file);
+    let cursor = Cursor::new(tracking_data);
+    let reader = BufReader::new(cursor);
     let mut xml_reader = Reader::from_reader(reader);
     xml_reader.trim_text(true);
 
@@ -631,8 +630,8 @@ fn resolve_game_id(
 #[pyo3(signature = (raw_data, meta_data, layout="long", coordinates="cdf", orientation="static_home_away", only_alive=true, include_game_id=None, include_referees=false))]
 fn load_tracking(
     py: Python<'_>,
-    raw_data: &str,
-    meta_data: &str,
+    raw_data: &[u8],
+    meta_data: &[u8],
     layout: &str,
     coordinates: &str,
     orientation: &str,
@@ -719,7 +718,7 @@ fn load_tracking(
 #[pyo3(signature = (meta_data, coordinates="cdf", orientation="static_home_away", include_game_id=None, include_referees=false))]
 fn load_metadata_only(
     py: Python<'_>,
-    meta_data: &str,
+    meta_data: &[u8],
     coordinates: &str,
     orientation: &str,
     include_game_id: Option<Bound<'_, PyAny>>,

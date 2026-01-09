@@ -3,14 +3,16 @@
 from typing import Literal, Tuple, Union, overload
 import polars as pl
 
+from kloppy.io import FileLike, open_as_file
+
 from kloppy_light._kloppy_light import sportec as _sportec
 from kloppy_light._lazy import LazyTrackingLoader
 
 
 @overload
 def load_tracking(
-    raw_data: str,
-    meta_data: str,
+    raw_data: FileLike,
+    meta_data: FileLike,
     layout: Literal["long", "long_ball", "wide"] = "long",
     coordinates: Literal["cdf"] = "cdf",
     orientation: Literal[
@@ -31,8 +33,8 @@ def load_tracking(
 
 @overload
 def load_tracking(
-    raw_data: str,
-    meta_data: str,
+    raw_data: FileLike,
+    meta_data: FileLike,
     layout: Literal["long", "long_ball", "wide"] = "long",
     coordinates: Literal["cdf"] = "cdf",
     orientation: Literal[
@@ -52,8 +54,8 @@ def load_tracking(
 
 
 def load_tracking(
-    raw_data: str,
-    meta_data: str,
+    raw_data: FileLike,
+    meta_data: FileLike,
     layout: Literal["long", "long_ball", "wide"] = "long",
     coordinates: Literal["cdf"] = "cdf",
     orientation: Literal[
@@ -78,10 +80,12 @@ def load_tracking(
 
     Parameters
     ----------
-    raw_data : str
-        Path to tracking XML file (e.g., *_tracking.xml)
-    meta_data : str
-        Path to match info XML file (e.g., *_match_info.xml)
+    raw_data : FileLike
+        Path to tracking XML file (e.g., *_tracking.xml), or bytes, or file-like object.
+        Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.
+    meta_data : FileLike
+        Path to match info XML file (e.g., *_match_info.xml), or bytes, or file-like object.
+        Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.
     layout : {"long", "long_ball", "wide"}, default "long"
         DataFrame layout:
         - "long": Ball as row with team_id="ball", player_id="ball"
@@ -122,9 +126,13 @@ def load_tracking(
             The tracking_lazy object supports .filter(), .select(), and .collect()
     """
     if lazy:
+        # Convert FileLike to bytes for metadata loading
+        with open_as_file(meta_data) as meta_file:
+            meta_bytes = meta_file.read() if meta_file else b""
+
         # Get only metadata without loading tracking data
         metadata_df, team_df, player_df = _sportec.load_metadata_only(
-            meta_data,
+            meta_bytes,
             coordinates=coordinates,
             orientation=orientation,
             include_game_id=include_game_id,
@@ -145,9 +153,17 @@ def load_tracking(
 
         return lazy_loader, metadata_df, team_df, player_df
     else:
+        # Convert FileLike to bytes
+        with open_as_file(meta_data) as meta_file:
+            meta_bytes = meta_file.read() if meta_file else b""
+
+        with open_as_file(raw_data) as raw_file:
+            raw_bytes = raw_file.read() if raw_file else b""
+
+        # Pass bytes to Rust
         return _sportec.load_tracking(
-            raw_data,
-            meta_data,
+            raw_bytes,
+            meta_bytes,
             layout=layout,
             coordinates=coordinates,
             orientation=orientation,

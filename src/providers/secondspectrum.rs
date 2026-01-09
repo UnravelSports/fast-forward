@@ -2,8 +2,7 @@ use pyo3::prelude::*;
 use pyo3_polars::PyDataFrame;
 use serde::Deserialize;
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Cursor};
 
 use crate::coordinates::{transform_from_cdf, CoordinateSystem};
 use crate::dataframe::{build_metadata_df, build_player_df, build_team_df, build_tracking_df, Layout};
@@ -133,12 +132,12 @@ fn split_name(name: &str) -> (Option<String>, Option<String>) {
 // ============================================================================
 
 fn parse_metadata(
-    path: &str,
+    data: &[u8],
     coordinate_system: &str,
     orientation: &str,
 ) -> Result<(StandardMetadata, String, String, Vec<StandardPeriod>), KloppyError> {
-    let file = File::open(path)?;
-    let reader = BufReader::new(file);
+    let cursor = Cursor::new(data);
+    let reader = BufReader::new(cursor);
     let raw: RawMetadata = serde_json::from_reader(reader)?;
 
     // Extract team names from description (format: "TEAM1 - TEAM2 : DATE")
@@ -248,14 +247,14 @@ fn parse_metadata(
 }
 
 fn parse_tracking_frames(
-    path: &str,
+    data: &[u8],
     home_team_id: &str,
     away_team_id: &str,
     _coordinate_system: CoordinateSystem,
     only_alive: bool,
 ) -> Result<Vec<StandardFrame>, KloppyError> {
-    let file = File::open(path)?;
-    let reader = BufReader::new(file);
+    let cursor = Cursor::new(data);
+    let reader = BufReader::new(cursor);
 
     // Build a map from player_id to team_id for quick lookup
     let mut player_team_map: HashMap<String, String> = HashMap::new();
@@ -393,8 +392,8 @@ fn resolve_game_id(
 #[pyo3(signature = (raw_data, meta_data, layout="long", coordinates="cdf", orientation="static_home_away", only_alive=true, include_game_id=None))]
 fn load_tracking(
     py: Python<'_>,
-    raw_data: &str,
-    meta_data: &str,
+    raw_data: &[u8],
+    meta_data: &[u8],
     layout: &str,
     coordinates: &str,
     orientation: &str,
@@ -484,7 +483,7 @@ fn load_tracking(
 #[pyo3(signature = (meta_data, coordinates="cdf", orientation="static_home_away", include_game_id=None))]
 fn load_metadata_only(
     py: Python<'_>,
-    meta_data: &str,
+    meta_data: &[u8],
     coordinates: &str,
     orientation: &str,
     include_game_id: Option<Bound<'_, PyAny>>,

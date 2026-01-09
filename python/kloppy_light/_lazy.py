@@ -3,6 +3,8 @@
 import polars as pl
 from typing import List, Optional, Union
 
+from kloppy.io import FileLike
+
 
 class LazyTrackingLoader:
     """Defers tracking data loading until .collect() is called.
@@ -32,8 +34,8 @@ class LazyTrackingLoader:
     def __init__(
         self,
         provider: str,
-        raw_data: str,
-        meta_data: str,
+        raw_data: FileLike,
+        meta_data: FileLike,
         layout: str,
         coordinates: str,
         orientation: str,
@@ -127,17 +129,25 @@ class LazyTrackingLoader:
             The loaded and processed tracking data.
         """
         # Import from the Rust module directly to avoid recursion
+        from kloppy.io import open_as_file
         from kloppy_light._kloppy_light import secondspectrum as _ss
         from kloppy_light._kloppy_light import skillcorner as _sc
         from kloppy_light._kloppy_light import sportec as _sp
+
+        # Convert FileLike to bytes
+        with open_as_file(self._meta_data) as meta_file:
+            meta_bytes = meta_file.read() if meta_file else b""
+
+        with open_as_file(self._raw_data) as raw_file:
+            raw_bytes = raw_file.read() if raw_file else b""
 
         # Get include_game_id from kwargs
         include_game_id = self._kwargs.get("include_game_id", True)
 
         if self._provider == "secondspectrum":
             tracking_df, _, _, _ = _ss.load_tracking(
-                self._raw_data,
-                self._meta_data,
+                raw_bytes,
+                meta_bytes,
                 layout=self._layout,
                 coordinates=self._coordinates,
                 orientation=self._orientation,
@@ -148,8 +158,8 @@ class LazyTrackingLoader:
             # Get skillcorner-specific kwargs
             include_empty_frames = self._kwargs.get("include_empty_frames", False)
             tracking_df, _, _, _ = _sc.load_tracking(
-                self._raw_data,
-                self._meta_data,
+                raw_bytes,
+                meta_bytes,
                 layout=self._layout,
                 coordinates=self._coordinates,
                 orientation=self._orientation,
@@ -161,8 +171,8 @@ class LazyTrackingLoader:
             # Get sportec-specific kwargs
             include_referees = self._kwargs.get("include_referees", False)
             tracking_df, _, _, _ = _sp.load_tracking(
-                self._raw_data,
-                self._meta_data,
+                raw_bytes,
+                meta_bytes,
                 layout=self._layout,
                 coordinates=self._coordinates,
                 orientation=self._orientation,
