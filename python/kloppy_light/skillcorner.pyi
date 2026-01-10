@@ -1,8 +1,9 @@
 """Type stubs for kloppy_light.skillcorner"""
 
-from typing import Literal, Tuple, Union, overload
+from typing import Literal, Union, overload
 import polars as pl
 from ._lazy import LazyTrackingLoader
+from ._dataset import TrackingDataset
 
 
 @overload
@@ -22,8 +23,8 @@ def load_tracking(
     only_alive: bool = False,
     include_empty_frames: bool = False,
     *,
-    lazy: Literal[False] = False,
-) -> Tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame]: ...
+    lazy: Literal[False],
+) -> TrackingDataset: ...
 
 
 @overload
@@ -43,8 +44,8 @@ def load_tracking(
     only_alive: bool = False,
     include_empty_frames: bool = False,
     *,
-    lazy: Literal[True],
-) -> Tuple[LazyTrackingLoader, pl.DataFrame, pl.DataFrame, pl.DataFrame]: ...
+    lazy: Literal[True] = True,
+) -> TrackingDataset: ...
 
 
 def load_tracking(
@@ -63,11 +64,8 @@ def load_tracking(
     only_alive: bool = False,
     include_empty_frames: bool = False,
     *,
-    lazy: bool = False,
-) -> Union[
-    Tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame],
-    Tuple[LazyTrackingLoader, pl.DataFrame, pl.DataFrame, pl.DataFrame],
-]:
+    lazy: bool = True,
+) -> TrackingDataset:
     """
     Load SkillCorner tracking data.
 

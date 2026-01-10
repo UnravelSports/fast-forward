@@ -33,11 +33,11 @@ class TestFilePathInputs:
         raw_data = str(DATA_DIR / "secondspectrum_tracking.jsonl")
         meta_data = str(DATA_DIR / "secondspectrum_meta.json")
 
-        result = secondspectrum.load_tracking(raw_data, meta_data)
-
-        assert isinstance(result, tuple)
-        assert len(result) == 4
-        tracking_df, metadata_df, team_df, player_df = result
+        dataset = secondspectrum.load_tracking(raw_data, meta_data, lazy=False)
+        tracking_df = dataset.tracking
+        metadata_df = dataset.metadata
+        team_df = dataset.teams
+        player_df = dataset.players
         assert isinstance(tracking_df, pl.DataFrame)
         assert len(tracking_df) > 0
 
@@ -46,11 +46,11 @@ class TestFilePathInputs:
         raw_data = DATA_DIR / "secondspectrum_tracking.jsonl"
         meta_data = DATA_DIR / "secondspectrum_meta.json"
 
-        result = secondspectrum.load_tracking(raw_data, meta_data)
-
-        assert isinstance(result, tuple)
-        assert len(result) == 4
-        tracking_df, metadata_df, team_df, player_df = result
+        dataset = secondspectrum.load_tracking(raw_data, meta_data, lazy=False)
+        tracking_df = dataset.tracking
+        metadata_df = dataset.metadata
+        team_df = dataset.teams
+        player_df = dataset.players
         assert isinstance(tracking_df, pl.DataFrame)
         assert len(tracking_df) > 0
 
@@ -67,11 +67,11 @@ class TestFilePathInputs:
         raw_data = str(DATA_DIR / raw_file)
         meta_data = str(DATA_DIR / meta_file)
 
-        result = provider.load_tracking(raw_data, meta_data)
-
-        assert isinstance(result, tuple)
-        assert len(result) == 4
-        tracking_df, metadata_df, team_df, player_df = result
+        dataset = provider.load_tracking(raw_data, meta_data, lazy=False)
+        tracking_df = dataset.tracking
+        metadata_df = dataset.metadata
+        team_df = dataset.teams
+        player_df = dataset.players
         assert isinstance(tracking_df, pl.DataFrame)
         assert len(tracking_df) > 0
         assert len(team_df) == 2
@@ -93,11 +93,11 @@ class TestBytesInputs:
             meta_bytes = f.read()
 
         # Pass bytes to load_tracking
-        result = secondspectrum.load_tracking(raw_bytes, meta_bytes)
-
-        assert isinstance(result, tuple)
-        assert len(result) == 4
-        tracking_df, metadata_df, team_df, player_df = result
+        dataset = secondspectrum.load_tracking(raw_bytes, meta_bytes, lazy=False)
+        tracking_df = dataset.tracking
+        metadata_df = dataset.metadata
+        team_df = dataset.teams
+        player_df = dataset.players
         assert isinstance(tracking_df, pl.DataFrame)
         assert len(tracking_df) > 0
 
@@ -120,10 +120,11 @@ class TestBytesInputs:
             meta_bytes = f.read()
 
         # Load with bytes
-        result = provider.load_tracking(raw_bytes, meta_bytes)
-
-        assert isinstance(result, tuple)
-        tracking_df, metadata_df, team_df, player_df = result
+        dataset = provider.load_tracking(raw_bytes, meta_bytes, lazy=False)
+        tracking_df = dataset.tracking
+        metadata_df = dataset.metadata
+        team_df = dataset.teams
+        player_df = dataset.players
         assert len(tracking_df) > 0
 
     def test_bytes_produces_same_result_as_paths(self):
@@ -132,18 +133,18 @@ class TestBytesInputs:
         meta_path = DATA_DIR / "secondspectrum_meta.json"
 
         # Load with paths
-        result_paths = secondspectrum.load_tracking(str(raw_path), str(meta_path))
+        dataset_paths = secondspectrum.load_tracking(str(raw_path), str(meta_path), lazy=False)
 
         # Load with bytes
         with open(raw_path, "rb") as f:
             raw_bytes = f.read()
         with open(meta_path, "rb") as f:
             meta_bytes = f.read()
-        result_bytes = secondspectrum.load_tracking(raw_bytes, meta_bytes)
+        dataset_bytes = secondspectrum.load_tracking(raw_bytes, meta_bytes, lazy=False)
 
         # Compare tracking DataFrames
-        tracking_paths, _, _, _ = result_paths
-        tracking_bytes, _, _, _ = result_bytes
+        tracking_paths = dataset_paths.tracking
+        tracking_bytes = dataset_bytes.tracking
 
         assert len(tracking_paths) == len(tracking_bytes)
         assert tracking_paths.schema == tracking_bytes.schema
@@ -159,11 +160,11 @@ class TestFileHandleInputs:
 
         # Open files and pass handles
         with open(raw_path, "rb") as raw_handle, open(meta_path, "rb") as meta_handle:
-            result = secondspectrum.load_tracking(raw_handle, meta_handle)
-
-        assert isinstance(result, tuple)
-        assert len(result) == 4
-        tracking_df, metadata_df, team_df, player_df = result
+            dataset = secondspectrum.load_tracking(raw_handle, meta_handle, lazy=False)
+        tracking_df = dataset.tracking
+        metadata_df = dataset.metadata
+        team_df = dataset.teams
+        player_df = dataset.players
         assert isinstance(tracking_df, pl.DataFrame)
         assert len(tracking_df) > 0
 
@@ -173,11 +174,15 @@ class TestFileHandleInputs:
         meta_path = DATA_DIR / "secondspectrum_meta.json"
 
         with open(raw_path, "rb") as raw, open(meta_path, "rb") as meta:
-            tracking_df, metadata_df, team_df, player_df = secondspectrum.load_tracking(raw, meta)
+            dataset = secondspectrum.load_tracking(raw, meta, lazy=False)
+        tracking_df = dataset.tracking
+        metadata_df = dataset.metadata
+        team_df = dataset.teams
+        player_df = dataset.players
 
-            assert isinstance(tracking_df, pl.DataFrame)
-            assert len(tracking_df) > 0
-            assert len(team_df) == 2
+        assert isinstance(tracking_df, pl.DataFrame)
+        assert len(tracking_df) > 0
+        assert len(team_df) == 2
 
     @pytest.mark.parametrize("provider_name,raw_file,meta_file", [
         ("secondspectrum", "secondspectrum_tracking.jsonl", "secondspectrum_meta.json"),
@@ -192,11 +197,10 @@ class TestFileHandleInputs:
         meta_path = DATA_DIR / meta_file
 
         with open(raw_path, "rb") as raw, open(meta_path, "rb") as meta:
-            result = provider.load_tracking(raw, meta)
+            dataset = provider.load_tracking(raw, meta, lazy=False)
 
-        tracking_df, metadata_df, team_df, player_df = result
-        assert len(tracking_df) > 0
-        assert len(team_df) == 2
+        assert len(dataset.tracking) > 0
+        assert len(dataset.teams) == 2
 
 
 class TestLazyLoadingWithFileLike:
@@ -207,12 +211,12 @@ class TestLazyLoadingWithFileLike:
         raw_data = str(DATA_DIR / "secondspectrum_tracking.jsonl")
         meta_data = str(DATA_DIR / "secondspectrum_meta.json")
 
-        lazy_loader, metadata_df, team_df, player_df = secondspectrum.load_tracking(
+        dataset = secondspectrum.load_tracking(
             raw_data, meta_data, lazy=True
         )
 
-        assert hasattr(lazy_loader, 'collect')
-        tracking_df = lazy_loader.collect()
+        assert hasattr(dataset.tracking, 'collect')
+        tracking_df = dataset.tracking.collect()
         assert isinstance(tracking_df, pl.DataFrame)
         assert len(tracking_df) > 0
 
@@ -221,11 +225,11 @@ class TestLazyLoadingWithFileLike:
         raw_data = DATA_DIR / "secondspectrum_tracking.jsonl"
         meta_data = DATA_DIR / "secondspectrum_meta.json"
 
-        lazy_loader, metadata_df, team_df, player_df = secondspectrum.load_tracking(
+        dataset = secondspectrum.load_tracking(
             raw_data, meta_data, lazy=True
         )
 
-        tracking_df = lazy_loader.collect()
+        tracking_df = dataset.tracking.collect()
         assert isinstance(tracking_df, pl.DataFrame)
         assert len(tracking_df) > 0
 
@@ -239,11 +243,11 @@ class TestLazyLoadingWithFileLike:
         with open(meta_path, "rb") as f:
             meta_bytes = f.read()
 
-        lazy_loader, metadata_df, team_df, player_df = secondspectrum.load_tracking(
+        dataset = secondspectrum.load_tracking(
             raw_bytes, meta_bytes, lazy=True
         )
 
-        tracking_df = lazy_loader.collect()
+        tracking_df = dataset.tracking.collect()
         assert isinstance(tracking_df, pl.DataFrame)
         assert len(tracking_df) > 0
 
@@ -253,11 +257,17 @@ class TestLazyLoadingWithFileLike:
         meta_data = str(DATA_DIR / "secondspectrum_meta.json")
 
         # Eager loading
-        tracking_eager, _, _, _ = secondspectrum.load_tracking(raw_data, meta_data, lazy=False)
+        dataset = secondspectrum.load_tracking(
+            raw_data, meta_data, lazy=False
+        )
+        tracking_eager = dataset.tracking
 
         # Lazy loading
-        lazy_loader, _, _, _ = secondspectrum.load_tracking(raw_data, meta_data, lazy=True)
-        tracking_lazy = lazy_loader.collect()
+        dataset = secondspectrum.load_tracking(
+            raw_data, meta_data, lazy=True
+        )
+        lazy_loader = dataset.tracking
+        tracking_lazy = dataset.tracking.collect()
 
         assert len(tracking_eager) == len(tracking_lazy)
         assert tracking_eager.schema == tracking_lazy.schema
@@ -325,20 +335,22 @@ class TestInputTypeConsistency:
     def test_string_vs_path_consistency(self, ss_files):
         """Verify string paths and Path objects produce identical results."""
         # Load with string paths
-        result_string = secondspectrum.load_tracking(
+        dataset_string = secondspectrum.load_tracking(
             str(ss_files['raw']),
-            str(ss_files['meta'])
+            str(ss_files['meta']),
+            lazy=False
         )
 
         # Load with Path objects
-        result_path = secondspectrum.load_tracking(
+        dataset_path = secondspectrum.load_tracking(
             ss_files['raw'],
-            ss_files['meta']
+            ss_files['meta'],
+            lazy=False
         )
 
         # Compare
-        tracking_string, _, _, _ = result_string
-        tracking_path, _, _, _ = result_path
+        tracking_string = dataset_string.tracking
+        tracking_path = dataset_path.tracking
 
         assert len(tracking_string) == len(tracking_path)
         assert tracking_string.schema == tracking_path.schema
@@ -346,9 +358,10 @@ class TestInputTypeConsistency:
     def test_path_vs_bytes_consistency(self, ss_files):
         """Verify Path objects and bytes produce identical results."""
         # Load with Path objects
-        result_path = secondspectrum.load_tracking(
+        dataset_path = secondspectrum.load_tracking(
             ss_files['raw'],
-            ss_files['meta']
+            ss_files['meta'],
+            lazy=False
         )
 
         # Load with bytes
@@ -356,11 +369,11 @@ class TestInputTypeConsistency:
             raw_bytes = f.read()
         with open(ss_files['meta'], "rb") as f:
             meta_bytes = f.read()
-        result_bytes = secondspectrum.load_tracking(raw_bytes, meta_bytes)
+        dataset_bytes = secondspectrum.load_tracking(raw_bytes, meta_bytes, lazy=False)
 
         # Compare
-        tracking_path, _, _, _ = result_path
-        tracking_bytes, _, _, _ = result_bytes
+        tracking_path = dataset_path.tracking
+        tracking_bytes = dataset_bytes.tracking
 
         assert len(tracking_path) == len(tracking_bytes)
         assert tracking_path.schema == tracking_bytes.schema
@@ -368,18 +381,19 @@ class TestInputTypeConsistency:
     def test_string_vs_file_handle_consistency(self, ss_files):
         """Verify string paths and file handles produce identical results."""
         # Load with string paths
-        result_string = secondspectrum.load_tracking(
+        dataset_string = secondspectrum.load_tracking(
             str(ss_files['raw']),
-            str(ss_files['meta'])
+            str(ss_files['meta']),
+            lazy=False
         )
 
         # Load with file handles
         with open(ss_files['raw'], "rb") as raw, open(ss_files['meta'], "rb") as meta:
-            result_handle = secondspectrum.load_tracking(raw, meta)
+            dataset_handle = secondspectrum.load_tracking(raw, meta, lazy=False)
 
         # Compare
-        tracking_string, _, _, _ = result_string
-        tracking_handle, _, _, _ = result_handle
+        tracking_string = dataset_string.tracking
+        tracking_handle = dataset_handle.tracking
 
         assert len(tracking_string) == len(tracking_handle)
         assert tracking_string.schema == tracking_handle.schema
@@ -452,11 +466,11 @@ class TestS3Adapter:
         raw_s3_path = f"s3://{self.bucket}/secondspectrum_tracking.jsonl"
         meta_s3_path = f"s3://{self.bucket}/secondspectrum_meta.json"
 
-        result = secondspectrum.load_tracking(raw_s3_path, meta_s3_path)
-
-        assert isinstance(result, tuple)
-        assert len(result) == 4
-        tracking_df, metadata_df, team_df, player_df = result
+        dataset = secondspectrum.load_tracking(raw_s3_path, meta_s3_path, lazy=False)
+        tracking_df = dataset.tracking
+        metadata_df = dataset.metadata
+        team_df = dataset.teams
+        player_df = dataset.players
         assert isinstance(tracking_df, pl.DataFrame)
         assert len(tracking_df) > 0
         assert len(team_df) == 2
@@ -467,16 +481,16 @@ class TestS3Adapter:
         raw_s3_path = f"s3://{self.bucket}/secondspectrum_tracking.jsonl"
         meta_s3_path = f"s3://{self.bucket}/secondspectrum_meta.json"
 
-        lazy_loader, metadata_df, team_df, player_df = secondspectrum.load_tracking(
+        dataset = secondspectrum.load_tracking(
             raw_s3_path, meta_s3_path, lazy=True
         )
 
-        from kloppy_light._lazy import LazyTrackingLoader
-        assert isinstance(lazy_loader, LazyTrackingLoader)
-        assert len(team_df) == 2
-        assert len(player_df) > 0
+        from kloppy_light import LazyTrackingLoader
+        assert isinstance(dataset.tracking, LazyTrackingLoader)
+        assert len(dataset.teams) == 2
+        assert len(dataset.players) > 0
 
         # Collect the data
-        tracking_df = lazy_loader.collect()
+        tracking_df = dataset.tracking.collect()
         assert isinstance(tracking_df, pl.DataFrame)
         assert len(tracking_df) > 0

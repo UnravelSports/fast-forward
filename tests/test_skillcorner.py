@@ -16,34 +16,31 @@ META_DATA_PATH = str(DATA_DIR / "skillcorner_meta.json")
 class TestLoadTracking:
     """Tests for skillcorner.load_tracking function."""
 
-    def test_returns_four_dataframes(self):
-        """Test that load_tracking returns a 4-tuple of DataFrames."""
-        result = skillcorner.load_tracking(RAW_DATA_PATH, META_DATA_PATH)
+    def test_returns_dataset(self):
+        """Test that load_tracking returns a TrackingDataset."""
+        from kloppy_light import TrackingDataset
 
-        assert isinstance(result, tuple)
-        assert len(result) == 4
-        assert all(isinstance(df, pl.DataFrame) for df in result)
+        dataset = skillcorner.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
 
-    def test_unpacking(self):
-        """Test that the 4-tuple can be unpacked correctly."""
-        tracking_df, metadata_df, team_df, player_df = skillcorner.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH
-        )
-
-        assert isinstance(tracking_df, pl.DataFrame)
-        assert isinstance(metadata_df, pl.DataFrame)
-        assert isinstance(team_df, pl.DataFrame)
-        assert isinstance(player_df, pl.DataFrame)
+        assert isinstance(dataset, TrackingDataset)
+        assert isinstance(dataset.tracking, pl.DataFrame)
+        assert isinstance(dataset.metadata, pl.DataFrame)
+        assert isinstance(dataset.teams, pl.DataFrame)
+        assert isinstance(dataset.players, pl.DataFrame)
 
 
 class TestMetadataDataFrame:
     """Tests for the metadata DataFrame."""
 
     @pytest.fixture
-    def metadata_df(self):
-        """Load and return the metadata DataFrame."""
-        _, metadata_df, _, _ = skillcorner.load_tracking(RAW_DATA_PATH, META_DATA_PATH)
-        return metadata_df
+    def dataset(self):
+        """Load and return the dataset."""
+        return skillcorner.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
+
+    @pytest.fixture
+    def metadata_df(self, dataset):
+        """Return the metadata DataFrame."""
+        return dataset.metadata
 
     def test_single_row(self, metadata_df):
         """Test that metadata_df contains exactly one row."""
@@ -64,16 +61,6 @@ class TestMetadataDataFrame:
             "fps",
             "coordinate_system",
             "orientation",
-            "period_1_start_frame_id",
-            "period_1_end_frame_id",
-            "period_2_start_frame_id",
-            "period_2_end_frame_id",
-            "period_3_start_frame_id",
-            "period_3_end_frame_id",
-            "period_4_start_frame_id",
-            "period_4_end_frame_id",
-            "period_5_start_frame_id",
-            "period_5_end_frame_id",
         }
         assert set(metadata_df.columns) == expected_columns
 
@@ -118,10 +105,14 @@ class TestTeamDataFrame:
     """Tests for the team DataFrame."""
 
     @pytest.fixture
-    def team_df(self):
-        """Load and return the team DataFrame."""
-        _, _, team_df, _ = skillcorner.load_tracking(RAW_DATA_PATH, META_DATA_PATH)
-        return team_df
+    def dataset(self):
+        """Load and return the dataset."""
+        return skillcorner.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
+
+    @pytest.fixture
+    def team_df(self, dataset):
+        """Return the team DataFrame."""
+        return dataset.teams
 
     def test_two_rows(self, team_df):
         """Test that team_df contains exactly two rows."""
@@ -142,10 +133,14 @@ class TestPlayerDataFrame:
     """Tests for the player DataFrame."""
 
     @pytest.fixture
-    def player_df(self):
-        """Load and return the player DataFrame."""
-        _, _, _, player_df = skillcorner.load_tracking(RAW_DATA_PATH, META_DATA_PATH)
-        return player_df
+    def dataset(self):
+        """Load and return the dataset."""
+        return skillcorner.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
+
+    @pytest.fixture
+    def player_df(self, dataset):
+        """Return the player DataFrame."""
+        return dataset.players
 
     def test_schema(self, player_df):
         """Test that player_df has expected columns."""
@@ -181,12 +176,16 @@ class TestTrackingDataFrameLong:
     """Tests for tracking DataFrame with 'long' layout."""
 
     @pytest.fixture
-    def tracking_df(self):
-        """Load tracking data with long layout."""
-        tracking_df, _, _, _ = skillcorner.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, layout="long"
+    def dataset(self):
+        """Load dataset with long layout."""
+        return skillcorner.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, layout="long", lazy=False
         )
-        return tracking_df
+
+    @pytest.fixture
+    def tracking_df(self, dataset):
+        """Return the tracking DataFrame."""
+        return dataset.tracking
 
     def test_schema(self, tracking_df):
         """Test that long format has expected columns."""
@@ -227,12 +226,16 @@ class TestTrackingDataFrameLongBall:
     """Tests for tracking DataFrame with 'long_ball' layout."""
 
     @pytest.fixture
-    def tracking_df(self):
-        """Load tracking data with long_ball layout."""
-        tracking_df, _, _, _ = skillcorner.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, layout="long_ball"
+    def dataset(self):
+        """Load dataset with long_ball layout."""
+        return skillcorner.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, layout="long_ball", lazy=False
         )
-        return tracking_df
+
+    @pytest.fixture
+    def tracking_df(self, dataset):
+        """Return the tracking DataFrame."""
+        return dataset.tracking
 
     def test_schema(self, tracking_df):
         """Test that long_ball format has expected columns."""
@@ -264,12 +267,16 @@ class TestTrackingDataFrameWide:
     """Tests for tracking DataFrame with 'wide' layout."""
 
     @pytest.fixture
-    def tracking_df(self):
-        """Load tracking data with wide layout."""
-        tracking_df, _, _, _ = skillcorner.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, layout="wide"
+    def dataset(self):
+        """Load dataset with wide layout."""
+        return skillcorner.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, layout="wide", lazy=False
         )
-        return tracking_df
+
+    @pytest.fixture
+    def tracking_df(self, dataset):
+        """Return the tracking DataFrame."""
+        return dataset.tracking
 
     def test_base_columns(self, tracking_df):
         """Test that wide format has expected base columns."""
@@ -307,15 +314,15 @@ class TestIncludeEmptyFrames:
 
     def test_empty_frames_excluded_by_default(self):
         """Test that empty frames are excluded by default."""
-        df_no_empty, _, _, _ = skillcorner.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, include_empty_frames=False
+        dataset_no_empty = skillcorner.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, include_empty_frames=False, lazy=False
         )
-        df_with_empty, _, _, _ = skillcorner.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, include_empty_frames=True
+        dataset_with_empty = skillcorner.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, include_empty_frames=True, lazy=False
         )
 
         # With empty frames should have more rows (or equal if no empty frames)
-        assert df_with_empty.height >= df_no_empty.height
+        assert dataset_with_empty.tracking.height >= dataset_no_empty.tracking.height
 
 
 class TestOnlyAliveParameter:
@@ -323,27 +330,27 @@ class TestOnlyAliveParameter:
 
     def test_only_alive_filters_dead_frames(self):
         """Test that only_alive=True filters out dead ball frames."""
-        df_all, _, _, _ = skillcorner.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, only_alive=False
+        dataset_all = skillcorner.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, only_alive=False, lazy=False
         )
-        df_alive, _, _, _ = skillcorner.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, only_alive=True
+        dataset_alive = skillcorner.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, only_alive=True, lazy=False
         )
 
         # Check if there are any dead frames in the data
-        dead_rows_all = df_all.filter(pl.col("ball_state") == "dead")
+        dead_rows_all = dataset_all.tracking.filter(pl.col("ball_state") == "dead")
         if dead_rows_all.height > 0:
             # Alive should have fewer rows if there are dead frames
-            assert df_alive.height <= df_all.height
+            assert dataset_alive.tracking.height <= dataset_all.tracking.height
 
     def test_only_alive_no_dead_frames(self):
         """Test that only_alive=True results in no dead ball frames."""
-        df_alive, _, _, _ = skillcorner.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, only_alive=True
+        dataset = skillcorner.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, only_alive=True, lazy=False
         )
 
         # All rows should be alive
-        dead_rows = df_alive.filter(pl.col("ball_state") == "dead")
+        dead_rows = dataset.tracking.filter(pl.col("ball_state") == "dead")
         assert dead_rows.height == 0
 
 
@@ -352,21 +359,21 @@ class TestOrientationParameter:
 
     def test_orientation_default_static_home_away(self):
         """Test that orientation defaults to 'static_home_away'."""
-        _, metadata_df, _, _ = skillcorner.load_tracking(RAW_DATA_PATH, META_DATA_PATH)
-        assert metadata_df["orientation"][0] == "static_home_away"
+        dataset = skillcorner.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
+        assert dataset.metadata["orientation"][0] == "static_home_away"
 
     def test_orientation_static_away_home(self):
         """Test that orientation='static_away_home' is recorded."""
-        _, metadata_df, _, _ = skillcorner.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="static_away_home"
+        dataset = skillcorner.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="static_away_home", lazy=False
         )
-        assert metadata_df["orientation"][0] == "static_away_home"
+        assert dataset.metadata["orientation"][0] == "static_away_home"
 
     def test_invalid_orientation(self):
         """Test that invalid orientation raises error."""
         with pytest.raises(Exception):
             skillcorner.load_tracking(
-                RAW_DATA_PATH, META_DATA_PATH, orientation="invalid"
+                RAW_DATA_PATH, META_DATA_PATH, orientation="invalid", lazy=False
             )
 
 
@@ -376,71 +383,75 @@ class TestErrorHandling:
     def test_missing_tracking_file(self):
         """Test that missing tracking file raises error."""
         with pytest.raises(Exception):
-            skillcorner.load_tracking("nonexistent_tracking.jsonl", META_DATA_PATH)
+            skillcorner.load_tracking("nonexistent_tracking.jsonl", META_DATA_PATH, lazy=False)
 
     def test_missing_metadata_file(self):
         """Test that missing metadata file raises error."""
         with pytest.raises(Exception):
-            skillcorner.load_tracking(RAW_DATA_PATH, "nonexistent_metadata.json")
+            skillcorner.load_tracking(RAW_DATA_PATH, "nonexistent_metadata.json", lazy=False)
 
 
 class TestLazyParameter:
     """Tests for lazy loading parameter."""
 
-    def test_lazy_returns_lazy_loader(self):
-        """Test that lazy=True returns a LazyTrackingLoader."""
-        from kloppy_light import LazyTrackingLoader
+    def test_lazy_returns_lazy_dataset(self):
+        """Test that lazy=True returns a TrackingDataset with LazyTrackingLoader."""
+        from kloppy_light import TrackingDataset, LazyTrackingLoader
 
-        t, m, team, player = skillcorner.load_tracking(
+        dataset = skillcorner.load_tracking(
             RAW_DATA_PATH, META_DATA_PATH, lazy=True
         )
-        assert isinstance(t, LazyTrackingLoader)
-        assert isinstance(m, pl.DataFrame)  # Metadata is eager
-        assert isinstance(team, pl.DataFrame)
-        assert isinstance(player, pl.DataFrame)
+        assert isinstance(dataset, TrackingDataset)
+        assert isinstance(dataset.tracking, LazyTrackingLoader)
+        assert isinstance(dataset.metadata, pl.DataFrame)  # Metadata is eager
+        assert isinstance(dataset.teams, pl.DataFrame)
+        assert isinstance(dataset.players, pl.DataFrame)
 
     def test_lazy_collect_returns_dataframe(self):
         """Test that collect() returns a DataFrame."""
-        t_lazy, _, _, _ = skillcorner.load_tracking(
+        dataset = skillcorner.load_tracking(
             RAW_DATA_PATH, META_DATA_PATH, lazy=True
         )
-        result = t_lazy.collect()
+        result = dataset.tracking.collect()
         assert isinstance(result, pl.DataFrame)
 
     def test_lazy_filter_before_collect(self):
         """Test that filter() can be chained before collect()."""
-        t_lazy, _, _, _ = skillcorner.load_tracking(
+        dataset = skillcorner.load_tracking(
             RAW_DATA_PATH, META_DATA_PATH, lazy=True
         )
-        result = t_lazy.filter(pl.col("period_id") == 1).collect()
+        result = dataset.tracking.filter(pl.col("period_id") == 1).collect()
         # All rows should be period 1
         assert all(p == 1 for p in result["period_id"].to_list())
 
     def test_lazy_collect_matches_eager(self):
         """Test that lazy collect() produces same result as eager loading."""
-        t_lazy, _, _, _ = skillcorner.load_tracking(
+        dataset_lazy = skillcorner.load_tracking(
             RAW_DATA_PATH, META_DATA_PATH, lazy=True
         )
-        t_eager, _, _, _ = skillcorner.load_tracking(
+        dataset_eager = skillcorner.load_tracking(
             RAW_DATA_PATH, META_DATA_PATH, lazy=False
         )
-        assert t_lazy.collect().equals(t_eager)
+        assert dataset_lazy.tracking.collect().equals(dataset_eager.tracking)
 
 
 class TestTimestampBehavior:
     """Tests for timestamp and FPS behavior."""
 
     @pytest.fixture
-    def tracking_df(self):
-        """Load tracking data."""
-        tracking_df, _, _, _ = skillcorner.load_tracking(RAW_DATA_PATH, META_DATA_PATH)
-        return tracking_df
+    def dataset(self):
+        """Load dataset."""
+        return skillcorner.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
 
     @pytest.fixture
-    def metadata_df(self):
-        """Load metadata."""
-        _, metadata_df, _, _ = skillcorner.load_tracking(RAW_DATA_PATH, META_DATA_PATH)
-        return metadata_df
+    def tracking_df(self, dataset):
+        """Return tracking DataFrame."""
+        return dataset.tracking
+
+    @pytest.fixture
+    def metadata_df(self, dataset):
+        """Return metadata DataFrame."""
+        return dataset.metadata
 
     def test_period_1_first_frame_timestamp_near_zero(self, tracking_df):
         """Test that period 1 first frame timestamp is at or near 0ms."""

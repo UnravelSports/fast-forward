@@ -5,7 +5,7 @@ mod tracking_long;
 mod tracking_long_ball;
 mod tracking_wide;
 
-pub use metadata::build_metadata_df;
+pub use metadata::{build_metadata_df, build_periods_df};
 pub use player::build_player_df;
 pub use team::build_team_df;
 

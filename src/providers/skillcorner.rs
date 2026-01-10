@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Cursor};
 
 use crate::coordinates::{transform_from_cdf, CoordinateSystem};
-use crate::dataframe::{build_metadata_df, build_player_df, build_team_df, build_tracking_df, Layout};
+use crate::dataframe::{build_metadata_df, build_periods_df, build_player_df, build_team_df, build_tracking_df, Layout};
 use crate::error::KloppyError;
 use crate::models::{
     BallState, Ground, Position, StandardBall, StandardFrame, StandardMetadata, StandardPeriod,
@@ -455,7 +455,7 @@ fn load_tracking(
     only_alive: bool,
     include_empty_frames: bool,
     include_game_id: Option<Bound<'_, PyAny>>,
-) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
+) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
     let coordinate_system = CoordinateSystem::from_str(coordinates)?;
     let layout_enum = Layout::from_str(layout)?;
     let orientation_enum = Orientation::from_str(orientation)?;
@@ -523,6 +523,7 @@ fn load_tracking(
         .map(|s| s.as_str());
     let tracking_df = build_tracking_df(&frames, layout_enum, game_id.as_deref())?;
     let metadata_df = build_metadata_df(&metadata_struct, game_id_override)?;
+    let periods_df = build_periods_df(&metadata_struct, game_id.as_deref())?;
     let team_df = build_team_df(&metadata_struct.teams, game_id.as_deref())?;
     let player_df = build_player_df(&metadata_struct.players, game_id.as_deref())?;
 
@@ -531,6 +532,7 @@ fn load_tracking(
         PyDataFrame(metadata_df),
         PyDataFrame(team_df),
         PyDataFrame(player_df),
+        PyDataFrame(periods_df),
     ))
 }
 
@@ -544,7 +546,7 @@ fn load_metadata_only(
     coordinates: &str,
     orientation: &str,
     include_game_id: Option<Bound<'_, PyAny>>,
-) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame)> {
+) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
     let (metadata_struct, _, _, _, _) = parse_metadata(meta_data, coordinates, orientation)?;
 
     // Determine game_id based on include_game_id parameter
@@ -556,6 +558,7 @@ fn load_metadata_only(
         .filter(|id| *id != &metadata_struct.game_id)
         .map(|s| s.as_str());
     let metadata_df = build_metadata_df(&metadata_struct, game_id_override)?;
+    let periods_df = build_periods_df(&metadata_struct, game_id.as_deref())?;
     let team_df = build_team_df(&metadata_struct.teams, game_id.as_deref())?;
     let player_df = build_player_df(&metadata_struct.players, game_id.as_deref())?;
 
@@ -563,6 +566,7 @@ fn load_metadata_only(
         PyDataFrame(metadata_df),
         PyDataFrame(team_df),
         PyDataFrame(player_df),
+        PyDataFrame(periods_df),
     ))
 }
 

@@ -1,12 +1,13 @@
 """Sportec provider wrapper with lazy loading support."""
 
-from typing import Literal, Tuple, Union, overload
+from typing import Literal, Union, overload
 import polars as pl
 
 from kloppy.io import FileLike, open_as_file
 
 from kloppy_light._kloppy_light import sportec as _sportec
 from kloppy_light._lazy import LazyTrackingLoader
+from kloppy_light._dataset import TrackingDataset
 
 
 @overload
@@ -27,8 +28,8 @@ def load_tracking(
     include_game_id: Union[bool, str] = True,
     include_referees: bool = False,
     *,
-    lazy: Literal[False] = False,
-) -> Tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame]: ...
+    lazy: Literal[False],
+) -> TrackingDataset: ...
 
 
 @overload
@@ -49,8 +50,8 @@ def load_tracking(
     include_game_id: Union[bool, str] = True,
     include_referees: bool = False,
     *,
-    lazy: Literal[True],
-) -> Tuple[LazyTrackingLoader, pl.DataFrame, pl.DataFrame, pl.DataFrame]: ...
+    lazy: Literal[True] = True,
+) -> TrackingDataset: ...
 
 
 def load_tracking(
@@ -70,11 +71,8 @@ def load_tracking(
     include_game_id: Union[bool, str] = True,
     include_referees: bool = False,
     *,
-    lazy: bool = False,
-) -> Union[
-    Tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame],
-    Tuple[LazyTrackingLoader, pl.DataFrame, pl.DataFrame, pl.DataFrame],
-]:
+    lazy: bool = True,
+) -> TrackingDataset:
     """
     Load Sportec tracking data from XML files.
 
@@ -112,18 +110,16 @@ def load_tracking(
         If True, include referees in player_df with position codes:
         REF (Main Referee), AREF (Assistant Referee), VAR (Video Assistant Referee),
         AVAR (Assistant VAR), 4TH (Fourth Official)
-    lazy : bool, default False
-        If True, return a LazyTrackingLoader that defers parsing until .collect()
+    lazy : bool, default True
+        If True, return a TrackingDataset with LazyTrackingLoader for tracking.
+        If False, return a TrackingDataset with eager DataFrame for tracking.
 
     Returns
     -------
-    If lazy=False:
-        Tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame]
-            (tracking_df, metadata_df, team_df, player_df)
-    If lazy=True:
-        Tuple[LazyTrackingLoader, pl.DataFrame, pl.DataFrame, pl.DataFrame]
-            (tracking_lazy, metadata_df, team_df, player_df)
-            The tracking_lazy object supports .filter(), .select(), and .collect()
+    TrackingDataset
+        Object with .tracking, .metadata, .teams, .players, .periods properties.
+        If lazy=True, .tracking returns LazyTrackingLoader (call .collect() to get DataFrame).
+        If lazy=False, .tracking returns pl.DataFrame directly.
     """
     if lazy:
         # Convert FileLike to bytes for metadata loading
@@ -131,7 +127,7 @@ def load_tracking(
             meta_bytes = meta_file.read() if meta_file else b""
 
         # Get only metadata without loading tracking data
-        metadata_df, team_df, player_df = _sportec.load_metadata_only(
+        metadata_df, team_df, player_df, periods_df = _sportec.load_metadata_only(
             meta_bytes,
             coordinates=coordinates,
             orientation=orientation,
@@ -151,7 +147,13 @@ def load_tracking(
             include_referees=include_referees,
         )
 
-        return lazy_loader, metadata_df, team_df, player_df
+        return TrackingDataset(
+            tracking=lazy_loader,
+            metadata=metadata_df,
+            teams=team_df,
+            players=player_df,
+            periods=periods_df,
+        )
     else:
         # Convert FileLike to bytes
         with open_as_file(meta_data) as meta_file:
@@ -161,7 +163,7 @@ def load_tracking(
             raw_bytes = raw_file.read() if raw_file else b""
 
         # Pass bytes to Rust
-        return _sportec.load_tracking(
+        tracking_df, metadata_df, team_df, player_df, periods_df = _sportec.load_tracking(
             raw_bytes,
             meta_bytes,
             layout=layout,
@@ -170,4 +172,12 @@ def load_tracking(
             only_alive=only_alive,
             include_game_id=include_game_id,
             include_referees=include_referees,
+        )
+
+        return TrackingDataset(
+            tracking=tracking_df,
+            metadata=metadata_df,
+            teams=team_df,
+            players=player_df,
+            periods=periods_df,
         )

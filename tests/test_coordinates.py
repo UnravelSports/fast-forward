@@ -23,9 +23,10 @@ class TestCdfCoordinates:
 
     def test_cdf_x_range(self):
         """CDF x coordinates should be exactly [-52.5, 52.5] for boundary data."""
-        tracking_df, _, _, _ = skillcorner.load_tracking(
-            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="cdf"
+        dataset = skillcorner.load_tracking(
+            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="cdf", lazy=False
         )
+        tracking_df = dataset.tracking
 
         x_values = tracking_df["x"].drop_nulls()
         assert x_values.min() == pytest.approx(-52.5, rel=1e-6)
@@ -33,9 +34,10 @@ class TestCdfCoordinates:
 
     def test_cdf_y_range(self):
         """CDF y coordinates should be exactly [-34.0, 34.0] for boundary data."""
-        tracking_df, _, _, _ = skillcorner.load_tracking(
-            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="cdf"
+        dataset = skillcorner.load_tracking(
+            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="cdf", lazy=False
         )
+        tracking_df = dataset.tracking
 
         y_values = tracking_df["y"].drop_nulls()
         assert y_values.min() == pytest.approx(-34.0, rel=1e-6)
@@ -43,12 +45,14 @@ class TestCdfCoordinates:
 
     def test_cdf_aliases(self):
         """Aliases like 'secondspectrum' should produce same results as 'cdf'."""
-        tracking_cdf, _, _, _ = secondspectrum.load_tracking(
-            SS_RAW_PATH, SS_META_PATH, coordinates="cdf"
+        dataset = secondspectrum.load_tracking(
+            SS_RAW_PATH, SS_META_PATH, coordinates="cdf", lazy=False
         )
-        tracking_ss, _, _, _ = secondspectrum.load_tracking(
-            SS_RAW_PATH, SS_META_PATH, coordinates="secondspectrum"
+        tracking_cdf = dataset.tracking
+        dataset = secondspectrum.load_tracking(
+            SS_RAW_PATH, SS_META_PATH, coordinates="secondspectrum", lazy=False
         )
+        tracking_ss = dataset.tracking
 
         # Should be identical
         assert tracking_cdf["x"].equals(tracking_ss["x"])
@@ -60,9 +64,10 @@ class TestKloppyCoordinates:
 
     def test_kloppy_x_range(self):
         """Kloppy x coordinates should be exactly [0.0, 1.0] for boundary data."""
-        tracking_df, _, _, _ = skillcorner.load_tracking(
-            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="kloppy"
+        dataset = skillcorner.load_tracking(
+            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="kloppy", lazy=False
         )
+        tracking_df = dataset.tracking
 
         x_values = tracking_df["x"].drop_nulls()
         assert x_values.min() == pytest.approx(0.0, abs=1e-6)
@@ -70,9 +75,10 @@ class TestKloppyCoordinates:
 
     def test_kloppy_y_range(self):
         """Kloppy y coordinates should be exactly [0.0, 1.0] for boundary data."""
-        tracking_df, _, _, _ = skillcorner.load_tracking(
-            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="kloppy"
+        dataset = skillcorner.load_tracking(
+            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="kloppy", lazy=False
         )
+        tracking_df = dataset.tracking
 
         y_values = tracking_df["y"].drop_nulls()
         assert y_values.min() == pytest.approx(0.0, abs=1e-6)
@@ -84,9 +90,10 @@ class TestTracabCoordinates:
 
     def test_tracab_x_range(self):
         """Tracab x coordinates should be exactly [-5250.0, 5250.0] for boundary data."""
-        tracking_df, _, _, _ = skillcorner.load_tracking(
-            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="tracab"
+        dataset = skillcorner.load_tracking(
+            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="tracab", lazy=False
         )
+        tracking_df = dataset.tracking
 
         x_values = tracking_df["x"].drop_nulls()
         assert x_values.min() == pytest.approx(-5250.0, rel=1e-6)
@@ -94,9 +101,10 @@ class TestTracabCoordinates:
 
     def test_tracab_y_range(self):
         """Tracab y coordinates should be exactly [-3400.0, 3400.0] for boundary data."""
-        tracking_df, _, _, _ = skillcorner.load_tracking(
-            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="tracab"
+        dataset = skillcorner.load_tracking(
+            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="tracab", lazy=False
         )
+        tracking_df = dataset.tracking
 
         y_values = tracking_df["y"].drop_nulls()
         assert y_values.min() == pytest.approx(-3400.0, rel=1e-6)
@@ -104,12 +112,14 @@ class TestTracabCoordinates:
 
     def test_tracab_scale_factor(self):
         """Tracab coordinates should be 100x CDF coordinates."""
-        tracking_cdf, _, _, _ = skillcorner.load_tracking(
-            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="cdf"
+        dataset = skillcorner.load_tracking(
+            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="cdf", lazy=False
         )
-        tracking_tracab, _, _, _ = skillcorner.load_tracking(
-            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="tracab"
+        tracking_cdf = dataset.tracking
+        dataset = skillcorner.load_tracking(
+            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="tracab", lazy=False
         )
+        tracking_tracab = dataset.tracking
 
         # Get first non-null x value
         cdf_x = tracking_cdf.filter(pl.col("x").is_not_null())["x"][0]
@@ -124,9 +134,10 @@ class TestSportVuCoordinates:
 
     def test_sportvu_x_range(self):
         """SportVU x coordinates should be exactly [0.0, 105.0] for boundary data."""
-        tracking_df, _, _, _ = skillcorner.load_tracking(
-            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="sportvu"
+        dataset = skillcorner.load_tracking(
+            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="sportvu", lazy=False
         )
+        tracking_df = dataset.tracking
 
         x_values = tracking_df["x"].drop_nulls()
         assert x_values.min() == pytest.approx(0.0, abs=1e-6)
@@ -134,9 +145,10 @@ class TestSportVuCoordinates:
 
     def test_sportvu_y_range(self):
         """SportVU y coordinates should be exactly [0.0, 68.0] for boundary data."""
-        tracking_df, _, _, _ = skillcorner.load_tracking(
-            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="sportvu"
+        dataset = skillcorner.load_tracking(
+            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="sportvu", lazy=False
         )
+        tracking_df = dataset.tracking
 
         y_values = tracking_df["y"].drop_nulls()
         assert y_values.min() == pytest.approx(0.0, abs=1e-6)
@@ -148,9 +160,10 @@ class TestSportecEventCoordinates:
 
     def test_sportec_event_x_range(self):
         """Sportec Event x coordinates should be exactly [0.0, 105.0] for boundary data."""
-        tracking_df, _, _, _ = skillcorner.load_tracking(
-            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="sportec:event"
+        dataset = skillcorner.load_tracking(
+            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="sportec:event", lazy=False
         )
+        tracking_df = dataset.tracking
 
         x_values = tracking_df["x"].drop_nulls()
         assert x_values.min() == pytest.approx(0.0, abs=1e-6)
@@ -158,9 +171,10 @@ class TestSportecEventCoordinates:
 
     def test_sportec_event_y_range(self):
         """Sportec Event y coordinates should be exactly [0.0, 68.0] for boundary data."""
-        tracking_df, _, _, _ = skillcorner.load_tracking(
-            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="sportec:event"
+        dataset = skillcorner.load_tracking(
+            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="sportec:event", lazy=False
         )
+        tracking_df = dataset.tracking
 
         y_values = tracking_df["y"].drop_nulls()
         assert y_values.min() == pytest.approx(0.0, abs=1e-6)
@@ -172,9 +186,10 @@ class TestOptaCoordinates:
 
     def test_opta_x_range(self):
         """Opta x coordinates should be exactly [0.0, 100.0] for boundary data."""
-        tracking_df, _, _, _ = skillcorner.load_tracking(
-            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="opta"
+        dataset = skillcorner.load_tracking(
+            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="opta", lazy=False
         )
+        tracking_df = dataset.tracking
 
         x_values = tracking_df["x"].drop_nulls()
         assert x_values.min() == pytest.approx(0.0, abs=1e-6)
@@ -182,9 +197,10 @@ class TestOptaCoordinates:
 
     def test_opta_y_range(self):
         """Opta y coordinates should be exactly [0.0, 100.0] for boundary data."""
-        tracking_df, _, _, _ = skillcorner.load_tracking(
-            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="opta"
+        dataset = skillcorner.load_tracking(
+            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="opta", lazy=False
         )
+        tracking_df = dataset.tracking
 
         y_values = tracking_df["y"].drop_nulls()
         assert y_values.min() == pytest.approx(0.0, abs=1e-6)
@@ -198,7 +214,7 @@ class TestInvalidCoordinateSystem:
         """Invalid coordinate system should raise an error."""
         with pytest.raises(Exception):  # Will be a RuntimeError from Rust
             skillcorner.load_tracking(
-                BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="invalid_system"
+                BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="invalid_system", lazy=False
             )
 
 
@@ -215,44 +231,49 @@ class TestCoordinatesOutsidePitch:
 
     def test_kloppy_y_below_zero(self):
         """Kloppy y values outside pitch should be below 0, not clamped."""
-        tracking_df, _, _, _ = skillcorner.load_tracking(
-            self.SC_RAW_PATH, self.SC_META_PATH, coordinates="kloppy"
+        dataset = skillcorner.load_tracking(
+            self.SC_RAW_PATH, self.SC_META_PATH, coordinates="kloppy", lazy=False
         )
+        tracking_df = dataset.tracking
         y_values = tracking_df["y"].drop_nulls()
         # y_min should be slightly negative (not clamped to 0)
         assert y_values.min() == pytest.approx(-0.002205904806032777, rel=1e-6)
 
     def test_opta_y_above_100(self):
         """Opta y values outside pitch should exceed 100, not clamped."""
-        tracking_df, _, _, _ = skillcorner.load_tracking(
-            self.SC_RAW_PATH, self.SC_META_PATH, coordinates="opta"
+        dataset = skillcorner.load_tracking(
+            self.SC_RAW_PATH, self.SC_META_PATH, coordinates="opta", lazy=False
         )
+        tracking_df = dataset.tracking
         y_values = tracking_df["y"].drop_nulls()
         # y_max should exceed 100 (not clamped to 100)
         assert y_values.max() == pytest.approx(100.2205810546875, rel=1e-6)
 
     def test_sportvu_y_below_zero(self):
         """SportVU y values outside pitch should be below 0."""
-        tracking_df, _, _, _ = skillcorner.load_tracking(
-            self.SC_RAW_PATH, self.SC_META_PATH, coordinates="sportvu"
+        dataset = skillcorner.load_tracking(
+            self.SC_RAW_PATH, self.SC_META_PATH, coordinates="sportvu", lazy=False
         )
+        tracking_df = dataset.tracking
         y_values = tracking_df["y"].drop_nulls()
         assert y_values.min() == pytest.approx(-0.15000152587890625, rel=1e-6)
 
     def test_sportec_event_y_above_pitch(self):
         """Sportec:event y values outside pitch should exceed pitch_width."""
-        tracking_df, _, _, _ = skillcorner.load_tracking(
-            self.SC_RAW_PATH, self.SC_META_PATH, coordinates="sportec:event"
+        dataset = skillcorner.load_tracking(
+            self.SC_RAW_PATH, self.SC_META_PATH, coordinates="sportec:event", lazy=False
         )
+        tracking_df = dataset.tracking
         y_values = tracking_df["y"].drop_nulls()
         # pitch_width is 68, y_max should exceed it
         assert y_values.max() == pytest.approx(68.1500015258789, rel=1e-6)
 
     def test_tracab_y_outside_boundaries(self):
         """Tracab y values outside pitch should exceed pitch_width/2 * 100."""
-        tracking_df, _, _, _ = skillcorner.load_tracking(
-            self.SC_RAW_PATH, self.SC_META_PATH, coordinates="tracab"
+        dataset = skillcorner.load_tracking(
+            self.SC_RAW_PATH, self.SC_META_PATH, coordinates="tracab", lazy=False
         )
+        tracking_df = dataset.tracking
         y_values = tracking_df["y"].drop_nulls()
         # pitch_width/2 * 100 = 3400, y_max should exceed it
         assert y_values.max() == pytest.approx(3415.000244140625, rel=1e-6)
@@ -263,23 +284,26 @@ class TestMetadataCoordinateSystem:
 
     def test_metadata_shows_cdf(self):
         """Metadata should show 'cdf' when using cdf coordinates."""
-        _, metadata_df, _, _ = skillcorner.load_tracking(
-            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="cdf"
+        dataset = skillcorner.load_tracking(
+            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="cdf", lazy=False
         )
+        metadata_df = dataset.metadata
         assert metadata_df["coordinate_system"][0] == "cdf"
 
     def test_metadata_shows_kloppy(self):
         """Metadata should show 'kloppy' when using kloppy coordinates."""
-        _, metadata_df, _, _ = skillcorner.load_tracking(
-            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="kloppy"
+        dataset = skillcorner.load_tracking(
+            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="kloppy", lazy=False
         )
+        metadata_df = dataset.metadata
         assert metadata_df["coordinate_system"][0] == "kloppy"
 
     def test_metadata_shows_tracab(self):
         """Metadata should show 'tracab' when using tracab coordinates."""
-        _, metadata_df, _, _ = skillcorner.load_tracking(
-            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="tracab"
+        dataset = skillcorner.load_tracking(
+            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH, coordinates="tracab", lazy=False
         )
+        metadata_df = dataset.metadata
         assert metadata_df["coordinate_system"][0] == "tracab"
 
 
@@ -289,11 +313,12 @@ class TestCoordinateTransformationWithOrientation:
     def test_transformation_order(self):
         """Orientation should be applied before coordinate transformation."""
         # Load with both orientation and coordinate transformation
-        tracking_df, _, _, _ = skillcorner.load_tracking(
+        dataset = skillcorner.load_tracking(
             BOUNDARY_RAW_PATH, BOUNDARY_META_PATH,
             coordinates="kloppy",
-            orientation="static_home_away"
+            orientation="static_home_away", lazy=False
         )
+        tracking_df = dataset.tracking
 
         # Should have valid coordinates in kloppy range
         x_values = tracking_df["x"].drop_nulls()
@@ -312,9 +337,10 @@ class TestCoordinateTransformationWithOrientation:
         # Test a subset of combinations to keep test fast
         for orient in orientations[:2]:
             for coord in coordinates[:3]:
-                tracking_df, _, _, _ = skillcorner.load_tracking(
-                    BOUNDARY_RAW_PATH, BOUNDARY_META_PATH,
+                dataset = skillcorner.load_tracking(
+            BOUNDARY_RAW_PATH, BOUNDARY_META_PATH,
                     coordinates=coord,
-                    orientation=orient
+                    orientation=orient,
+                    lazy=False
                 )
-                assert tracking_df.height > 0, f"Failed for {orient} + {coord}"
+                assert dataset.tracking.height > 0, f"Failed for {orient} + {coord}"

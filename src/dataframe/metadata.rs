@@ -17,23 +17,6 @@ pub fn build_metadata_df(
             .num_days() as i32
     });
 
-    // Helper to get period info by period_id (1-indexed)
-    let get_period = |period_id: u8| -> Option<&crate::models::StandardPeriod> {
-        metadata.periods.iter().find(|p| p.period_id == period_id)
-    };
-
-    // Extract period frame IDs (up to 5 periods)
-    let period_1_start: Option<u32> = get_period(1).map(|p| p.start_frame_id);
-    let period_1_end: Option<u32> = get_period(1).map(|p| p.end_frame_id);
-    let period_2_start: Option<u32> = get_period(2).map(|p| p.start_frame_id);
-    let period_2_end: Option<u32> = get_period(2).map(|p| p.end_frame_id);
-    let period_3_start: Option<u32> = get_period(3).map(|p| p.start_frame_id);
-    let period_3_end: Option<u32> = get_period(3).map(|p| p.end_frame_id);
-    let period_4_start: Option<u32> = get_period(4).map(|p| p.start_frame_id);
-    let period_4_end: Option<u32> = get_period(4).map(|p| p.end_frame_id);
-    let period_5_start: Option<u32> = get_period(5).map(|p| p.start_frame_id);
-    let period_5_end: Option<u32> = get_period(5).map(|p| p.end_frame_id);
-
     // Use override game_id if provided, otherwise use metadata game_id
     let game_id = game_id_override.unwrap_or(metadata.game_id.as_str());
 
@@ -61,18 +44,48 @@ pub fn build_metadata_df(
             vec![metadata.coordinate_system.as_str()],
         ),
         Column::new("orientation".into(), vec![metadata.orientation.as_str()]),
-        // Period columns (wide format, up to 5 periods)
-        Column::new("period_1_start_frame_id".into(), vec![period_1_start]),
-        Column::new("period_1_end_frame_id".into(), vec![period_1_end]),
-        Column::new("period_2_start_frame_id".into(), vec![period_2_start]),
-        Column::new("period_2_end_frame_id".into(), vec![period_2_end]),
-        Column::new("period_3_start_frame_id".into(), vec![period_3_start]),
-        Column::new("period_3_end_frame_id".into(), vec![period_3_end]),
-        Column::new("period_4_start_frame_id".into(), vec![period_4_start]),
-        Column::new("period_4_end_frame_id".into(), vec![period_4_end]),
-        Column::new("period_5_start_frame_id".into(), vec![period_5_start]),
-        Column::new("period_5_end_frame_id".into(), vec![period_5_end]),
     ])?;
+
+    Ok(df)
+}
+
+/// Build periods DataFrame (one row per period)
+///
+/// # Arguments
+/// * `metadata` - The standard metadata structure containing period information
+/// * `game_id` - Optional game_id to include as first column
+///
+/// # Returns
+/// DataFrame with columns: [game_id], period_id, start_frame_id, end_frame_id
+pub fn build_periods_df(
+    metadata: &StandardMetadata,
+    game_id: Option<&str>,
+) -> Result<DataFrame, KloppyError> {
+    let mut period_ids: Vec<i64> = Vec::new();
+    let mut start_frame_ids: Vec<i64> = Vec::new();
+    let mut end_frame_ids: Vec<i64> = Vec::new();
+
+    for period in &metadata.periods {
+        period_ids.push(period.period_id as i64);
+        start_frame_ids.push(period.start_frame_id as i64);
+        end_frame_ids.push(period.end_frame_id as i64);
+    }
+
+    let df = if let Some(gid) = game_id {
+        let game_ids: Vec<&str> = vec![gid; metadata.periods.len()];
+        DataFrame::new(vec![
+            Column::new("game_id".into(), game_ids),
+            Column::new("period_id".into(), period_ids),
+            Column::new("start_frame_id".into(), start_frame_ids),
+            Column::new("end_frame_id".into(), end_frame_ids),
+        ])?
+    } else {
+        DataFrame::new(vec![
+            Column::new("period_id".into(), period_ids),
+            Column::new("start_frame_id".into(), start_frame_ids),
+            Column::new("end_frame_id".into(), end_frame_ids),
+        ])?
+    };
 
     Ok(df)
 }
@@ -145,16 +158,6 @@ mod tests {
             "fps",
             "coordinate_system",
             "orientation",
-            "period_1_start_frame_id",
-            "period_1_end_frame_id",
-            "period_2_start_frame_id",
-            "period_2_end_frame_id",
-            "period_3_start_frame_id",
-            "period_3_end_frame_id",
-            "period_4_start_frame_id",
-            "period_4_end_frame_id",
-            "period_5_start_frame_id",
-            "period_5_end_frame_id",
         ];
 
         assert_eq!(df.width(), expected_columns.len());
@@ -165,6 +168,56 @@ mod tests {
                 col
             );
         }
+    }
+
+    #[test]
+    fn test_build_periods_df() {
+        let metadata = create_test_metadata();
+        let df = build_periods_df(&metadata, None).unwrap();
+
+        assert_eq!(df.height(), 1); // One period in test data
+        assert_eq!(df.width(), 3); // Without game_id
+
+        let expected_columns = vec!["period_id", "start_frame_id", "end_frame_id"];
+        for col in expected_columns {
+            assert!(df.column(col).is_ok(), "Column '{}' should exist", col);
+        }
+
+        // Verify values
+        let period_id = df.column("period_id").unwrap().i64().unwrap().get(0).unwrap();
+        assert_eq!(period_id, 1);
+
+        let start = df.column("start_frame_id").unwrap().i64().unwrap().get(0).unwrap();
+        assert_eq!(start, 0);
+
+        let end = df.column("end_frame_id").unwrap().i64().unwrap().get(0).unwrap();
+        assert_eq!(end, 1000);
+    }
+
+    #[test]
+    fn test_build_periods_df_with_game_id() {
+        let metadata = create_test_metadata();
+        let df = build_periods_df(&metadata, Some("match123")).unwrap();
+
+        assert_eq!(df.height(), 1); // One period in test data
+        assert_eq!(df.width(), 4); // With game_id
+
+        let columns: Vec<String> = df
+            .get_column_names()
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+        assert!(columns.contains(&"game_id".to_string()));
+        assert_eq!(columns[0], "game_id"); // First column
+
+        let game_id = df
+            .column("game_id")
+            .unwrap()
+            .str()
+            .unwrap()
+            .get(0)
+            .unwrap();
+        assert_eq!(game_id, "match123");
     }
 
     #[test]

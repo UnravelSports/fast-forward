@@ -194,7 +194,7 @@ class LazyTrackingLoader:
         include_game_id = self._kwargs.get("include_game_id", True)
 
         if self._provider == "secondspectrum":
-            tracking_df, _, _, _ = _ss.load_tracking(
+            tracking_df, _, _, _, _ = _ss.load_tracking(
                 raw_bytes,
                 meta_bytes,
                 layout=self._layout,
@@ -206,7 +206,7 @@ class LazyTrackingLoader:
         elif self._provider == "skillcorner":
             # Get skillcorner-specific kwargs
             include_empty_frames = self._kwargs.get("include_empty_frames", False)
-            tracking_df, _, _, _ = _sc.load_tracking(
+            tracking_df, _, _, _, _ = _sc.load_tracking(
                 raw_bytes,
                 meta_bytes,
                 layout=self._layout,
@@ -219,7 +219,7 @@ class LazyTrackingLoader:
         elif self._provider == "sportec":
             # Get sportec-specific kwargs
             include_referees = self._kwargs.get("include_referees", False)
-            tracking_df, _, _, _ = _sp.load_tracking(
+            tracking_df, _, _, _, _ = _sp.load_tracking(
                 raw_bytes,
                 meta_bytes,
                 layout=self._layout,
@@ -260,7 +260,7 @@ class LazyTrackingLoader:
             pitch_width = self._kwargs.get("pitch_width", 68.0)
             object_id = self._kwargs.get("object_id", "auto")
 
-            tracking_df, _, _, _ = _he.load_tracking(
+            tracking_df, _, _, _, _ = _he.load_tracking(
                 ball_bytes_list,
                 player_bytes_list,
                 meta_bytes,

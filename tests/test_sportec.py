@@ -17,34 +17,31 @@ RAW_DATA_W_REF_PATH = str(DATA_DIR / "sportec_positional_w_referee.xml")
 class TestLoadTracking:
     """Tests for sportec.load_tracking function."""
 
-    def test_returns_four_dataframes(self):
-        """Test that load_tracking returns a 4-tuple of DataFrames."""
-        result = sportec.load_tracking(RAW_DATA_PATH, META_DATA_PATH)
+    def test_returns_dataset(self):
+        """Test that load_tracking returns a TrackingDataset."""
+        from kloppy_light import TrackingDataset
 
-        assert isinstance(result, tuple)
-        assert len(result) == 4
-        assert all(isinstance(df, pl.DataFrame) for df in result)
+        dataset = sportec.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
 
-    def test_unpacking(self):
-        """Test that the 4-tuple can be unpacked correctly."""
-        tracking_df, metadata_df, team_df, player_df = sportec.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH
-        )
-
-        assert isinstance(tracking_df, pl.DataFrame)
-        assert isinstance(metadata_df, pl.DataFrame)
-        assert isinstance(team_df, pl.DataFrame)
-        assert isinstance(player_df, pl.DataFrame)
+        assert isinstance(dataset, TrackingDataset)
+        assert isinstance(dataset.tracking, pl.DataFrame)
+        assert isinstance(dataset.metadata, pl.DataFrame)
+        assert isinstance(dataset.teams, pl.DataFrame)
+        assert isinstance(dataset.players, pl.DataFrame)
 
 
 class TestMetadataDataFrame:
     """Tests for the metadata DataFrame."""
 
     @pytest.fixture
-    def metadata_df(self):
-        """Load and return the metadata DataFrame."""
-        _, metadata_df, _, _ = sportec.load_tracking(RAW_DATA_PATH, META_DATA_PATH)
-        return metadata_df
+    def dataset(self):
+        """Load and return the dataset."""
+        return sportec.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
+
+    @pytest.fixture
+    def metadata_df(self, dataset):
+        """Return the metadata DataFrame."""
+        return dataset.metadata
 
     def test_single_row(self, metadata_df):
         """Test that metadata_df contains exactly one row."""
@@ -65,16 +62,6 @@ class TestMetadataDataFrame:
             "fps",
             "coordinate_system",
             "orientation",
-            "period_1_start_frame_id",
-            "period_1_end_frame_id",
-            "period_2_start_frame_id",
-            "period_2_end_frame_id",
-            "period_3_start_frame_id",
-            "period_3_end_frame_id",
-            "period_4_start_frame_id",
-            "period_4_end_frame_id",
-            "period_5_start_frame_id",
-            "period_5_end_frame_id",
         }
         assert set(metadata_df.columns) == expected_columns
 
@@ -125,7 +112,8 @@ class TestTeamDataFrame:
     @pytest.fixture
     def team_df(self):
         """Load and return the team DataFrame."""
-        _, _, team_df, _ = sportec.load_tracking(RAW_DATA_PATH, META_DATA_PATH)
+        dataset = sportec.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
+        team_df = dataset.teams
         return team_df
 
     def test_two_rows(self, team_df):
@@ -149,7 +137,8 @@ class TestPlayerDataFrame:
     @pytest.fixture
     def player_df(self):
         """Load and return the player DataFrame."""
-        _, _, _, player_df = sportec.load_tracking(RAW_DATA_PATH, META_DATA_PATH)
+        dataset = sportec.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
+        player_df = dataset.players
         return player_df
 
     def test_schema(self, player_df):
@@ -220,12 +209,16 @@ class TestTrackingDataFrameLong:
     """Tests for tracking DataFrame with 'long' layout."""
 
     @pytest.fixture
-    def tracking_df(self):
-        """Load tracking data with long layout."""
-        tracking_df, _, _, _ = sportec.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, layout="long"
+    def dataset(self):
+        """Load dataset with long layout."""
+        return sportec.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, layout="long", lazy=False
         )
-        return tracking_df
+
+    @pytest.fixture
+    def tracking_df(self, dataset):
+        """Return the tracking DataFrame."""
+        return dataset.tracking
 
     def test_schema(self, tracking_df):
         """Test that long format has expected columns."""
@@ -268,12 +261,16 @@ class TestTrackingDataFrameLongBall:
     """Tests for tracking DataFrame with 'long_ball' layout."""
 
     @pytest.fixture
-    def tracking_df(self):
-        """Load tracking data with long_ball layout."""
-        tracking_df, _, _, _ = sportec.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, layout="long_ball"
+    def dataset(self):
+        """Load dataset with long_ball layout."""
+        return sportec.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, layout="long_ball", lazy=False
         )
-        return tracking_df
+
+    @pytest.fixture
+    def tracking_df(self, dataset):
+        """Return the tracking DataFrame."""
+        return dataset.tracking
 
     def test_schema(self, tracking_df):
         """Test that long_ball format has expected columns."""
@@ -305,12 +302,16 @@ class TestTrackingDataFrameWide:
     """Tests for tracking DataFrame with 'wide' layout."""
 
     @pytest.fixture
-    def tracking_df(self):
-        """Load tracking data with wide layout."""
-        tracking_df, _, _, _ = sportec.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, layout="wide"
+    def dataset(self):
+        """Load dataset with wide layout."""
+        return sportec.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, layout="wide", lazy=False
         )
-        return tracking_df
+
+    @pytest.fixture
+    def tracking_df(self, dataset):
+        """Return the tracking DataFrame."""
+        return dataset.tracking
 
     def test_base_columns(self, tracking_df):
         """Test that wide format has expected base columns."""
@@ -348,12 +349,14 @@ class TestOnlyAliveParameter:
 
     def test_only_alive_filters_dead_frames(self):
         """Test that only_alive=True filters out dead ball frames."""
-        df_all, _, _, _ = sportec.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, only_alive=False
+        dataset = sportec.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, only_alive=False, lazy=False
         )
-        df_alive, _, _, _ = sportec.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, only_alive=True
+        df_all = dataset.tracking
+        dataset = sportec.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, only_alive=True, lazy=False
         )
+        df_alive = dataset.tracking
 
         # Check if there are dead frames in the test data
         dead_rows_all = df_all.filter(pl.col("ball_state") == "dead")
@@ -363,9 +366,10 @@ class TestOnlyAliveParameter:
 
     def test_only_alive_no_dead_frames(self):
         """Test that only_alive=True results in no dead ball frames."""
-        df_alive, _, _, _ = sportec.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, only_alive=True
+        dataset = sportec.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, only_alive=True, lazy=False
         )
+        df_alive = dataset.tracking
 
         # All rows should be alive
         dead_rows = df_alive.filter(pl.col("ball_state") == "dead")
@@ -377,21 +381,23 @@ class TestOrientationParameter:
 
     def test_orientation_default_static_home_away(self):
         """Test that orientation defaults to 'static_home_away'."""
-        _, metadata_df, _, _ = sportec.load_tracking(RAW_DATA_PATH, META_DATA_PATH)
+        dataset = sportec.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
+        metadata_df = dataset.metadata
         assert metadata_df["orientation"][0] == "static_home_away"
 
     def test_orientation_static_away_home(self):
         """Test that orientation='static_away_home' is recorded."""
-        _, metadata_df, _, _ = sportec.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="static_away_home"
+        dataset = sportec.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="static_away_home", lazy=False
         )
+        metadata_df = dataset.metadata
         assert metadata_df["orientation"][0] == "static_away_home"
 
     def test_invalid_orientation(self):
         """Test that invalid orientation raises error."""
         with pytest.raises(Exception):
             sportec.load_tracking(
-                RAW_DATA_PATH, META_DATA_PATH, orientation="invalid"
+                RAW_DATA_PATH, META_DATA_PATH, orientation="invalid", lazy=False
             )
 
 
@@ -401,12 +407,12 @@ class TestErrorHandling:
     def test_missing_tracking_file(self):
         """Test that missing tracking file raises error."""
         with pytest.raises(Exception):
-            sportec.load_tracking("nonexistent_tracking.xml", META_DATA_PATH)
+            sportec.load_tracking("nonexistent_tracking.xml", META_DATA_PATH, lazy=False)
 
     def test_missing_metadata_file(self):
         """Test that missing metadata file raises error."""
         with pytest.raises(Exception):
-            sportec.load_tracking(RAW_DATA_PATH, "nonexistent_metadata.xml")
+            sportec.load_tracking(RAW_DATA_PATH, "nonexistent_metadata.xml", lazy=False)
 
 
 class TestLazyParameter:
@@ -416,39 +422,43 @@ class TestLazyParameter:
         """Test that lazy=True returns a LazyTrackingLoader."""
         from kloppy_light import LazyTrackingLoader
 
-        t, m, team, player = sportec.load_tracking(
+        dataset = sportec.load_tracking(
             RAW_DATA_PATH, META_DATA_PATH, lazy=True
         )
-        assert isinstance(t, LazyTrackingLoader)
-        assert isinstance(m, pl.DataFrame)  # Metadata is eager
-        assert isinstance(team, pl.DataFrame)
-        assert isinstance(player, pl.DataFrame)
+        assert isinstance(dataset.tracking, LazyTrackingLoader)
+        assert isinstance(dataset.metadata, pl.DataFrame)  # Metadata is eager
+        assert isinstance(dataset.teams, pl.DataFrame)
+        assert isinstance(dataset.players, pl.DataFrame)
 
     def test_lazy_collect_returns_dataframe(self):
         """Test that collect() returns a DataFrame."""
-        t_lazy, _, _, _ = sportec.load_tracking(
+        dataset = sportec.load_tracking(
             RAW_DATA_PATH, META_DATA_PATH, lazy=True
         )
+        t_lazy = dataset.tracking
         result = t_lazy.collect()
         assert isinstance(result, pl.DataFrame)
 
     def test_lazy_filter_before_collect(self):
         """Test that filter() can be chained before collect()."""
-        t_lazy, _, _, _ = sportec.load_tracking(
+        dataset = sportec.load_tracking(
             RAW_DATA_PATH, META_DATA_PATH, lazy=True
         )
+        t_lazy = dataset.tracking
         result = t_lazy.filter(pl.col("period_id") == 1).collect()
         # All rows should be period 1
         assert all(p == 1 for p in result["period_id"].to_list())
 
     def test_lazy_collect_matches_eager(self):
         """Test that lazy collect() produces same result as eager loading."""
-        t_lazy, _, _, _ = sportec.load_tracking(
+        dataset = sportec.load_tracking(
             RAW_DATA_PATH, META_DATA_PATH, lazy=True
         )
-        t_eager, _, _, _ = sportec.load_tracking(
+        t_lazy = dataset.tracking
+        dataset = sportec.load_tracking(
             RAW_DATA_PATH, META_DATA_PATH, lazy=False
         )
+        t_eager = dataset.tracking
         assert t_lazy.collect().equals(t_eager)
 
 
@@ -457,7 +467,8 @@ class TestIncludeReferees:
 
     def test_referees_excluded_by_default(self):
         """Test that referees are excluded by default."""
-        _, _, _, player_df = sportec.load_tracking(RAW_DATA_PATH, META_DATA_PATH)
+        dataset = sportec.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
+        player_df = dataset.players
 
         # Should have 40 players (20 per team, no referees)
         assert player_df.height == 40
@@ -468,9 +479,10 @@ class TestIncludeReferees:
 
     def test_referees_included_when_enabled(self):
         """Test that referees are included when include_referees=True."""
-        _, _, _, player_df = sportec.load_tracking(
-            RAW_DATA_W_REF_PATH, META_DATA_PATH, include_referees=True
+        dataset = sportec.load_tracking(
+            RAW_DATA_W_REF_PATH, META_DATA_PATH, include_referees=True, lazy=False
         )
+        player_df = dataset.players
 
         # Should have 44 rows: 40 players + 4 referees
         assert player_df.height == 44
@@ -481,18 +493,20 @@ class TestIncludeReferees:
 
     def test_referee_team_id_is_referee(self):
         """Test that referees have team_id = 'referee'."""
-        _, _, _, player_df = sportec.load_tracking(
-            RAW_DATA_W_REF_PATH, META_DATA_PATH, include_referees=True
+        dataset = sportec.load_tracking(
+            RAW_DATA_W_REF_PATH, META_DATA_PATH, include_referees=True, lazy=False
         )
+        player_df = dataset.players
 
         referee_rows = player_df.filter(pl.col("team_id") == "referee")
         assert all(t == "referee" for t in referee_rows["team_id"].to_list())
 
     def test_referee_positions(self):
         """Test that referees have correct position codes."""
-        _, _, _, player_df = sportec.load_tracking(
-            RAW_DATA_W_REF_PATH, META_DATA_PATH, include_referees=True
+        dataset = sportec.load_tracking(
+            RAW_DATA_W_REF_PATH, META_DATA_PATH, include_referees=True, lazy=False
         )
+        player_df = dataset.players
 
         referee_rows = player_df.filter(pl.col("team_id") == "referee")
         positions = set(referee_rows["position"].to_list())
@@ -507,20 +521,28 @@ class TestSpecificValues:
     """Tests for specific data values matching kloppy test expectations."""
 
     @pytest.fixture
-    def tracking_wide_all(self):
-        """Load tracking data in wide format with all frames (including dead ball)."""
-        tracking_df, _, _, _ = sportec.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, layout="wide", only_alive=False
+    def dataset_wide(self):
+        """Load dataset with wide layout."""
+        return sportec.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, layout="wide", only_alive=False, lazy=False
         )
-        return tracking_df
 
     @pytest.fixture
-    def tracking_long_all(self):
-        """Load tracking data in long format with all frames (including dead ball)."""
-        tracking_df, _, _, _ = sportec.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, layout="long", only_alive=False
+    def tracking_wide_all(self, dataset_wide):
+        """Return the tracking DataFrame."""
+        return dataset_wide.tracking
+
+    @pytest.fixture
+    def dataset_long(self):
+        """Load dataset with long layout."""
+        return sportec.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, layout="long", only_alive=False, lazy=False
         )
-        return tracking_df
+
+    @pytest.fixture
+    def tracking_long_all(self, dataset_long):
+        """Return the tracking DataFrame."""
+        return dataset_long.tracking
 
     def test_total_frame_count_all(self, tracking_wide_all):
         """Test frame count with only_alive=False.
@@ -534,9 +556,10 @@ class TestSpecificValues:
 
         With only_alive=True (default), should have 199 frames (6 dead frames removed).
         """
-        tracking_df, _, _, _ = sportec.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, layout="wide"
+        dataset = sportec.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, layout="wide", lazy=False
         )
+        tracking_df = dataset.tracking
         assert tracking_df.height == 199
 
     def test_period_1_kickoff_frame(self, tracking_wide_all):
@@ -629,13 +652,15 @@ class TestTimestampBehavior:
     @pytest.fixture
     def tracking_df(self):
         """Load tracking data."""
-        tracking_df, _, _, _ = sportec.load_tracking(RAW_DATA_PATH, META_DATA_PATH)
+        dataset = sportec.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
+        tracking_df = dataset.tracking
         return tracking_df
 
     @pytest.fixture
     def metadata_df(self):
         """Load metadata."""
-        _, metadata_df, _, _ = sportec.load_tracking(RAW_DATA_PATH, META_DATA_PATH)
+        dataset = sportec.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
+        metadata_df = dataset.metadata
         return metadata_df
 
     def test_period_1_first_frame_timestamp_near_zero(self, tracking_df):

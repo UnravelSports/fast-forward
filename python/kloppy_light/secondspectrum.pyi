@@ -1,8 +1,9 @@
 """Type stubs for kloppy_light.secondspectrum"""
 
-from typing import Literal, Tuple, Union, overload
+from typing import Literal, Union, overload
 import polars as pl
 from ._lazy import LazyTrackingLoader
+from ._dataset import TrackingDataset
 
 
 @overload
@@ -21,8 +22,8 @@ def load_tracking(
     ] = "static_home_away",
     only_alive: bool = False,
     *,
-    lazy: Literal[False] = False,
-) -> Tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame]: ...
+    lazy: Literal[False],
+) -> TrackingDataset: ...
 
 
 @overload
@@ -41,8 +42,8 @@ def load_tracking(
     ] = "static_home_away",
     only_alive: bool = False,
     *,
-    lazy: Literal[True],
-) -> Tuple[LazyTrackingLoader, pl.DataFrame, pl.DataFrame, pl.DataFrame]: ...
+    lazy: Literal[True] = True,
+) -> TrackingDataset: ...
 
 
 def load_tracking(
@@ -60,11 +61,8 @@ def load_tracking(
     ] = "static_home_away",
     only_alive: bool = False,
     *,
-    lazy: bool = False,
-) -> Union[
-    Tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame],
-    Tuple[LazyTrackingLoader, pl.DataFrame, pl.DataFrame, pl.DataFrame],
-]:
+    lazy: bool = True,
+) -> TrackingDataset:
     """
     Load SecondSpectrum tracking data.
 
@@ -92,18 +90,16 @@ def load_tracking(
         - "attack_left": Attacking team always attacks left
     only_alive : bool, default False
         If True, only include frames where ball is in play (ball_state == "alive")
-    lazy : bool, default False
-        If True, return a LazyTrackingLoader that defers parsing until .collect()
+    lazy : bool, default True
+        If True, return a TrackingDataset with LazyTrackingLoader for tracking.
+        If False, return a TrackingDataset with eager DataFrame for tracking.
 
     Returns
     -------
-    If lazy=False:
-        Tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame]
-            (tracking_df, metadata_df, team_df, player_df)
-    If lazy=True:
-        Tuple[LazyTrackingLoader, pl.DataFrame, pl.DataFrame, pl.DataFrame]
-            (tracking_lazy, metadata_df, team_df, player_df)
-            The tracking_lazy object supports .filter(), .select(), and .collect()
+    TrackingDataset
+        Object with .tracking, .metadata, .teams, .players, .periods properties.
+        If lazy=True, .tracking returns LazyTrackingLoader (call .collect() to get DataFrame).
+        If lazy=False, .tracking returns pl.DataFrame directly.
 
         tracking_df: Tracking data in the specified layout
 

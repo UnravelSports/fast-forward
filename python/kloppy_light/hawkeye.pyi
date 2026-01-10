@@ -1,7 +1,8 @@
 """Type stubs for kloppy_light.hawkeye"""
 
-from typing import List, Literal, Tuple, Union
+from typing import List, Literal, Union
 import polars as pl
+from ._dataset import TrackingDataset
 
 
 def load_tracking(
@@ -16,7 +17,9 @@ def load_tracking(
     pitch_width: float = 68.0,
     object_id: Literal["fifa", "uefa", "he", "auto"] = "auto",
     include_game_id: Union[bool, str] = True,
-) -> Tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame]:
+    *,
+    lazy: bool = True,
+) -> TrackingDataset:
     """
     Load HawkEye tracking data.
 

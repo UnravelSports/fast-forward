@@ -16,34 +16,32 @@ META_DATA_PATH = str(DATA_DIR / "secondspectrum_meta.json")
 class TestLoadTracking:
     """Tests for secondspectrum.load_tracking function."""
 
-    def test_returns_four_dataframes(self):
-        """Test that load_tracking returns a 4-tuple of DataFrames."""
-        result = secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH)
+    def test_returns_tracking_dataset(self):
+        """Test that load_tracking returns a TrackingDataset object."""
+        from kloppy_light._dataset import TrackingDataset
 
-        assert isinstance(result, tuple)
-        assert len(result) == 4
-        assert all(isinstance(df, pl.DataFrame) for df in result)
+        result = secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
 
-    def test_unpacking(self):
-        """Test that the 4-tuple can be unpacked correctly."""
-        tracking_df, metadata_df, team_df, player_df = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH
-        )
-
-        assert isinstance(tracking_df, pl.DataFrame)
-        assert isinstance(metadata_df, pl.DataFrame)
-        assert isinstance(team_df, pl.DataFrame)
-        assert isinstance(player_df, pl.DataFrame)
+        assert isinstance(result, TrackingDataset)
+        assert isinstance(result.tracking, pl.DataFrame)
+        assert isinstance(result.metadata, pl.DataFrame)
+        assert isinstance(result.teams, pl.DataFrame)
+        assert isinstance(result.players, pl.DataFrame)
+        assert isinstance(result.periods, pl.DataFrame)
 
 
 class TestMetadataDataFrame:
     """Tests for the metadata DataFrame."""
 
     @pytest.fixture
-    def metadata_df(self):
+    def dataset(self):
+        """Load and return the dataset."""
+        return secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
+
+    @pytest.fixture
+    def metadata_df(self, dataset):
         """Load and return the metadata DataFrame."""
-        _, metadata_df, _, _ = secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH)
-        return metadata_df
+        return dataset.metadata
 
     def test_single_row(self, metadata_df):
         """Test that metadata_df contains exactly one row."""
@@ -64,16 +62,6 @@ class TestMetadataDataFrame:
             "fps",
             "coordinate_system",
             "orientation",
-            "period_1_start_frame_id",
-            "period_1_end_frame_id",
-            "period_2_start_frame_id",
-            "period_2_end_frame_id",
-            "period_3_start_frame_id",
-            "period_3_end_frame_id",
-            "period_4_start_frame_id",
-            "period_4_end_frame_id",
-            "period_5_start_frame_id",
-            "period_5_end_frame_id",
         }
         assert set(metadata_df.columns) == expected_columns
 
@@ -118,10 +106,14 @@ class TestTeamDataFrame:
     """Tests for the team DataFrame."""
 
     @pytest.fixture
-    def team_df(self):
+    def dataset(self):
+        """Load and return the dataset."""
+        return secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
+
+    @pytest.fixture
+    def team_df(self, dataset):
         """Load and return the team DataFrame."""
-        _, _, team_df, _ = secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH)
-        return team_df
+        return dataset.teams
 
     def test_two_rows(self, team_df):
         """Test that team_df contains exactly two rows."""
@@ -142,10 +134,14 @@ class TestPlayerDataFrame:
     """Tests for the player DataFrame."""
 
     @pytest.fixture
-    def player_df(self):
+    def dataset(self):
+        """Load and return the dataset."""
+        return secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
+
+    @pytest.fixture
+    def player_df(self, dataset):
         """Load and return the player DataFrame."""
-        _, _, _, player_df = secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH)
-        return player_df
+        return dataset.players
 
     def test_schema(self, player_df):
         """Test that player_df has expected columns."""
@@ -183,12 +179,16 @@ class TestTrackingDataFrameLong:
     """Tests for tracking DataFrame with 'long' layout."""
 
     @pytest.fixture
-    def tracking_df(self):
+    def dataset(self):
         """Load tracking data with long layout."""
-        tracking_df, _, _, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, layout="long"
+        return secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, layout="long", lazy=False
         )
-        return tracking_df
+
+    @pytest.fixture
+    def tracking_df(self, dataset):
+        """Return tracking DataFrame."""
+        return dataset.tracking
 
     def test_schema(self, tracking_df):
         """Test that long format has expected columns."""
@@ -229,12 +229,16 @@ class TestTrackingDataFrameLongBall:
     """Tests for tracking DataFrame with 'long_ball' layout."""
 
     @pytest.fixture
-    def tracking_df(self):
+    def dataset(self):
         """Load tracking data with long_ball layout."""
-        tracking_df, _, _, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, layout="long_ball"
+        return secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, layout="long_ball", lazy=False
         )
-        return tracking_df
+
+    @pytest.fixture
+    def tracking_df(self, dataset):
+        """Return tracking DataFrame."""
+        return dataset.tracking
 
     def test_schema(self, tracking_df):
         """Test that long_ball format has expected columns."""
@@ -266,12 +270,16 @@ class TestTrackingDataFrameWide:
     """Tests for tracking DataFrame with 'wide' layout."""
 
     @pytest.fixture
-    def tracking_df(self):
+    def dataset(self):
         """Load tracking data with wide layout."""
-        tracking_df, _, _, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, layout="wide"
+        return secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, layout="wide", lazy=False
         )
-        return tracking_df
+
+    @pytest.fixture
+    def tracking_df(self, dataset):
+        """Return tracking DataFrame."""
+        return dataset.tracking
 
     def test_base_columns(self, tracking_df):
         """Test that wide format has expected base columns."""
@@ -309,17 +317,17 @@ class TestCoordinateSystem:
 
     def test_cdf_coordinates(self):
         """Test that CDF coordinates work correctly."""
-        tracking_df, metadata_df, _, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, coordinates="cdf"
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, coordinates="cdf", lazy=False
         )
-        assert tracking_df.height > 0
-        assert metadata_df["coordinate_system"][0] == "cdf"
+        assert dataset.tracking.height > 0
+        assert dataset.metadata["coordinate_system"][0] == "cdf"
 
     def test_invalid_coordinate_system(self):
         """Test that invalid coordinate system raises error."""
         with pytest.raises(Exception):
             secondspectrum.load_tracking(
-                RAW_DATA_PATH, META_DATA_PATH, coordinates="invalid"
+                RAW_DATA_PATH, META_DATA_PATH, coordinates="invalid", lazy=False
             )
 
 
@@ -329,7 +337,7 @@ class TestLayoutParameter:
     def test_invalid_layout(self):
         """Test that invalid layout raises error."""
         with pytest.raises(Exception):
-            secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH, layout="invalid")
+            secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH, layout="invalid", lazy=False)
 
 
 class TestErrorHandling:
@@ -338,7 +346,7 @@ class TestErrorHandling:
     def test_missing_tracking_file(self):
         """Test that missing tracking file raises error."""
         with pytest.raises(Exception):
-            secondspectrum.load_tracking("nonexistent_tracking.jsonl", META_DATA_PATH)
+            secondspectrum.load_tracking("nonexistent_tracking.jsonl", META_DATA_PATH, lazy=False)
 
     def test_missing_metadata_file(self):
         """Test that missing metadata file raises error."""
@@ -351,35 +359,35 @@ class TestOnlyAliveParameter:
 
     def test_only_alive_filters_dead_frames(self):
         """Test that only_alive=True filters out dead ball frames."""
-        df_all, _, _, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, only_alive=False
+        dataset_all = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, only_alive=False, lazy=False
         )
-        df_alive, _, _, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, only_alive=True
+        dataset_alive = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, only_alive=True, lazy=False
         )
 
         # Check if there are dead frames in the test data
-        dead_rows_all = df_all.filter(pl.col("ball_state") == "dead")
+        dead_rows_all = dataset_all.tracking.filter(pl.col("ball_state") == "dead")
         if dead_rows_all.height > 0:
             # Alive should have fewer rows if there are dead frames
-            assert df_alive.height < df_all.height
+            assert dataset_alive.tracking.height < dataset_all.tracking.height
 
     def test_only_alive_no_dead_frames(self):
         """Test that only_alive=True results in no dead ball frames."""
-        df_alive, _, _, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, only_alive=True
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, only_alive=True, lazy=False
         )
 
         # All rows should be alive
-        dead_rows = df_alive.filter(pl.col("ball_state") == "dead")
+        dead_rows = dataset.tracking.filter(pl.col("ball_state") == "dead")
         assert dead_rows.height == 0
 
     def test_only_alive_default_true(self):
         """Test that only_alive defaults to True (excludes dead frames)."""
-        df, _, _, _ = secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH)
+        dataset = secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
 
         # Should have no dead frames
-        dead_rows = df.filter(pl.col("ball_state") == "dead")
+        dead_rows = dataset.tracking.filter(pl.col("ball_state") == "dead")
         assert dead_rows.height == 0
 
 
@@ -388,65 +396,65 @@ class TestOrientationParameter:
 
     def test_orientation_default_static_home_away(self):
         """Test that orientation defaults to 'static_home_away'."""
-        _, metadata_df, _, _ = secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH)
-        assert metadata_df["orientation"][0] == "static_home_away"
+        dataset = secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
+        assert dataset.metadata["orientation"][0] == "static_home_away"
 
     def test_orientation_static_away_home(self):
         """Test that orientation='static_away_home' is recorded."""
-        _, metadata_df, _, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="static_away_home"
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="static_away_home", lazy=False
         )
-        assert metadata_df["orientation"][0] == "static_away_home"
+        assert dataset.metadata["orientation"][0] == "static_away_home"
 
     def test_orientation_home_away(self):
         """Test orientation='home_away'."""
-        _, metadata_df, _, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="home_away"
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="home_away", lazy=False
         )
-        assert metadata_df["orientation"][0] == "home_away"
+        assert dataset.metadata["orientation"][0] == "home_away"
 
     def test_orientation_away_home(self):
         """Test orientation='away_home'."""
-        _, metadata_df, _, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="away_home"
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="away_home", lazy=False
         )
-        assert metadata_df["orientation"][0] == "away_home"
+        assert dataset.metadata["orientation"][0] == "away_home"
 
     def test_orientation_attack_right(self):
         """Test orientation='attack_right'."""
-        _, metadata_df, _, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_right"
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_right", lazy=False
         )
-        assert metadata_df["orientation"][0] == "attack_right"
+        assert dataset.metadata["orientation"][0] == "attack_right"
 
     def test_orientation_attack_left(self):
         """Test orientation='attack_left'."""
-        _, metadata_df, _, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_left"
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_left", lazy=False
         )
-        assert metadata_df["orientation"][0] == "attack_left"
+        assert dataset.metadata["orientation"][0] == "attack_left"
 
     def test_invalid_orientation(self):
         """Test that invalid orientation raises error."""
         with pytest.raises(Exception):
             secondspectrum.load_tracking(
-                RAW_DATA_PATH, META_DATA_PATH, orientation="invalid"
+                RAW_DATA_PATH, META_DATA_PATH, orientation="invalid", lazy=False
             )
 
     def test_orientation_transforms_coordinates(self):
         """Test that different orientations can produce different coordinates."""
         # Load with default orientation
-        df_default, _, _, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="static_home_away"
+        dataset_default = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="static_home_away", lazy=False
         )
         # Load with opposite orientation
-        df_away, _, _, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="static_away_home"
+        dataset_away = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="static_away_home", lazy=False
         )
 
         # Get first player row from each
-        player_default = df_default.filter(pl.col("team_id") != "ball").row(0, named=True)
-        player_away = df_away.filter(pl.col("team_id") != "ball").row(0, named=True)
+        player_default = dataset_default.tracking.filter(pl.col("team_id") != "ball").row(0, named=True)
+        player_away = dataset_away.tracking.filter(pl.col("team_id") != "ball").row(0, named=True)
 
         # Both should load successfully
         assert player_default["x"] is not None
@@ -457,74 +465,79 @@ class TestLazyParameter:
     """Tests for lazy loading parameter."""
 
     def test_lazy_returns_lazy_loader(self):
-        """Test that lazy=True returns a LazyTrackingLoader."""
+        """Test that lazy=True returns a TrackingDataset with LazyTrackingLoader."""
         from kloppy_light import LazyTrackingLoader
+        from kloppy_light._dataset import TrackingDataset
 
-        t, m, team, player = secondspectrum.load_tracking(
+        dataset = secondspectrum.load_tracking(
             RAW_DATA_PATH, META_DATA_PATH, lazy=True
         )
-        assert isinstance(t, LazyTrackingLoader)
-        assert isinstance(m, pl.DataFrame)  # Metadata is eager
-        assert isinstance(team, pl.DataFrame)
-        assert isinstance(player, pl.DataFrame)
+        assert isinstance(dataset, TrackingDataset)
+        assert isinstance(dataset.tracking, LazyTrackingLoader)
+        assert isinstance(dataset.metadata, pl.DataFrame)  # Metadata is eager
+        assert isinstance(dataset.teams, pl.DataFrame)
+        assert isinstance(dataset.players, pl.DataFrame)
 
     def test_lazy_collect_returns_dataframe(self):
         """Test that collect() returns a DataFrame."""
-        t_lazy, _, _, _ = secondspectrum.load_tracking(
+        dataset = secondspectrum.load_tracking(
             RAW_DATA_PATH, META_DATA_PATH, lazy=True
         )
-        result = t_lazy.collect()
+        result = dataset.tracking.collect()
         assert isinstance(result, pl.DataFrame)
 
     def test_lazy_filter_before_collect(self):
         """Test that filter() can be chained before collect()."""
-        t_lazy, _, _, _ = secondspectrum.load_tracking(
+        dataset = secondspectrum.load_tracking(
             RAW_DATA_PATH, META_DATA_PATH, lazy=True
         )
-        result = t_lazy.filter(pl.col("period_id") == 1).collect()
+        result = dataset.tracking.filter(pl.col("period_id") == 1).collect()
         # All rows should be period 1
         assert all(p == 1 for p in result["period_id"].to_list())
 
     def test_lazy_select_before_collect(self):
         """Test that select() can be chained before collect()."""
-        t_lazy, _, _, _ = secondspectrum.load_tracking(
+        dataset = secondspectrum.load_tracking(
             RAW_DATA_PATH, META_DATA_PATH, lazy=True
         )
-        result = t_lazy.select(["frame_id", "x", "y"]).collect()
+        result = dataset.tracking.select(["frame_id", "x", "y"]).collect()
         assert set(result.columns) == {"frame_id", "x", "y"}
 
     def test_lazy_collect_matches_eager(self):
         """Test that lazy collect() produces same result as eager loading."""
-        t_lazy, _, _, _ = secondspectrum.load_tracking(
+        dataset_lazy = secondspectrum.load_tracking(
             RAW_DATA_PATH, META_DATA_PATH, lazy=True
         )
-        t_eager, _, _, _ = secondspectrum.load_tracking(
+        dataset_eager = secondspectrum.load_tracking(
             RAW_DATA_PATH, META_DATA_PATH, lazy=False
         )
-        assert t_lazy.collect().equals(t_eager)
+        assert dataset_lazy.tracking.collect().equals(dataset_eager.tracking)
 
     def test_lazy_repr(self):
         """Test that LazyTrackingLoader has a useful repr."""
-        t_lazy, _, _, _ = secondspectrum.load_tracking(
+        dataset = secondspectrum.load_tracking(
             RAW_DATA_PATH, META_DATA_PATH, lazy=True
         )
-        assert "secondspectrum" in repr(t_lazy)
+        assert "secondspectrum" in repr(dataset.tracking)
 
 
 class TestTimestampBehavior:
     """Tests for timestamp and FPS behavior."""
 
     @pytest.fixture
-    def tracking_df(self):
-        """Load tracking data."""
-        tracking_df, _, _, _ = secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH)
-        return tracking_df
+    def dataset(self):
+        """Load dataset."""
+        return secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
 
     @pytest.fixture
-    def metadata_df(self):
-        """Load metadata."""
-        _, metadata_df, _, _ = secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH)
-        return metadata_df
+    def tracking_df(self, dataset):
+        """Return tracking data."""
+        return dataset.tracking
+
+    @pytest.fixture
+    def metadata_df(self, dataset):
+        """Return metadata."""
+        return dataset.metadata
 
     def test_period_1_first_frame_timestamp_near_zero(self, tracking_df):
         """Test that period 1 first frame timestamp is at or near 0ms."""

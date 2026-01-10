@@ -15,6 +15,7 @@ from kloppy.io import FileLike, open_as_file
 
 from kloppy_light._kloppy_light import hawkeye as _hawkeye
 from kloppy_light._lazy import LazyTrackingLoader
+from kloppy_light._dataset import TrackingDataset
 
 
 def _get_filename(filelike: FileLike) -> str:
@@ -107,8 +108,8 @@ def load_tracking(
     object_id: Literal["fifa", "uefa", "he", "auto"] = "auto",
     include_game_id: Union[bool, str] = True,
     *,
-    lazy: Literal[False] = False,
-) -> Tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame]: ...
+    lazy: Literal[False],
+) -> TrackingDataset: ...
 
 
 @overload
@@ -125,8 +126,8 @@ def load_tracking(
     object_id: Literal["fifa", "uefa", "he", "auto"] = "auto",
     include_game_id: Union[bool, str] = True,
     *,
-    lazy: Literal[True],
-) -> Tuple[LazyTrackingLoader, pl.DataFrame, pl.DataFrame, pl.DataFrame]: ...
+    lazy: Literal[True] = True,
+) -> TrackingDataset: ...
 
 
 def load_tracking(
@@ -142,11 +143,8 @@ def load_tracking(
     object_id: Literal["fifa", "uefa", "he", "auto"] = "auto",
     include_game_id: Union[bool, str] = True,
     *,
-    lazy: bool = False,
-) -> Union[
-    Tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame],
-    Tuple[LazyTrackingLoader, pl.DataFrame, pl.DataFrame, pl.DataFrame],
-]:
+    lazy: bool = True,
+) -> TrackingDataset:
     """
     Load HawkEye tracking data.
 
@@ -197,19 +195,17 @@ def load_tracking(
         If True, add game_id column to tracking_df, team_df, and player_df from metadata.
         If False, no game_id column is added.
         If str, use the provided string as the game_id value.
-    lazy : bool, default False
-        If True, return a LazyTrackingLoader that defers parsing until .collect()
-        The tracking_lazy object supports .filter(), .select(), and .collect()
-        This is useful for large datasets where you want to filter before loading all data.
+    lazy : bool, default True
+        If True, return a TrackingDataset with LazyTrackingLoader for tracking.
+        If False, return a TrackingDataset with eager DataFrame for tracking.
+        Lazy loading is useful for large datasets where you want to filter before loading all data.
 
     Returns
     -------
-    If lazy=False:
-        Tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame]
-            (tracking_df, metadata_df, team_df, player_df)
-    If lazy=True:
-        Tuple[LazyTrackingLoader, pl.DataFrame, pl.DataFrame, pl.DataFrame]
-            (tracking_lazy, metadata_df, team_df, player_df)
+    TrackingDataset
+        Object with .tracking, .metadata, .teams, .players, .periods properties.
+        If lazy=True, .tracking returns LazyTrackingLoader (call .collect() to get DataFrame).
+        If lazy=False, .tracking returns pl.DataFrame directly.
 
     Notes
     -----
@@ -267,7 +263,7 @@ def load_tracking(
             )
 
         # Load metadata only (fast) - NOW WITH TEAM/PLAYER DATA
-        metadata_df, team_df, player_df = load_metadata_only(
+        metadata_df, team_df, player_df, periods_df = load_metadata_only(
             meta_data,
             player_data=player_data_processed,  # Pass player data for teams and players
             coordinates=coordinates,
@@ -293,7 +289,13 @@ def load_tracking(
             include_game_id=include_game_id,
         )
 
-        return lazy_loader, metadata_df, team_df, player_df
+        return TrackingDataset(
+            tracking=lazy_loader,
+            metadata=metadata_df,
+            teams=team_df,
+            players=player_df,
+            periods=periods_df,
+        )
 
     # Eager loading (existing logic)
     # Convert FileLike to bytes for metadata
@@ -338,7 +340,7 @@ def load_tracking(
             player_bytes_list.append((filename, f.read() if f else b""))
 
     # Pass bytes to Rust
-    return _hawkeye.load_tracking(
+    tracking_df, metadata_df, team_df, player_df, periods_df = _hawkeye.load_tracking(
         ball_bytes_list,
         player_bytes_list,
         meta_bytes,
@@ -352,6 +354,14 @@ def load_tracking(
         include_game_id=include_game_id,
     )
 
+    return TrackingDataset(
+        tracking=tracking_df,
+        metadata=metadata_df,
+        teams=team_df,
+        players=player_df,
+        periods=periods_df,
+    )
+
 
 def load_metadata_only(
     meta_data: FileLike,
@@ -362,7 +372,7 @@ def load_metadata_only(
     pitch_width: float = 68.0,
     object_id: Literal["auto", "heId", "fifaId"] = "auto",
     include_game_id: Union[bool, str] = True,
-) -> Tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]:
+) -> Tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame]:
     """
     Load only HawkEye metadata without tracking data.
 
@@ -391,8 +401,8 @@ def load_metadata_only(
 
     Returns
     -------
-    Tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame]
-        (metadata_df, team_df, player_df)
+    Tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame]
+        (metadata_df, team_df, player_df, periods_df)
 
     Notes
     -----

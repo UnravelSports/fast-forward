@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::io::{BufReader, Cursor};
 
 use crate::coordinates::{transform_from_cdf, CoordinateSystem};
-use crate::dataframe::{build_metadata_df, build_player_df, build_team_df, build_tracking_df, Layout};
+use crate::dataframe::{build_metadata_df, build_periods_df, build_player_df, build_team_df, build_tracking_df, Layout};
 use crate::error::KloppyError;
 use crate::models::{
     BallState, Ground, Position, StandardBall, StandardFrame, StandardMetadata,
@@ -841,7 +841,7 @@ fn load_tracking(
     pitch_width: f32,
     object_id: &str,
     include_game_id: Option<Bound<'_, PyAny>>,
-) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
+) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
     // Convert PyAny to Vec<(String, Vec<u8>)> - tuples of (filename, bytes)
     let ball_bytes_list: Vec<(String, Vec<u8>)> = if let Ok(list) = ball_data.downcast::<pyo3::types::PyList>() {
         list.iter()
@@ -1024,6 +1024,10 @@ fn load_tracking(
     let metadata_df = build_metadata_df(&metadata, game_id_value.as_deref())
         .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))?;
 
+    // Build periods DataFrame
+    let periods_df = build_periods_df(&metadata, game_id_value.as_deref())
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))?;
+
     // Build team DataFrame
     let team_df = build_team_df(&teams, game_id_value.as_deref())
         .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))?;
@@ -1037,6 +1041,7 @@ fn load_tracking(
         PyDataFrame(metadata_df),
         PyDataFrame(team_df),
         PyDataFrame(player_df),
+        PyDataFrame(periods_df),
     ))
 }
 
@@ -1061,7 +1066,7 @@ fn load_metadata_only(
     pitch_width: f32,
     object_id: &str,
     include_game_id: Option<Bound<'_, PyAny>>,
-) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame)> {
+) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
     // Parse metadata
     let (game_id, _kickoff_time, pitch_length_final, pitch_width_final) =
         parse_metadata(meta_data, pitch_length, pitch_width, object_id)
@@ -1117,6 +1122,10 @@ fn load_metadata_only(
     let metadata_df = build_metadata_df(&metadata, game_id_value.as_deref())
         .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))?;
 
+    // Build periods DataFrame
+    let periods_df = build_periods_df(&metadata, game_id_value.as_deref())
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))?;
+
     // Build team and player DataFrames (populated if player_data was provided)
     let team_df = build_team_df(&teams, game_id_value.as_deref())
         .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))?;
@@ -1128,6 +1137,7 @@ fn load_metadata_only(
         PyDataFrame(metadata_df),
         PyDataFrame(team_df),
         PyDataFrame(player_df),
+        PyDataFrame(periods_df),
     ))
 }
 

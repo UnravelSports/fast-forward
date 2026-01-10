@@ -17,9 +17,12 @@ class TestStaticHomeAway:
 
     def test_home_team_x_period_1(self):
         """Home team should have x mean of -13.010109 in period 1."""
-        tracking_df, metadata_df, team_df, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="static_home_away", only_alive=False
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="static_home_away", only_alive=False, lazy=False
         )
+        tracking_df = dataset.tracking
+        metadata_df = dataset.metadata
+        team_df = dataset.teams
 
         home_team_id = team_df.filter(pl.col("ground") == "home")["team_id"][0]
         period_data = tracking_df.filter(
@@ -30,9 +33,12 @@ class TestStaticHomeAway:
 
     def test_home_team_x_period_2(self):
         """Home team should have x mean of -8.234799 in period 2."""
-        tracking_df, metadata_df, team_df, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="static_home_away", only_alive=False
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="static_home_away", only_alive=False, lazy=False
         )
+        tracking_df = dataset.tracking
+        metadata_df = dataset.metadata
+        team_df = dataset.teams
 
         home_team_id = team_df.filter(pl.col("ground") == "home")["team_id"][0]
         period_data = tracking_df.filter(
@@ -43,9 +49,10 @@ class TestStaticHomeAway:
 
     def test_ball_x_period_1(self):
         """Ball should have x mean of 20.0939 in period 1."""
-        tracking_df, _, _, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="static_home_away", only_alive=False
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="static_home_away", only_alive=False, lazy=False
         )
+        tracking_df = dataset.tracking
 
         ball_data = tracking_df.filter(
             (pl.col("period_id") == 1) & (pl.col("team_id") == "ball")
@@ -55,9 +62,10 @@ class TestStaticHomeAway:
 
     def test_ball_x_period_2(self):
         """Ball should have x mean of -6.3284 in period 2."""
-        tracking_df, _, _, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="static_home_away", only_alive=False
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="static_home_away", only_alive=False, lazy=False
         )
+        tracking_df = dataset.tracking
 
         ball_data = tracking_df.filter(
             (pl.col("period_id") == 2) & (pl.col("team_id") == "ball")
@@ -71,9 +79,12 @@ class TestStaticAwayHome:
 
     def test_home_team_x_period_1(self):
         """Home team should have x mean of 13.010109 in period 1 (flipped from static_home_away)."""
-        tracking_df, metadata_df, team_df, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="static_away_home", only_alive=False
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="static_away_home", only_alive=False, lazy=False
         )
+        tracking_df = dataset.tracking
+        metadata_df = dataset.metadata
+        team_df = dataset.teams
 
         home_team_id = team_df.filter(pl.col("ground") == "home")["team_id"][0]
         period_data = tracking_df.filter(
@@ -84,9 +95,12 @@ class TestStaticAwayHome:
 
     def test_home_team_x_period_2(self):
         """Home team should have x mean of 8.234799 in period 2."""
-        tracking_df, metadata_df, team_df, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="static_away_home", only_alive=False
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="static_away_home", only_alive=False, lazy=False
         )
+        tracking_df = dataset.tracking
+        metadata_df = dataset.metadata
+        team_df = dataset.teams
 
         home_team_id = team_df.filter(pl.col("ground") == "home")["team_id"][0]
         period_data = tracking_df.filter(
@@ -97,9 +111,10 @@ class TestStaticAwayHome:
 
     def test_ball_x_period_1(self):
         """Ball should have x mean of -20.0939 in period 1."""
-        tracking_df, _, _, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="static_away_home", only_alive=False
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="static_away_home", only_alive=False, lazy=False
         )
+        tracking_df = dataset.tracking
 
         ball_data = tracking_df.filter(
             (pl.col("period_id") == 1) & (pl.col("team_id") == "ball")
@@ -109,9 +124,10 @@ class TestStaticAwayHome:
 
     def test_ball_x_period_2(self):
         """Ball should have x mean of 6.3284 in period 2."""
-        tracking_df, _, _, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="static_away_home", only_alive=False
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="static_away_home", only_alive=False, lazy=False
         )
+        tracking_df = dataset.tracking
 
         ball_data = tracking_df.filter(
             (pl.col("period_id") == 2) & (pl.col("team_id") == "ball")
@@ -125,9 +141,12 @@ class TestHomeAway:
 
     def test_home_team_x_period_1(self):
         """Home team should have x mean of -13.010109 in period 1."""
-        tracking_df, metadata_df, team_df, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="home_away", only_alive=False
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="home_away", only_alive=False, lazy=False
         )
+        tracking_df = dataset.tracking
+        metadata_df = dataset.metadata
+        team_df = dataset.teams
 
         home_team_id = team_df.filter(pl.col("ground") == "home")["team_id"][0]
         period_data = tracking_df.filter(
@@ -138,9 +157,12 @@ class TestHomeAway:
 
     def test_home_team_x_period_2(self):
         """Home team should have x mean of 8.234799 in period 2 (flipped)."""
-        tracking_df, metadata_df, team_df, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="home_away", only_alive=False
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="home_away", only_alive=False, lazy=False
         )
+        tracking_df = dataset.tracking
+        metadata_df = dataset.metadata
+        team_df = dataset.teams
 
         home_team_id = team_df.filter(pl.col("ground") == "home")["team_id"][0]
         period_data = tracking_df.filter(
@@ -151,9 +173,10 @@ class TestHomeAway:
 
     def test_ball_x_period_1(self):
         """Ball should have x mean of 20.0939 in period 1."""
-        tracking_df, _, _, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="home_away", only_alive=False
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="home_away", only_alive=False, lazy=False
         )
+        tracking_df = dataset.tracking
 
         ball_data = tracking_df.filter(
             (pl.col("period_id") == 1) & (pl.col("team_id") == "ball")
@@ -163,9 +186,10 @@ class TestHomeAway:
 
     def test_ball_x_period_2(self):
         """Ball should have x mean of 6.3284 in period 2 (flipped)."""
-        tracking_df, _, _, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="home_away", only_alive=False
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="home_away", only_alive=False, lazy=False
         )
+        tracking_df = dataset.tracking
 
         ball_data = tracking_df.filter(
             (pl.col("period_id") == 2) & (pl.col("team_id") == "ball")
@@ -179,9 +203,12 @@ class TestAwayHome:
 
     def test_home_team_x_period_1(self):
         """Home team should have x mean of 13.010109 in period 1 (flipped)."""
-        tracking_df, metadata_df, team_df, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="away_home", only_alive=False
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="away_home", only_alive=False, lazy=False
         )
+        tracking_df = dataset.tracking
+        metadata_df = dataset.metadata
+        team_df = dataset.teams
 
         home_team_id = team_df.filter(pl.col("ground") == "home")["team_id"][0]
         period_data = tracking_df.filter(
@@ -192,9 +219,12 @@ class TestAwayHome:
 
     def test_home_team_x_period_2(self):
         """Home team should have x mean of -8.234799 in period 2."""
-        tracking_df, metadata_df, team_df, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="away_home", only_alive=False
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="away_home", only_alive=False, lazy=False
         )
+        tracking_df = dataset.tracking
+        metadata_df = dataset.metadata
+        team_df = dataset.teams
 
         home_team_id = team_df.filter(pl.col("ground") == "home")["team_id"][0]
         period_data = tracking_df.filter(
@@ -205,9 +235,10 @@ class TestAwayHome:
 
     def test_ball_x_period_1(self):
         """Ball should have x mean of -20.0939 in period 1."""
-        tracking_df, _, _, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="away_home", only_alive=False
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="away_home", only_alive=False, lazy=False
         )
+        tracking_df = dataset.tracking
 
         ball_data = tracking_df.filter(
             (pl.col("period_id") == 1) & (pl.col("team_id") == "ball")
@@ -217,9 +248,10 @@ class TestAwayHome:
 
     def test_ball_x_period_2(self):
         """Ball should have x mean of -6.3284 in period 2."""
-        tracking_df, _, _, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="away_home", only_alive=False
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="away_home", only_alive=False, lazy=False
         )
+        tracking_df = dataset.tracking
 
         ball_data = tracking_df.filter(
             (pl.col("period_id") == 2) & (pl.col("team_id") == "ball")
@@ -233,9 +265,11 @@ class TestAttackRight:
 
     def test_home_team_x_period_1(self):
         """Home team should have x mean of 12.738454 in period 1."""
-        tracking_df, _, team_df, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_right", only_alive=False
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_right", only_alive=False, lazy=False
         )
+        tracking_df = dataset.tracking
+        team_df = dataset.teams
 
         home_team_id = team_df.filter(pl.col("ground") == "home")["team_id"][0]
         period_data = tracking_df.filter(
@@ -246,9 +280,11 @@ class TestAttackRight:
 
     def test_home_team_x_period_2(self):
         """Home team should have x mean of -8.234799 in period 2."""
-        tracking_df, _, team_df, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_right", only_alive=False
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_right", only_alive=False, lazy=False
         )
+        tracking_df = dataset.tracking
+        team_df = dataset.teams
 
         home_team_id = team_df.filter(pl.col("ground") == "home")["team_id"][0]
         period_data = tracking_df.filter(
@@ -259,9 +295,10 @@ class TestAttackRight:
 
     def test_ball_x_period_1(self):
         """Ball should have x mean of -20.0883 in period 1."""
-        tracking_df, _, _, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_right", only_alive=False
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_right", only_alive=False, lazy=False
         )
+        tracking_df = dataset.tracking
 
         ball_data = tracking_df.filter(
             (pl.col("period_id") == 1) & (pl.col("team_id") == "ball")
@@ -271,9 +308,10 @@ class TestAttackRight:
 
     def test_ball_x_period_2(self):
         """Ball should have x mean of -6.3284 in period 2."""
-        tracking_df, _, _, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_right", only_alive=False
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_right", only_alive=False, lazy=False
         )
+        tracking_df = dataset.tracking
 
         ball_data = tracking_df.filter(
             (pl.col("period_id") == 2) & (pl.col("team_id") == "ball")
@@ -287,9 +325,11 @@ class TestAttackLeft:
 
     def test_home_team_x_period_1(self):
         """Home team should have x mean of -12.738454 in period 1."""
-        tracking_df, _, team_df, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_left", only_alive=False
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_left", only_alive=False, lazy=False
         )
+        tracking_df = dataset.tracking
+        team_df = dataset.teams
 
         home_team_id = team_df.filter(pl.col("ground") == "home")["team_id"][0]
         period_data = tracking_df.filter(
@@ -300,9 +340,11 @@ class TestAttackLeft:
 
     def test_home_team_x_period_2(self):
         """Home team should have x mean of 8.234799 in period 2."""
-        tracking_df, _, team_df, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_left", only_alive=False
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_left", only_alive=False, lazy=False
         )
+        tracking_df = dataset.tracking
+        team_df = dataset.teams
 
         home_team_id = team_df.filter(pl.col("ground") == "home")["team_id"][0]
         period_data = tracking_df.filter(
@@ -313,9 +355,10 @@ class TestAttackLeft:
 
     def test_ball_x_period_1(self):
         """Ball should have x mean of 20.0883 in period 1."""
-        tracking_df, _, _, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_left", only_alive=False
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_left", only_alive=False, lazy=False
         )
+        tracking_df = dataset.tracking
 
         ball_data = tracking_df.filter(
             (pl.col("period_id") == 1) & (pl.col("team_id") == "ball")
@@ -325,9 +368,10 @@ class TestAttackLeft:
 
     def test_ball_x_period_2(self):
         """Ball should have x mean of 6.3284 in period 2."""
-        tracking_df, _, _, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_left", only_alive=False
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_left", only_alive=False, lazy=False
         )
+        tracking_df = dataset.tracking
 
         ball_data = tracking_df.filter(
             (pl.col("period_id") == 2) & (pl.col("team_id") == "ball")
@@ -341,12 +385,15 @@ class TestOrientationSymmetry:
 
     def test_static_modes_are_symmetric(self):
         """static_home_away and static_away_home should produce symmetric results."""
-        tracking_home, _, team_df, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="static_home_away", only_alive=False
+        dataset_home = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="static_home_away", only_alive=False, lazy=False
         )
-        tracking_away, _, _, _ = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="static_away_home", only_alive=False
+        tracking_home = dataset_home.tracking
+        team_df = dataset_home.teams
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, orientation="static_away_home", only_alive=False, lazy=False
         )
+        tracking_away = dataset.tracking
 
         home_team_id = team_df.filter(pl.col("ground") == "home")["team_id"][0]
 

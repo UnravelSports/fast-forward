@@ -24,30 +24,30 @@ class TestHawkEyeBasic:
 
     def test_load_with_list_of_files(self):
         """Test loading with list of file paths."""
-        tracking_df, metadata_df, team_df, player_df = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, lazy=False
         )
 
-        assert isinstance(tracking_df, pl.DataFrame)
-        assert isinstance(metadata_df, pl.DataFrame)
-        assert isinstance(team_df, pl.DataFrame)
-        assert isinstance(player_df, pl.DataFrame)
+        assert isinstance(dataset.tracking, pl.DataFrame)
+        assert isinstance(dataset.metadata, pl.DataFrame)
+        assert isinstance(dataset.teams, pl.DataFrame)
+        assert isinstance(dataset.players, pl.DataFrame)
 
-        assert len(tracking_df) > 0
-        assert len(metadata_df) == 1
-        assert len(team_df) == 2  # Home and away
-        assert len(player_df) > 0
+        assert len(dataset.tracking) > 0
+        assert len(dataset.metadata) == 1
+        assert len(dataset.teams) == 2  # Home and away
+        assert len(dataset.players) > 0
 
     def test_load_with_single_file(self):
         """Test loading with single file path."""
-        tracking_df, metadata_df, team_df, player_df = hawkeye.load_tracking(
-            BALL_FILES[0], PLAYER_FILES[0], META_JSON
+        dataset = hawkeye.load_tracking(
+            BALL_FILES[0], PLAYER_FILES[0], META_JSON, lazy=False
         )
 
-        assert len(tracking_df) > 0
-        assert len(metadata_df) == 1
-        assert len(team_df) == 2
-        assert len(player_df) > 0
+        assert len(dataset.tracking) > 0
+        assert len(dataset.metadata) == 1
+        assert len(dataset.teams) == 2
+        assert len(dataset.players) > 0
 
 
 class TestHawkEyeColumns:
@@ -55,9 +55,10 @@ class TestHawkEyeColumns:
 
     def test_tracking_columns(self):
         """Test tracking_df has expected columns."""
-        tracking_df, _, _, _ = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, lazy=False
         )
+        tracking_df = dataset.tracking
 
         expected_cols = [
             'game_id', 'frame_id', 'period_id', 'timestamp', 'ball_state',
@@ -67,9 +68,10 @@ class TestHawkEyeColumns:
 
     def test_metadata_columns(self):
         """Test metadata_df has expected columns."""
-        _, metadata_df, _, _ = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, lazy=False
         )
+        metadata_df = dataset.metadata
 
         expected_cols = [
             'provider', 'game_id', 'home_team', 'home_team_id',
@@ -80,18 +82,20 @@ class TestHawkEyeColumns:
 
     def test_team_columns(self):
         """Test team_df has expected columns."""
-        _, _, team_df, _ = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, lazy=False
         )
+        team_df = dataset.teams
 
         expected_cols = ['game_id', 'team_id', 'name', 'ground']
         assert all(col in team_df.columns for col in expected_cols)
 
     def test_player_columns(self):
         """Test player_df has expected columns."""
-        _, _, _, player_df = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, lazy=False
         )
+        player_df = dataset.players
 
         expected_cols = [
             'game_id', 'team_id', 'player_id', 'jersey_number', 'position'
@@ -104,12 +108,14 @@ class TestHawkEyeParameters:
 
     def test_only_alive_true(self):
         """Test only_alive=True filters dead ball frames."""
-        tracking_df_all, _, _, _ = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON, only_alive=False
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, only_alive=False, lazy=False
         )
-        tracking_df_alive, _, _, _ = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON, only_alive=True
+        tracking_df_all = dataset.tracking
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, only_alive=True, lazy=False
         )
+        tracking_df_alive = dataset.tracking
 
         assert len(tracking_df_alive) < len(tracking_df_all)
         # Verify all rows in alive df have ball_state != "dead"
@@ -118,9 +124,10 @@ class TestHawkEyeParameters:
 
     def test_only_alive_false(self):
         """Test only_alive=False includes dead ball frames."""
-        tracking_df, _, _, _ = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON, only_alive=False
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, only_alive=False, lazy=False
         )
+        tracking_df = dataset.tracking
 
         ball_rows = tracking_df.filter(pl.col('team_id') == 'ball')
         ball_states = ball_rows['ball_state'].unique().sort()
@@ -130,9 +137,12 @@ class TestHawkEyeParameters:
 
     def test_include_game_id_true(self):
         """Test include_game_id=True adds game_id column."""
-        tracking_df, _, team_df, player_df = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON, include_game_id=True
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, include_game_id=True, lazy=False
         )
+        tracking_df = dataset.tracking
+        team_df = dataset.teams
+        player_df = dataset.players
 
         assert 'game_id' in tracking_df.columns
         assert 'game_id' in team_df.columns
@@ -140,9 +150,12 @@ class TestHawkEyeParameters:
 
     def test_include_game_id_false(self):
         """Test include_game_id=False omits game_id column."""
-        tracking_df, _, team_df, player_df = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON, include_game_id=False
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, include_game_id=False, lazy=False
         )
+        tracking_df = dataset.tracking
+        team_df = dataset.teams
+        player_df = dataset.players
 
         assert 'game_id' not in tracking_df.columns
         assert 'game_id' not in team_df.columns
@@ -151,27 +164,30 @@ class TestHawkEyeParameters:
     def test_include_game_id_custom(self):
         """Test include_game_id with custom string."""
         custom_id = "custom_game_123"
-        tracking_df, _, _, _ = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON, include_game_id=custom_id
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, include_game_id=custom_id, lazy=False
         )
+        tracking_df = dataset.tracking
 
         assert 'game_id' in tracking_df.columns
         assert tracking_df['game_id'][0] == custom_id
 
     def test_object_id_auto(self):
         """Test object_id='auto' parameter."""
-        tracking_df, _, _, _ = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON, object_id="auto"
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, object_id="auto", lazy=False
         )
+        tracking_df = dataset.tracking
         assert len(tracking_df) > 0
 
     def test_pitch_dimensions(self):
         """Test pitch dimension parameters."""
-        _, metadata_df, _, _ = hawkeye.load_tracking(
+        dataset = hawkeye.load_tracking(
             BALL_FILES, PLAYER_FILES, META_JSON,
             pitch_length=120.0,
-            pitch_width=80.0
+            pitch_width=80.0, lazy=False
         )
+        metadata_df = dataset.metadata
 
         # Note: actual metadata values may override these
         assert 'pitch_length' in metadata_df.columns
@@ -183,9 +199,10 @@ class TestHawkEyeData:
 
     def test_ball_rows_exist(self):
         """Test that ball tracking rows are present."""
-        tracking_df, _, _, _ = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, lazy=False
         )
+        tracking_df = dataset.tracking
 
         ball_rows = tracking_df.filter(pl.col('team_id') == 'ball')
         assert len(ball_rows) > 0
@@ -194,18 +211,20 @@ class TestHawkEyeData:
 
     def test_player_rows_exist(self):
         """Test that player tracking rows are present."""
-        tracking_df, _, _, _ = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, lazy=False
         )
+        tracking_df = dataset.tracking
 
         player_rows = tracking_df.filter(pl.col('team_id') != 'ball')
         assert len(player_rows) > 0
 
     def test_periods(self):
         """Test that period information is present."""
-        tracking_df, _, _, _ = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, lazy=False
         )
+        tracking_df = dataset.tracking
 
         periods = tracking_df['period_id'].unique()
         assert len(periods) > 0
@@ -213,9 +232,10 @@ class TestHawkEyeData:
 
     def test_teams(self):
         """Test team data."""
-        _, _, team_df, _ = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, lazy=False
         )
+        team_df = dataset.teams
 
         assert len(team_df) == 2
         grounds = team_df['ground'].to_list()
@@ -224,9 +244,10 @@ class TestHawkEyeData:
 
     def test_players(self):
         """Test player data."""
-        _, _, _, player_df = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, lazy=False
         )
+        player_df = dataset.players
 
         assert len(player_df) > 0
         # Check jersey numbers are reasonable
@@ -236,9 +257,10 @@ class TestHawkEyeData:
 
     def test_metadata_provider(self):
         """Test metadata has correct provider."""
-        _, metadata_df, _, _ = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, lazy=False
         )
+        metadata_df = dataset.metadata
 
         assert metadata_df['provider'][0] == 'hawkeye'
 
@@ -248,11 +270,12 @@ class TestHawkEyeMetadataOnly:
 
     def test_load_metadata_only(self):
         """Test loading metadata without tracking data."""
-        metadata_df, team_df, player_df = hawkeye.load_metadata_only(META_JSON)
+        metadata_df, team_df, player_df, periods_df = hawkeye.load_metadata_only(META_JSON)
 
         assert isinstance(metadata_df, pl.DataFrame)
         assert isinstance(team_df, pl.DataFrame)
         assert isinstance(player_df, pl.DataFrame)
+        assert isinstance(periods_df, pl.DataFrame)
 
         assert len(metadata_df) == 1
         # Teams and players come from tracking files, so should be empty
@@ -261,7 +284,7 @@ class TestHawkEyeMetadataOnly:
 
     def test_metadata_only_columns(self):
         """Test metadata_only has expected columns."""
-        metadata_df, _, _ = hawkeye.load_metadata_only(META_JSON)
+        metadata_df, _, _, _ = hawkeye.load_metadata_only(META_JSON)
 
         expected_cols = [
             'provider', 'game_id', 'pitch_length', 'pitch_width',
@@ -276,39 +299,41 @@ class TestHawkEyeEdgeCases:
     def test_mismatched_file_counts(self):
         """Test with different numbers of ball and player files."""
         # This should still work - files are paired by index
-        tracking_df, _, _, _ = hawkeye.load_tracking(
+        dataset = hawkeye.load_tracking(
             BALL_FILES[:1],  # Only 1 ball file
             PLAYER_FILES[:1],  # Only 1 player file
-            META_JSON
+            META_JSON, lazy=False
         )
+        tracking_df = dataset.tracking
         assert len(tracking_df) > 0
 
     def test_coordinate_system_validation(self):
         """Test that invalid coordinate systems are rejected."""
         with pytest.raises(ValueError):
             hawkeye.load_tracking(
-                BALL_FILES, PLAYER_FILES, META_JSON, coordinates="invalid_coords"
+                BALL_FILES, PLAYER_FILES, META_JSON, coordinates="invalid_coords", lazy=False
             )
 
     def test_orientation_validation(self):
         """Test that invalid orientations are rejected."""
         with pytest.raises(ValueError):
             hawkeye.load_tracking(
-                BALL_FILES, PLAYER_FILES, META_JSON, orientation="invalid_orient"
+                BALL_FILES, PLAYER_FILES, META_JSON, orientation="invalid_orient", lazy=False
             )
 
     def test_layout_validation(self):
         """Test that only 'long' layout is accepted."""
         # This should work with default layout
-        tracking_df, _, _, _ = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON, layout="long"
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, layout="long", lazy=False
         )
+        tracking_df = dataset.tracking
         assert len(tracking_df) > 0
 
         # Test invalid layout
         with pytest.raises(Exception):
             hawkeye.load_tracking(
-                BALL_FILES, PLAYER_FILES, META_JSON, layout="invalid_layout"
+                BALL_FILES, PLAYER_FILES, META_JSON, layout="invalid_layout", lazy=False
             )
 
 
@@ -317,9 +342,10 @@ class TestHawkEyeLayouts:
 
     def test_long_layout(self):
         """Test long layout (default)."""
-        tracking_df, _, _, _ = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON, layout="long"
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, layout="long", lazy=False
         )
+        tracking_df = dataset.tracking
 
         # Ball should be a row with team_id="ball"
         ball_rows = tracking_df.filter(pl.col('team_id') == 'ball')
@@ -329,9 +355,10 @@ class TestHawkEyeLayouts:
 
     def test_long_ball_layout(self):
         """Test long_ball layout."""
-        tracking_df, _, _, _ = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON, layout="long_ball"
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, layout="long_ball", lazy=False
         )
+        tracking_df = dataset.tracking
 
         # Ball should NOT be a row
         team_ids = tracking_df['team_id'].unique().to_list()
@@ -347,9 +374,10 @@ class TestHawkEyeLayouts:
 
     def test_wide_layout(self):
         """Test wide layout."""
-        tracking_df, _, _, _ = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON, layout="wide"
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, layout="wide", lazy=False
         )
+        tracking_df = dataset.tracking
 
         # One row per frame
         frame_count = len(tracking_df['frame_id'].unique())
@@ -371,9 +399,11 @@ class TestHawkEyeCoordinates:
 
     def test_cdf_coordinates(self):
         """Test CDF coordinate system (default)."""
-        tracking_df, metadata_df, _, _ = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON, coordinates="cdf"
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, coordinates="cdf", lazy=False
         )
+        tracking_df = dataset.tracking
+        metadata_df = dataset.metadata
 
         # CDF: center-based, meters
         # X should be in range [-pitch_length/2, +pitch_length/2]
@@ -389,9 +419,10 @@ class TestHawkEyeCoordinates:
 
     def test_kloppy_coordinates(self):
         """Test Kloppy coordinate system (normalized 0-1)."""
-        tracking_df, _, _, _ = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON, coordinates="kloppy"
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, coordinates="kloppy", lazy=False
         )
+        tracking_df = dataset.tracking
 
         # Kloppy: top-left origin, normalized 0-1
         # Allow small margin for players slightly out of bounds
@@ -402,9 +433,11 @@ class TestHawkEyeCoordinates:
 
     def test_tracab_coordinates(self):
         """Test Tracab coordinate system (centimeters)."""
-        tracking_df, metadata_df, _, _ = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON, coordinates="tracab"
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, coordinates="tracab", lazy=False
         )
+        tracking_df = dataset.tracking
+        metadata_df = dataset.metadata
 
         # Tracab: center-based, centimeters
         pitch_length_cm = metadata_df['pitch_length'][0] * 100
@@ -419,9 +452,10 @@ class TestHawkEyeOrientations:
 
     def test_static_home_away(self):
         """Test static_home_away orientation (default)."""
-        tracking_df1, _, _, _ = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON, orientation="static_home_away"
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, orientation="static_home_away", lazy=False
         )
+        tracking_df1 = dataset.tracking
 
         # Home team attacks right (+x) entire match
         # Just verify it loads successfully
@@ -429,12 +463,14 @@ class TestHawkEyeOrientations:
 
     def test_static_away_home(self):
         """Test static_away_home orientation."""
-        tracking_df1, _, _, _ = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON, orientation="static_home_away"
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, orientation="static_home_away", lazy=False
         )
-        tracking_df2, _, _, _ = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON, orientation="static_away_home"
+        tracking_df1 = dataset.tracking
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, orientation="static_away_home", lazy=False
         )
+        tracking_df2 = dataset.tracking
 
         # Both should load successfully (coordinates may or may not be flipped depending on detected direction)
         assert len(tracking_df1) > 0
@@ -450,9 +486,10 @@ class TestHawkEyeOrientations:
 
     def test_home_away_orientation(self):
         """Test home_away orientation (alternating)."""
-        tracking_df, _, _, _ = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON, orientation="home_away"
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, orientation="home_away", lazy=False
         )
+        tracking_df = dataset.tracking
 
         # Should work (alternates by period)
         assert len(tracking_df) > 0
@@ -463,9 +500,10 @@ class TestHawkEyeFilenameExtraction:
 
     def test_filename_parsing_period_1(self):
         """Test extraction of period 1, minute 1 from filename."""
-        tracking_df, _, _, _ = hawkeye.load_tracking(
-            BALL_FILES[0], PLAYER_FILES[0], META_JSON
+        dataset = hawkeye.load_tracking(
+            BALL_FILES[0], PLAYER_FILES[0], META_JSON, lazy=False
         )
+        tracking_df = dataset.tracking
 
         # File is hawkeye_1_1.football.samples.ball (period 1, minute 1)
         periods = tracking_df["period_id"].unique().to_list()
@@ -474,9 +512,10 @@ class TestHawkEyeFilenameExtraction:
 
     def test_filename_parsing_period_2(self):
         """Test extraction of period 2, minute 46 from filename."""
-        tracking_df, _, _, _ = hawkeye.load_tracking(
-            BALL_FILES[1], PLAYER_FILES[1], META_JSON
+        dataset = hawkeye.load_tracking(
+            BALL_FILES[1], PLAYER_FILES[1], META_JSON, lazy=False
         )
+        tracking_df = dataset.tracking
 
         # File is hawkeye_2_46.football.samples.ball (period 2, minute 46)
         periods = tracking_df["period_id"].unique().to_list()
@@ -485,9 +524,10 @@ class TestHawkEyeFilenameExtraction:
 
     def test_multiple_periods_correct(self):
         """Test that multiple files from different periods load correctly."""
-        tracking_df, _, _, _ = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, lazy=False
         )
+        tracking_df = dataset.tracking
 
         # Should have both periods
         periods = tracking_df["period_id"].unique().sort().to_list()
@@ -507,9 +547,10 @@ class TestHawkEyeFilenameExtraction:
         ball_path = Path(BALL_FILES[0])
         player_path = Path(PLAYER_FILES[0])
 
-        tracking_df, _, _, _ = hawkeye.load_tracking(
-            ball_path, player_path, META_JSON
+        dataset = hawkeye.load_tracking(
+            ball_path, player_path, META_JSON, lazy=False
         )
+        tracking_df = dataset.tracking
 
         # Should still extract period correctly
         periods = tracking_df["period_id"].unique().to_list()
@@ -517,9 +558,10 @@ class TestHawkEyeFilenameExtraction:
 
     def test_period_minute_in_dataframe(self):
         """Test that period_id values are correctly set in the DataFrame."""
-        tracking_df, _, _, _ = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, lazy=False
         )
+        tracking_df = dataset.tracking
 
         # Verify period_id column exists and has correct values
         assert "period_id" in tracking_df.columns
@@ -534,11 +576,12 @@ class TestHawkEyeFilenameExtraction:
     def test_filename_order_independence(self):
         """Test that files can be loaded in any order and periods are still correct."""
         # Load in reverse order
-        tracking_df, _, _, _ = hawkeye.load_tracking(
+        dataset = hawkeye.load_tracking(
             [BALL_FILES[1], BALL_FILES[0]],  # Reverse order
             [PLAYER_FILES[1], PLAYER_FILES[0]],
-            META_JSON
+            META_JSON, lazy=False
         )
+        tracking_df = dataset.tracking
 
         # Should still have both periods correctly identified
         periods = tracking_df["period_id"].unique().sort().to_list()
@@ -552,28 +595,28 @@ class TestHawkEyeLazyLoading:
         """Test that lazy mode doesn't parse tracking data immediately."""
         from kloppy_light._lazy import LazyTrackingLoader
 
-        lazy_loader, metadata_df, team_df, player_df = hawkeye.load_tracking(
+        dataset = hawkeye.load_tracking(
             BALL_FILES, PLAYER_FILES, META_JSON, lazy=True
         )
 
         # Should return LazyTrackingLoader
-        assert isinstance(lazy_loader, LazyTrackingLoader)
+        assert isinstance(dataset.tracking, LazyTrackingLoader)
 
         # Metadata should be loaded
-        assert len(metadata_df) == 1
+        assert len(dataset.metadata) == 1
 
         # Teams/players might be empty for HawkEye metadata files
-        assert isinstance(team_df, pl.DataFrame)
-        assert isinstance(player_df, pl.DataFrame)
+        assert isinstance(dataset.teams, pl.DataFrame)
+        assert isinstance(dataset.players, pl.DataFrame)
 
     def test_lazy_loading_with_collect(self):
         """Test that collect() parses data correctly."""
-        lazy_loader, _, _, _ = hawkeye.load_tracking(
+        dataset = hawkeye.load_tracking(
             BALL_FILES, PLAYER_FILES, META_JSON, lazy=True
         )
 
         # Collect all data
-        tracking_df = lazy_loader.collect()
+        tracking_df = dataset.tracking.collect()
 
         # Should have tracking data
         assert len(tracking_df) > 0
@@ -583,12 +626,12 @@ class TestHawkEyeLazyLoading:
 
     def test_lazy_loading_filter(self):
         """Test that filter operations work correctly."""
-        lazy_loader, _, _, _ = hawkeye.load_tracking(
+        dataset = hawkeye.load_tracking(
             BALL_FILES, PLAYER_FILES, META_JSON, lazy=True
         )
 
         # Filter to period 1
-        result = lazy_loader.filter(pl.col("period_id") == 1).collect()
+        result = dataset.tracking.filter(pl.col("period_id") == 1).collect()
 
         # Should only have period 1 data
         periods = result["period_id"].unique().to_list()
@@ -597,12 +640,12 @@ class TestHawkEyeLazyLoading:
 
     def test_lazy_loading_select(self):
         """Test that select operations work correctly."""
-        lazy_loader, _, _, _ = hawkeye.load_tracking(
+        dataset = hawkeye.load_tracking(
             BALL_FILES, PLAYER_FILES, META_JSON, lazy=True
         )
 
         # Select specific columns
-        result = lazy_loader.select(["frame_id", "x", "y"]).collect()
+        result = dataset.tracking.select(["frame_id", "x", "y"]).collect()
 
         # Should only have selected columns
         assert set(result.columns) == {"frame_id", "x", "y"}
@@ -610,13 +653,13 @@ class TestHawkEyeLazyLoading:
 
     def test_lazy_loading_filter_select(self):
         """Test combined filter and select operations."""
-        lazy_loader, _, _, _ = hawkeye.load_tracking(
+        dataset = hawkeye.load_tracking(
             BALL_FILES, PLAYER_FILES, META_JSON, lazy=True
         )
 
         # Chain filter and select
         result = (
-            lazy_loader
+            dataset.tracking
             .filter(pl.col("period_id") == 1)
             .select(["frame_id", "period_id", "x", "y"])
             .collect()
@@ -629,11 +672,11 @@ class TestHawkEyeLazyLoading:
 
     def test_lazy_long_layout(self):
         """Test lazy loading with long layout."""
-        lazy_loader, _, _, _ = hawkeye.load_tracking(
+        dataset = hawkeye.load_tracking(
             BALL_FILES, PLAYER_FILES, META_JSON, lazy=True, layout="long"
         )
 
-        result = lazy_loader.collect()
+        result = dataset.tracking.collect()
 
         # Long layout includes ball as rows
         assert len(result) > 0
@@ -641,11 +684,11 @@ class TestHawkEyeLazyLoading:
 
     def test_lazy_wide_layout(self):
         """Test lazy loading with wide layout."""
-        lazy_loader, _, _, _ = hawkeye.load_tracking(
+        dataset = hawkeye.load_tracking(
             BALL_FILES, PLAYER_FILES, META_JSON, lazy=True, layout="wide"
         )
 
-        result = lazy_loader.collect()
+        result = dataset.tracking.collect()
 
         # Wide layout should have ball_x, ball_y columns
         assert len(result) > 0
@@ -654,11 +697,11 @@ class TestHawkEyeLazyLoading:
 
     def test_lazy_long_ball_layout(self):
         """Test lazy loading with long_ball layout."""
-        lazy_loader, _, _, _ = hawkeye.load_tracking(
+        dataset = hawkeye.load_tracking(
             BALL_FILES, PLAYER_FILES, META_JSON, lazy=True, layout="long_ball"
         )
 
-        result = lazy_loader.collect()
+        result = dataset.tracking.collect()
 
         # Long_ball layout separates ball and players
         assert len(result) > 0
@@ -667,7 +710,7 @@ class TestHawkEyeLazyLoading:
 
     def test_lazy_preserves_kwargs(self):
         """Test that pitch_length, object_id, etc. are preserved in lazy mode."""
-        lazy_loader, _, _, _ = hawkeye.load_tracking(
+        dataset = hawkeye.load_tracking(
             BALL_FILES, PLAYER_FILES, META_JSON,
             lazy=True,
             pitch_length=100.0,
@@ -675,18 +718,18 @@ class TestHawkEyeLazyLoading:
             object_id="fifa"
         )
 
-        result = lazy_loader.collect()
+        result = dataset.tracking.collect()
 
         # Should successfully load with custom parameters
         assert len(result) > 0
 
     def test_lazy_single_file(self):
         """Test lazy loading with single file (not list)."""
-        lazy_loader, _, _, _ = hawkeye.load_tracking(
+        dataset = hawkeye.load_tracking(
             BALL_FILES[0], PLAYER_FILES[0], META_JSON, lazy=True
         )
 
-        result = lazy_loader.collect()
+        result = dataset.tracking.collect()
 
         # Should load single file correctly
         assert len(result) > 0
@@ -710,15 +753,16 @@ class TestHawkEyeDirectoryLoading:
                 shutil.copy(player_file, tmpdir)
             shutil.copy(META_JSON, tmpdir)
 
-            tracking_df, _, _, _ = hawkeye.load_tracking(
+            dataset = hawkeye.load_tracking(
                 tmpdir,  # Directory string
                 tmpdir,
-                str(Path(tmpdir) / "hawkeye_meta.json")
+                str(Path(tmpdir) / "hawkeye_meta.json"),
+                lazy=False
             )
 
-            assert len(tracking_df) > 0
+            assert len(dataset.tracking) > 0
             # Should have loaded both files
-            periods = tracking_df["period_id"].unique().sort().to_list()
+            periods = dataset.tracking["period_id"].unique().sort().to_list()
             assert 1 in periods
 
     def test_load_from_directory_pathlib(self):
@@ -734,13 +778,14 @@ class TestHawkEyeDirectoryLoading:
                 shutil.copy(player_file, tmppath)
             shutil.copy(META_JSON, tmppath)
 
-            tracking_df, _, _, _ = hawkeye.load_tracking(
+            dataset = hawkeye.load_tracking(
                 tmppath,  # Path object
                 tmppath,
-                tmppath / "hawkeye_meta.json"
+                tmppath / "hawkeye_meta.json",
+                lazy=False
             )
 
-            assert len(tracking_df) > 0
+            assert len(dataset.tracking) > 0
 
     def test_directory_auto_sorts_files(self):
         """Test that files are sorted correctly by period/minute."""
@@ -754,16 +799,19 @@ class TestHawkEyeDirectoryLoading:
                 shutil.copy(player_file, tmpdir)
             shutil.copy(META_JSON, tmpdir)
 
-            tracking_df, _, _, _ = hawkeye.load_tracking(
-                tmpdir, tmpdir, str(Path(tmpdir) / "hawkeye_meta.json")
+            dataset = hawkeye.load_tracking(
+                tmpdir,
+                tmpdir,
+                str(Path(tmpdir) / "hawkeye_meta.json"),
+                lazy=False
             )
 
             # Check that periods are present (files were loaded)
-            periods = tracking_df["period_id"].unique().sort().to_list()
+            periods = dataset.tracking["period_id"].unique().sort().to_list()
 
             # Should have loaded files from both periods
             assert 1 in periods
-            assert len(tracking_df) > 0
+            assert len(dataset.tracking) > 0
 
     def test_directory_nonexistent(self):
         """Test error on nonexistent file."""
@@ -827,12 +875,15 @@ class TestHawkEyeDirectoryLoading:
                 shutil.copy(player_file, tmpdir)
             shutil.copy(META_JSON, tmpdir)
 
-            tracking_df, _, _, _ = hawkeye.load_tracking(
-                tmpdir, tmpdir, str(Path(tmpdir) / "hawkeye_meta.json")
+            dataset = hawkeye.load_tracking(
+                tmpdir,
+                tmpdir,
+                str(Path(tmpdir) / "hawkeye_meta.json"),
+                lazy=False
             )
 
             # Should have both periods
-            periods = tracking_df["period_id"].unique().sort().to_list()
+            periods = dataset.tracking["period_id"].unique().sort().to_list()
             assert len(periods) >= 1  # At least one period
 
     def test_directory_with_lazy(self):
@@ -847,7 +898,7 @@ class TestHawkEyeDirectoryLoading:
                 shutil.copy(player_file, tmpdir)
             shutil.copy(META_JSON, tmpdir)
 
-            lazy_loader, _, _, _ = hawkeye.load_tracking(
+            dataset = hawkeye.load_tracking(
                 tmpdir,
                 tmpdir,
                 str(Path(tmpdir) / "hawkeye_meta.json"),
@@ -855,7 +906,7 @@ class TestHawkEyeDirectoryLoading:
             )
 
             # Should not have loaded data yet
-            result = lazy_loader.collect()
+            result = dataset.tracking.collect()
 
             # Now data should be loaded
             assert len(result) > 0
