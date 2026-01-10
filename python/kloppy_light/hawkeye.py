@@ -13,85 +13,13 @@ import polars as pl
 
 from kloppy.io import FileLike, open_as_file
 
+from kloppy_light._base import (
+    discover_files_in_directory,
+    get_filename_from_filelike,
+)
 from kloppy_light._kloppy_light import hawkeye as _hawkeye
 from kloppy_light._lazy import LazyTrackingLoader
 from kloppy_light._dataset import TrackingDataset
-
-
-def _get_filename(filelike: FileLike) -> str:
-    """Extract filename from FileLike object.
-
-    Parameters
-    ----------
-    filelike : FileLike
-        FileLike object to extract filename from
-
-    Returns
-    -------
-    str
-        Filename (without path) or empty string if not extractable
-    """
-    if isinstance(filelike, str):
-        return Path(filelike).name
-    elif isinstance(filelike, Path):
-        return filelike.name
-    elif hasattr(filelike, 'name'):
-        # File-like object with name attribute
-        return Path(str(filelike.name)).name
-    else:
-        # Bytes or unknown type - no filename available
-        return ""
-
-
-def _discover_files_in_directory(
-    directory: Union[str, Path],
-    pattern: str
-) -> List[Path]:
-    """Discover files matching pattern in directory, sorted by period/minute.
-
-    Parameters
-    ----------
-    directory : Union[str, Path]
-        Directory path to search in
-    pattern : str
-        Glob pattern to match files (e.g., "*.ball", "*.centroids")
-
-    Returns
-    -------
-    List[Path]
-        Sorted list of matching file paths
-
-    Raises
-    ------
-    ValueError
-        If directory doesn't exist or no matching files found
-    """
-    import re
-
-    dir_path = Path(directory)
-
-    if not dir_path.is_dir():
-        raise ValueError(f"Not a directory: {directory}")
-
-    files = list(dir_path.glob(pattern))
-
-    if not files:
-        raise ValueError(f"No files matching '{pattern}' found in {directory}")
-
-    # Sort by (period, minute) extracted from filename
-    def sort_key(path: Path) -> Tuple[int, int]:
-        # Pattern: {prefix}_{period}_{minute}[_{extra_minute}].{extension}
-        # Match the LAST 2-3 digit groups before the file extension (anchored to end)
-        match = re.search(r'_(\d{1,2})_(\d{1,3})(?:_(\d{1,2}))?\.(?:football\.samples\.)?(ball|centroids)$', path.name)
-        if match:
-            period = int(match.group(1))
-            base_minute = int(match.group(2))
-            extra_minute = int(match.group(3)) if match.group(3) else 0
-            total_minute = base_minute + extra_minute
-            return (period, total_minute)
-        return (999, 999)  # Unparseable files at end
-
-    return sorted(files, key=sort_key)
 
 
 @overload
@@ -241,7 +169,7 @@ def load_tracking(
     if lazy:
         # Handle directory input for ball_data
         if isinstance(ball_data, (str, Path)) and Path(ball_data).is_dir():
-            ball_data_processed = _discover_files_in_directory(ball_data, "*.ball")
+            ball_data_processed = discover_files_in_directory(ball_data, "*.ball")
         elif isinstance(ball_data, list):
             ball_data_processed = ball_data
         else:
@@ -249,7 +177,7 @@ def load_tracking(
 
         # Handle directory input for player_data
         if isinstance(player_data, (str, Path)) and Path(player_data).is_dir():
-            player_data_processed = _discover_files_in_directory(player_data, "*.centroids")
+            player_data_processed = discover_files_in_directory(player_data, "*.centroids")
         elif isinstance(player_data, list):
             player_data_processed = player_data
         else:
@@ -304,7 +232,7 @@ def load_tracking(
 
     # Handle directory input for ball_data
     if isinstance(ball_data, (str, Path)) and Path(ball_data).is_dir():
-        ball_data_list = _discover_files_in_directory(ball_data, "*.ball")
+        ball_data_list = discover_files_in_directory(ball_data, "*.ball")
     elif isinstance(ball_data, list):
         ball_data_list = ball_data
     else:
@@ -312,7 +240,7 @@ def load_tracking(
 
     # Handle directory input for player_data
     if isinstance(player_data, (str, Path)) and Path(player_data).is_dir():
-        player_data_list = _discover_files_in_directory(player_data, "*.centroids")
+        player_data_list = discover_files_in_directory(player_data, "*.centroids")
     elif isinstance(player_data, list):
         player_data_list = player_data
     else:
@@ -328,14 +256,14 @@ def load_tracking(
     # Convert ball_data to list of (filename, bytes) tuples
     ball_bytes_list = []
     for ball_file in ball_data_list:
-        filename = _get_filename(ball_file)
+        filename = get_filename_from_filelike(ball_file)
         with open_as_file(ball_file) as f:
             ball_bytes_list.append((filename, f.read() if f else b""))
 
     # Convert player_data to list of (filename, bytes) tuples
     player_bytes_list = []
     for player_file in player_data_list:
-        filename = _get_filename(player_file)
+        filename = get_filename_from_filelike(player_file)
         with open_as_file(player_file) as f:
             player_bytes_list.append((filename, f.read() if f else b""))
 
@@ -419,7 +347,7 @@ def load_metadata_only(
     if player_data is not None:
         # Handle directory input for player_data
         if isinstance(player_data, (str, Path)) and Path(player_data).is_dir():
-            player_list = _discover_files_in_directory(player_data, "*.centroids")
+            player_list = discover_files_in_directory(player_data, "*.centroids")
         elif isinstance(player_data, list):
             player_list = player_data
         else:

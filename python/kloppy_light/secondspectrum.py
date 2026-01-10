@@ -1,12 +1,10 @@
 """SecondSpectrum provider wrapper with lazy loading support."""
 
 from typing import Literal, Union, overload
-import polars as pl
 
-from kloppy.io import FileLike, open_as_file
+from kloppy.io import FileLike
 
-from kloppy_light._kloppy_light import secondspectrum as _secondspectrum
-from kloppy_light._lazy import LazyTrackingLoader
+from kloppy_light._base import load_tracking_impl
 from kloppy_light._dataset import TrackingDataset
 
 
@@ -114,60 +112,14 @@ def load_tracking(
         If lazy=True, .tracking returns LazyTrackingLoader (call .collect() to get DataFrame).
         If lazy=False, .tracking returns pl.DataFrame directly.
     """
-    if lazy:
-        # Convert FileLike to bytes for metadata loading
-        with open_as_file(meta_data) as meta_file:
-            meta_bytes = meta_file.read() if meta_file else b""
-
-        # Get only metadata without loading tracking data
-        metadata_df, team_df, player_df, periods_df = _secondspectrum.load_metadata_only(
-            meta_bytes,
-            coordinates=coordinates,
-            orientation=orientation,
-            include_game_id=include_game_id,
-        )
-
-        lazy_loader = LazyTrackingLoader(
-            provider="secondspectrum",
-            raw_data=raw_data,
-            meta_data=meta_data,
-            layout=layout,
-            coordinates=coordinates,
-            orientation=orientation,
-            only_alive=only_alive,
-            include_game_id=include_game_id,
-        )
-
-        return TrackingDataset(
-            tracking=lazy_loader,
-            metadata=metadata_df,
-            teams=team_df,
-            players=player_df,
-            periods=periods_df,
-        )
-    else:
-        # Convert FileLike to bytes
-        with open_as_file(meta_data) as meta_file:
-            meta_bytes = meta_file.read() if meta_file else b""
-
-        with open_as_file(raw_data) as raw_file:
-            raw_bytes = raw_file.read() if raw_file else b""
-
-        # Pass bytes to Rust
-        tracking_df, metadata_df, team_df, player_df, periods_df = _secondspectrum.load_tracking(
-            raw_bytes,
-            meta_bytes,
-            layout=layout,
-            coordinates=coordinates,
-            orientation=orientation,
-            only_alive=only_alive,
-            include_game_id=include_game_id,
-        )
-
-        return TrackingDataset(
-            tracking=tracking_df,
-            metadata=metadata_df,
-            teams=team_df,
-            players=player_df,
-            periods=periods_df,
-        )
+    return load_tracking_impl(
+        provider_name="secondspectrum",
+        raw_data=raw_data,
+        meta_data=meta_data,
+        layout=layout,
+        coordinates=coordinates,
+        orientation=orientation,
+        only_alive=only_alive,
+        include_game_id=include_game_id,
+        lazy=lazy,
+    )

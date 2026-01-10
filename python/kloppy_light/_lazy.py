@@ -1,33 +1,7 @@
 """Lazy loading wrapper for deferred parsing."""
 
 import polars as pl
-from pathlib import Path
-from typing import List, Optional, Tuple, Union
-
-from kloppy.io import FileLike
-
-
-def _get_filename_from_filelike(filelike: FileLike) -> str:
-    """Extract filename from FileLike object.
-
-    Parameters
-    ----------
-    filelike : FileLike
-        FileLike object to extract filename from
-
-    Returns
-    -------
-    str
-        Filename (without path) or empty string if not extractable
-    """
-    if isinstance(filelike, str):
-        return Path(filelike).name
-    elif isinstance(filelike, Path):
-        return filelike.name
-    elif hasattr(filelike, 'name'):
-        return Path(str(filelike.name)).name
-    else:
-        return ""
+from typing import List, Optional, Union
 
 
 class LazyTrackingLoader:
@@ -58,8 +32,8 @@ class LazyTrackingLoader:
     def __init__(
         self,
         provider: str,
-        raw_data: Union[FileLike, Tuple[Union[FileLike, List[FileLike]], Union[FileLike, List[FileLike]]]],
-        meta_data: FileLike,
+        raw_data,
+        meta_data,
         layout: str,
         coordinates: str,
         orientation: str,
@@ -174,107 +148,15 @@ class LazyTrackingLoader:
         pl.DataFrame
             The loaded and processed tracking data.
         """
-        # Import from the Rust module directly to avoid recursion
-        from kloppy.io import open_as_file
-        from kloppy_light._kloppy_light import secondspectrum as _ss
-        from kloppy_light._kloppy_light import skillcorner as _sc
-        from kloppy_light._kloppy_light import sportec as _sp
-
-        # Convert FileLike to bytes
-        with open_as_file(self._meta_data) as meta_file:
-            meta_bytes = meta_file.read() if meta_file else b""
-
-        # For HawkEye, raw_data is a tuple handled separately
-        # For other providers, convert raw_data to bytes
-        if self._provider != "hawkeye":
-            with open_as_file(self._raw_data) as raw_file:
-                raw_bytes = raw_file.read() if raw_file else b""
-
         # Get include_game_id from kwargs
         include_game_id = self._kwargs.get("include_game_id", True)
 
-        if self._provider == "secondspectrum":
-            tracking_df, _, _, _, _ = _ss.load_tracking(
-                raw_bytes,
-                meta_bytes,
-                layout=self._layout,
-                coordinates=self._coordinates,
-                orientation=self._orientation,
-                only_alive=self._only_alive,
-                include_game_id=include_game_id,
-            )
-        elif self._provider == "skillcorner":
-            # Get skillcorner-specific kwargs
-            include_empty_frames = self._kwargs.get("include_empty_frames", False)
-            tracking_df, _, _, _, _ = _sc.load_tracking(
-                raw_bytes,
-                meta_bytes,
-                layout=self._layout,
-                coordinates=self._coordinates,
-                orientation=self._orientation,
-                only_alive=self._only_alive,
-                include_empty_frames=include_empty_frames,
-                include_game_id=include_game_id,
-            )
-        elif self._provider == "sportec":
-            # Get sportec-specific kwargs
-            include_referees = self._kwargs.get("include_referees", False)
-            tracking_df, _, _, _, _ = _sp.load_tracking(
-                raw_bytes,
-                meta_bytes,
-                layout=self._layout,
-                coordinates=self._coordinates,
-                orientation=self._orientation,
-                only_alive=self._only_alive,
-                include_game_id=include_game_id,
-                include_referees=include_referees,
-            )
-        elif self._provider == "hawkeye":
-            # HawkEye uses tuple of (ball_data, player_data)
-            if not isinstance(self._raw_data, tuple):
-                raise ValueError("HawkEye requires tuple raw_data (ball_data, player_data)")
-
-            from kloppy_light._kloppy_light import hawkeye as _he
-
-            ball_data, player_data = self._raw_data
-
-            # Handle lists or single files
-            ball_list = ball_data if isinstance(ball_data, list) else [ball_data]
-            player_list = player_data if isinstance(player_data, list) else [player_data]
-
-            # Convert to (filename, bytes) lists for Rust
-            ball_bytes_list = []
-            for ball_file in ball_list:
-                with open_as_file(ball_file) as f:
-                    filename = _get_filename_from_filelike(ball_file)
-                    ball_bytes_list.append((filename, f.read() if f else b""))
-
-            player_bytes_list = []
-            for player_file in player_list:
-                with open_as_file(player_file) as f:
-                    filename = _get_filename_from_filelike(player_file)
-                    player_bytes_list.append((filename, f.read() if f else b""))
-
-            # Get HawkEye-specific kwargs
-            pitch_length = self._kwargs.get("pitch_length", 105.0)
-            pitch_width = self._kwargs.get("pitch_width", 68.0)
-            object_id = self._kwargs.get("object_id", "auto")
-
-            tracking_df, _, _, _, _ = _he.load_tracking(
-                ball_bytes_list,
-                player_bytes_list,
-                meta_bytes,
-                layout=self._layout,
-                coordinates=self._coordinates,
-                orientation=self._orientation,
-                only_alive=self._only_alive,
-                pitch_length=pitch_length,
-                pitch_width=pitch_width,
-                object_id=object_id,
-                include_game_id=include_game_id,
-            )
+        # Special handling for HawkEye (dual-input provider)
+        if self._provider == "hawkeye":
+            tracking_df = self._collect_hawkeye()
         else:
-            raise ValueError(f"Unknown provider: {self._provider}")
+            # Standard providers use registry-based dispatch
+            tracking_df = self._collect_standard(include_game_id)
 
         # Apply filters
         for f in self._filters:
@@ -283,6 +165,96 @@ class LazyTrackingLoader:
         # Apply select
         if self._selects:
             tracking_df = tracking_df.select(self._selects)
+
+        return tracking_df
+
+    def _collect_standard(self, include_game_id) -> pl.DataFrame:
+        """Collect data for standard providers using registry."""
+        from kloppy.io import open_as_file
+        from kloppy_light._base import get_provider
+
+        config = get_provider(self._provider)
+        rust_module = config["rust_module"]
+
+        # Convert FileLike to bytes
+        with open_as_file(self._meta_data) as meta_file:
+            meta_bytes = meta_file.read() if meta_file else b""
+
+        with open_as_file(self._raw_data) as raw_file:
+            raw_bytes = raw_file.read() if raw_file else b""
+
+        # Build kwargs dynamically from config
+        call_kwargs = {
+            "layout": self._layout,
+            "coordinates": self._coordinates,
+            "orientation": self._orientation,
+            "only_alive": self._only_alive,
+            "include_game_id": include_game_id,
+        }
+
+        # Add provider-specific params from kwargs
+        for param_name in config.get("tracking_params", []):
+            if param_name in self._kwargs:
+                call_kwargs[param_name] = self._kwargs[param_name]
+
+        # Call Rust module
+        tracking_df, _, _, _, _ = rust_module.load_tracking(
+            raw_bytes, meta_bytes, **call_kwargs
+        )
+
+        return tracking_df
+
+    def _collect_hawkeye(self) -> pl.DataFrame:
+        """Special collect implementation for HawkEye's dual-input structure."""
+        from kloppy.io import open_as_file
+        from kloppy_light._base import get_filename_from_filelike
+        from kloppy_light._kloppy_light import hawkeye as _he
+
+        if not isinstance(self._raw_data, tuple):
+            raise ValueError("HawkEye requires tuple raw_data (ball_data, player_data)")
+
+        # Convert meta_data to bytes
+        with open_as_file(self._meta_data) as meta_file:
+            meta_bytes = meta_file.read() if meta_file else b""
+
+        ball_data, player_data = self._raw_data
+
+        # Handle lists or single files
+        ball_list = ball_data if isinstance(ball_data, list) else [ball_data]
+        player_list = player_data if isinstance(player_data, list) else [player_data]
+
+        # Convert to (filename, bytes) lists for Rust
+        ball_bytes_list = []
+        for ball_file in ball_list:
+            with open_as_file(ball_file) as f:
+                filename = get_filename_from_filelike(ball_file)
+                ball_bytes_list.append((filename, f.read() if f else b""))
+
+        player_bytes_list = []
+        for player_file in player_list:
+            with open_as_file(player_file) as f:
+                filename = get_filename_from_filelike(player_file)
+                player_bytes_list.append((filename, f.read() if f else b""))
+
+        # Get HawkEye-specific kwargs
+        pitch_length = self._kwargs.get("pitch_length", 105.0)
+        pitch_width = self._kwargs.get("pitch_width", 68.0)
+        object_id = self._kwargs.get("object_id", "auto")
+        include_game_id = self._kwargs.get("include_game_id", True)
+
+        tracking_df, _, _, _, _ = _he.load_tracking(
+            ball_bytes_list,
+            player_bytes_list,
+            meta_bytes,
+            layout=self._layout,
+            coordinates=self._coordinates,
+            orientation=self._orientation,
+            only_alive=self._only_alive,
+            pitch_length=pitch_length,
+            pitch_width=pitch_width,
+            object_id=object_id,
+            include_game_id=include_game_id,
+        )
 
         return tracking_df
 
