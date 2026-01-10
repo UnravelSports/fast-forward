@@ -1,5 +1,6 @@
+use polars::prelude::*;
 use pyo3::prelude::*;
-use pyo3_polars::PyDataFrame;
+use pyo3_polars::{PyDataFrame, PyExpr};
 use quick_xml::events::Event;
 use quick_xml::Reader;
 use std::collections::HashMap;
@@ -627,7 +628,7 @@ fn resolve_game_id(
 }
 
 #[pyfunction]
-#[pyo3(signature = (raw_data, meta_data, layout="long", coordinates="cdf", orientation="static_home_away", only_alive=true, include_game_id=None, include_referees=false))]
+#[pyo3(signature = (raw_data, meta_data, layout="long", coordinates="cdf", orientation="static_home_away", only_alive=true, include_game_id=None, include_referees=false, predicate=None))]
 fn load_tracking(
     py: Python<'_>,
     raw_data: &[u8],
@@ -638,6 +639,7 @@ fn load_tracking(
     only_alive: bool,
     include_game_id: Option<Bound<'_, PyAny>>,
     include_referees: bool,
+    predicate: Option<PyExpr>,
 ) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
     let coordinate_system = CoordinateSystem::from_str(coordinates)?;
     let layout_enum = Layout::from_str(layout)?;
@@ -701,11 +703,20 @@ fn load_tracking(
         .as_ref()
         .filter(|id| *id != &metadata_struct.game_id)
         .map(|s| s.as_str());
-    let tracking_df = build_tracking_df(&frames, layout_enum, game_id.as_deref())?;
+    let mut tracking_df = build_tracking_df(&frames, layout_enum, game_id.as_deref())?;
     let metadata_df = build_metadata_df(&metadata_struct, game_id_override)?;
     let periods_df = build_periods_df(&metadata_struct, game_id.as_deref())?;
     let team_df = build_team_df(&metadata_struct.teams, game_id.as_deref())?;
     let player_df = build_player_df(&metadata_struct.players, game_id.as_deref())?;
+
+    // Apply predicate filter if provided (filter pushdown from Polars lazy)
+    if let Some(pred) = predicate {
+        tracking_df = tracking_df
+            .lazy()
+            .filter(pred.0)
+            .collect()
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Filter error: {}", e)))?;
+    }
 
     Ok((
         PyDataFrame(tracking_df),

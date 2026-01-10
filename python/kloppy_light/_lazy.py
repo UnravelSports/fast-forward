@@ -94,14 +94,23 @@ def create_lazy_tracking(
             if param_name in provider_kwargs:
                 call_kwargs[param_name] = provider_kwargs[param_name]
 
-        # Call Rust to load tracking data
-        tracking_df, _, _, _, _ = rust_module.load_tracking(
-            raw_bytes, meta_bytes, **call_kwargs
-        )
-
-        # Apply predicate (filter pushdown from Polars)
-        if predicate is not None:
-            tracking_df = tracking_df.filter(predicate)
+        # Call Rust to load tracking data with predicate pushdown
+        # Try to pass predicate to Rust; fall back to Python if serialization fails
+        # (Complex expressions with & operators may fail to serialize between versions)
+        try:
+            tracking_df, _, _, _, _ = rust_module.load_tracking(
+                raw_bytes, meta_bytes, predicate=predicate, **call_kwargs
+            )
+        except RuntimeError as e:
+            if "deserializing" in str(e) or "BindingsError" in str(e):
+                # Fall back to loading without predicate and applying in Python
+                tracking_df, _, _, _, _ = rust_module.load_tracking(
+                    raw_bytes, meta_bytes, **call_kwargs
+                )
+                if predicate is not None:
+                    tracking_df = tracking_df.filter(predicate)
+            else:
+                raise
 
         # Apply column projection
         if with_columns is not None:
@@ -199,24 +208,43 @@ def create_lazy_tracking_hawkeye(
         batch_size: Optional[int],
     ) -> Iterator[pl.DataFrame]:
         """Generator that yields HawkEye tracking DataFrame."""
-        # Call Rust to load tracking data
-        tracking_df, _, _, _, _ = _hawkeye.load_tracking(
-            ball_bytes_list,
-            player_bytes_list,
-            meta_bytes,
-            layout=layout,
-            coordinates=coordinates,
-            orientation=orientation,
-            only_alive=only_alive,
-            pitch_length=pitch_length,
-            pitch_width=pitch_width,
-            object_id=object_id,
-            include_game_id=include_game_id,
-        )
-
-        # Apply predicate (filter pushdown from Polars)
-        if predicate is not None:
-            tracking_df = tracking_df.filter(predicate)
+        # Call Rust to load tracking data with predicate pushdown
+        # Try to pass predicate to Rust; fall back to Python if serialization fails
+        try:
+            tracking_df, _, _, _, _ = _hawkeye.load_tracking(
+                ball_bytes_list,
+                player_bytes_list,
+                meta_bytes,
+                layout=layout,
+                coordinates=coordinates,
+                orientation=orientation,
+                only_alive=only_alive,
+                pitch_length=pitch_length,
+                pitch_width=pitch_width,
+                object_id=object_id,
+                include_game_id=include_game_id,
+                predicate=predicate,
+            )
+        except RuntimeError as e:
+            if "deserializing" in str(e) or "BindingsError" in str(e):
+                # Fall back to loading without predicate and applying in Python
+                tracking_df, _, _, _, _ = _hawkeye.load_tracking(
+                    ball_bytes_list,
+                    player_bytes_list,
+                    meta_bytes,
+                    layout=layout,
+                    coordinates=coordinates,
+                    orientation=orientation,
+                    only_alive=only_alive,
+                    pitch_length=pitch_length,
+                    pitch_width=pitch_width,
+                    object_id=object_id,
+                    include_game_id=include_game_id,
+                )
+                if predicate is not None:
+                    tracking_df = tracking_df.filter(predicate)
+            else:
+                raise
 
         # Apply column projection
         if with_columns is not None:

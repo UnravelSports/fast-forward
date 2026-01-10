@@ -1,5 +1,5 @@
 use pyo3::prelude::*;
-use pyo3_polars::PyDataFrame;
+use pyo3_polars::{PyDataFrame, PyExpr};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::io::{BufReader, Cursor};
@@ -826,7 +826,8 @@ fn build_tracking_df_from_files(
     pitch_length=105.0,
     pitch_width=68.0,
     object_id="auto",
-    include_game_id=None
+    include_game_id=None,
+    predicate=None
 ))]
 fn load_tracking(
     _py: Python<'_>,
@@ -841,6 +842,7 @@ fn load_tracking(
     pitch_width: f32,
     object_id: &str,
     include_game_id: Option<Bound<'_, PyAny>>,
+    predicate: Option<PyExpr>,
 ) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
     // Convert PyAny to Vec<(String, Vec<u8>)> - tuples of (filename, bytes)
     let ball_bytes_list: Vec<(String, Vec<u8>)> = if let Ok(list) = ball_data.downcast::<pyo3::types::PyList>() {
@@ -1035,6 +1037,15 @@ fn load_tracking(
     // Build player DataFrame
     let player_df = build_player_df(&all_players, game_id_value.as_deref())
         .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))?;
+
+    // Apply predicate filter if provided (filter pushdown from Polars lazy)
+    if let Some(pred) = predicate {
+        tracking_df = tracking_df
+            .lazy()
+            .filter(pred.0)
+            .collect()
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Filter error: {}", e)))?;
+    }
 
     Ok((
         PyDataFrame(tracking_df),

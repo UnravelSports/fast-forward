@@ -9,8 +9,9 @@
 //! - DAT: Colon-separated text format
 //! - JSON: FrameData array format
 
+use polars::prelude::*;
 use pyo3::prelude::*;
-use pyo3_polars::PyDataFrame;
+use pyo3_polars::{PyDataFrame, PyExpr};
 use quick_xml::events::Event;
 use quick_xml::Reader;
 use serde::Deserialize;
@@ -1060,7 +1061,8 @@ fn resolve_game_id(
     coordinates = "cdf",
     orientation = "static_home_away",
     only_alive = true,
-    include_game_id = None
+    include_game_id = None,
+    predicate = None
 ))]
 pub fn load_tracking(
     py: Python<'_>,
@@ -1071,6 +1073,7 @@ pub fn load_tracking(
     orientation: &str,
     only_alive: bool,
     include_game_id: Option<Bound<'_, PyAny>>,
+    predicate: Option<PyExpr>,
 ) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
     // 1. Parse layout enum
     let layout_enum = Layout::from_str(layout)
@@ -1291,7 +1294,7 @@ pub fn load_tracking(
     let game_id = resolve_game_id(py, include_game_id, &metadata.game_id)?;
 
     // 11. Build DataFrames
-    let tracking_df = build_tracking_df(&frames, layout_enum, game_id.as_deref())
+    let mut tracking_df = build_tracking_df(&frames, layout_enum, game_id.as_deref())
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
 
     let metadata_df = build_metadata_df(&metadata, game_id.as_deref())
@@ -1305,6 +1308,15 @@ pub fn load_tracking(
 
     let player_df = build_player_df(&metadata.players, game_id.as_deref())
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
+
+    // Apply predicate filter if provided (filter pushdown from Polars lazy)
+    if let Some(pred) = predicate {
+        tracking_df = tracking_df
+            .lazy()
+            .filter(pred.0)
+            .collect()
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Filter error: {}", e)))?;
+    }
 
     Ok((
         PyDataFrame(tracking_df),
