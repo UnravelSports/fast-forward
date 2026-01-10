@@ -1,6 +1,6 @@
 """SkillCorner provider wrapper with lazy loading support."""
 
-from typing import Literal, Union, overload
+from typing import Literal, Union
 
 from kloppy.io import FileLike
 
@@ -8,62 +8,30 @@ from kloppy_light._base import load_tracking_impl
 from kloppy_light._dataset import TrackingDataset
 
 
-@overload
 def load_tracking(
     raw_data: FileLike,
     meta_data: FileLike,
     layout: Literal["long", "long_ball", "wide"] = "long",
-    coordinates: Literal["cdf"] = "cdf",
+    coordinates: Literal[
+        "cdf",
+        "hawkeye",
+        "kloppy",
+        "opta",
+        "pff",
+        "secondspectrum",
+        "skillcorner",
+        "sportec:event",
+        "sportec:tracking",
+        "sportvu",
+        "tracab",
+    ] = "cdf",
     orientation: Literal[
         "static_home_away",
-        "static_away_home",
-        "home_away",
-        "away_home",
-        "attack_right",
         "attack_left",
-    ] = "static_home_away",
-    only_alive: bool = True,
-    include_empty_frames: bool = False,
-    include_game_id: Union[bool, str] = True,
-    *,
-    lazy: Literal[False],
-) -> TrackingDataset: ...
-
-
-@overload
-def load_tracking(
-    raw_data: FileLike,
-    meta_data: FileLike,
-    layout: Literal["long", "long_ball", "wide"] = "long",
-    coordinates: Literal["cdf"] = "cdf",
-    orientation: Literal[
-        "static_home_away",
-        "static_away_home",
-        "home_away",
-        "away_home",
         "attack_right",
-        "attack_left",
-    ] = "static_home_away",
-    only_alive: bool = True,
-    include_empty_frames: bool = False,
-    include_game_id: Union[bool, str] = True,
-    *,
-    lazy: Literal[True] = True,
-) -> TrackingDataset: ...
-
-
-def load_tracking(
-    raw_data: FileLike,
-    meta_data: FileLike,
-    layout: Literal["long", "long_ball", "wide"] = "long",
-    coordinates: Literal["cdf"] = "cdf",
-    orientation: Literal[
-        "static_home_away",
-        "static_away_home",
-        "home_away",
         "away_home",
-        "attack_right",
-        "attack_left",
+        "home_away",
+        "static_away_home",
     ] = "static_home_away",
     only_alive: bool = True,
     include_empty_frames: bool = False,

@@ -1,65 +1,35 @@
 """Type stubs for kloppy_light.skillcorner"""
 
-from typing import Literal, Union, overload
+from typing import Literal, Union
 import polars as pl
 from ._lazy import LazyTrackingLoader
 from ._dataset import TrackingDataset
 
 
-@overload
 def load_tracking(
     raw_data: str,
     meta_data: str,
     layout: Literal["long", "long_ball", "wide"] = "long",
-    coordinates: Literal["cdf"] = "cdf",
+    coordinates: Literal[
+        "cdf",
+        "hawkeye",
+        "kloppy",
+        "opta",
+        "pff",
+        "secondspectrum",
+        "skillcorner",
+        "sportec:event",
+        "sportec:tracking",
+        "sportvu",
+        "tracab",
+    ] = "cdf",
     orientation: Literal[
         "static_home_away",
-        "static_away_home",
-        "home_away",
-        "away_home",
-        "attack_right",
         "attack_left",
-    ] = "static_home_away",
-    only_alive: bool = False,
-    include_empty_frames: bool = False,
-    *,
-    lazy: Literal[False],
-) -> TrackingDataset: ...
-
-
-@overload
-def load_tracking(
-    raw_data: str,
-    meta_data: str,
-    layout: Literal["long", "long_ball", "wide"] = "long",
-    coordinates: Literal["cdf"] = "cdf",
-    orientation: Literal[
-        "static_home_away",
-        "static_away_home",
-        "home_away",
-        "away_home",
         "attack_right",
-        "attack_left",
-    ] = "static_home_away",
-    only_alive: bool = False,
-    include_empty_frames: bool = False,
-    *,
-    lazy: Literal[True] = True,
-) -> TrackingDataset: ...
-
-
-def load_tracking(
-    raw_data: str,
-    meta_data: str,
-    layout: Literal["long", "long_ball", "wide"] = "long",
-    coordinates: Literal["cdf"] = "cdf",
-    orientation: Literal[
-        "static_home_away",
-        "static_away_home",
-        "home_away",
         "away_home",
-        "attack_right",
-        "attack_left",
+        "home_away",
+        "static_away_home",
     ] = "static_home_away",
     only_alive: bool = False,
     include_empty_frames: bool = False,

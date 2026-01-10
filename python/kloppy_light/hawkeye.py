@@ -8,7 +8,7 @@ Supports both eager and lazy loading modes.
 """
 
 from pathlib import Path
-from typing import List, Literal, Optional, Tuple, Union, overload
+from typing import List, Literal, Optional, Tuple, Union
 import polars as pl
 
 from kloppy.io import FileLike, open_as_file
@@ -22,49 +22,32 @@ from kloppy_light._lazy import LazyTrackingLoader
 from kloppy_light._dataset import TrackingDataset
 
 
-@overload
 def load_tracking(
     ball_data: Union[FileLike, List[FileLike]],
     player_data: Union[FileLike, List[FileLike]],
     meta_data: FileLike,
     layout: Literal["long", "long_ball", "wide"] = "long",
-    coordinates: Literal["cdf"] = "cdf",
-    orientation: Literal["static_home_away"] = "static_home_away",
-    only_alive: bool = True,
-    pitch_length: float = 105.0,
-    pitch_width: float = 68.0,
-    object_id: Literal["fifa", "uefa", "he", "auto"] = "auto",
-    include_game_id: Union[bool, str] = True,
-    *,
-    lazy: Literal[False],
-) -> TrackingDataset: ...
-
-
-@overload
-def load_tracking(
-    ball_data: Union[FileLike, List[FileLike]],
-    player_data: Union[FileLike, List[FileLike]],
-    meta_data: FileLike,
-    layout: Literal["long", "long_ball", "wide"] = "long",
-    coordinates: Literal["cdf"] = "cdf",
-    orientation: Literal["static_home_away"] = "static_home_away",
-    only_alive: bool = True,
-    pitch_length: float = 105.0,
-    pitch_width: float = 68.0,
-    object_id: Literal["fifa", "uefa", "he", "auto"] = "auto",
-    include_game_id: Union[bool, str] = True,
-    *,
-    lazy: Literal[True] = True,
-) -> TrackingDataset: ...
-
-
-def load_tracking(
-    ball_data: Union[FileLike, List[FileLike]],
-    player_data: Union[FileLike, List[FileLike]],
-    meta_data: FileLike,
-    layout: Literal["long", "long_ball", "wide"] = "long",
-    coordinates: Literal["cdf"] = "cdf",
-    orientation: Literal["static_home_away"] = "static_home_away",
+    coordinates: Literal[
+        "cdf",
+        "hawkeye",
+        "kloppy",
+        "opta",
+        "pff",
+        "secondspectrum",
+        "skillcorner",
+        "sportec:event",
+        "sportec:tracking",
+        "sportvu",
+        "tracab",
+    ] = "cdf",
+    orientation: Literal[
+        "static_home_away",
+        "attack_left",
+        "attack_right",
+        "away_home",
+        "home_away",
+        "static_away_home",
+    ] = "static_home_away",
     only_alive: bool = True,
     pitch_length: float = 105.0,
     pitch_width: float = 68.0,
@@ -294,8 +277,27 @@ def load_tracking(
 def load_metadata_only(
     meta_data: FileLike,
     player_data: Optional[Union[FileLike, List[FileLike]]] = None,
-    coordinates: Literal["cdf"] = "cdf",
-    orientation: Literal["static_home_away"] = "static_home_away",
+    coordinates: Literal[
+        "cdf",
+        "hawkeye",
+        "kloppy",
+        "opta",
+        "pff",
+        "secondspectrum",
+        "skillcorner",
+        "sportec:event",
+        "sportec:tracking",
+        "sportvu",
+        "tracab",
+    ] = "cdf",
+    orientation: Literal[
+        "static_home_away",
+        "attack_left",
+        "attack_right",
+        "away_home",
+        "home_away",
+        "static_away_home",
+    ] = "static_home_away",
     pitch_length: float = 105.0,
     pitch_width: float = 68.0,
     object_id: Literal["auto", "heId", "fifaId"] = "auto",
