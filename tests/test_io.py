@@ -485,8 +485,7 @@ class TestS3Adapter:
             raw_s3_path, meta_s3_path, lazy=True
         )
 
-        from kloppy_light import LazyTrackingLoader
-        assert isinstance(dataset.tracking, LazyTrackingLoader)
+        assert isinstance(dataset.tracking, pl.LazyFrame)
         assert len(dataset.teams) == 2
         assert len(dataset.players) > 0
 

@@ -18,7 +18,8 @@ from kloppy_light._base import (
     get_filename_from_filelike,
 )
 from kloppy_light._kloppy_light import hawkeye as _hawkeye
-from kloppy_light._lazy import LazyTrackingLoader
+from kloppy_light._lazy import create_lazy_tracking_hawkeye
+from kloppy_light._schema import get_tracking_schema
 from kloppy_light._dataset import TrackingDataset
 
 
@@ -185,11 +186,19 @@ def load_tracking(
             include_game_id=include_game_id,
         )
 
-        # Create lazy loader with tuple of lists
-        lazy_loader = LazyTrackingLoader(
-            provider="hawkeye",
-            raw_data=(ball_data_processed, player_data_processed),  # TUPLE of lists
+        # Generate schema for the tracking DataFrame
+        schema = get_tracking_schema(
+            layout=layout,
+            players_df=player_df,
+            include_game_id=bool(include_game_id),
+        )
+
+        # Create real pl.LazyFrame using register_io_source
+        lazy_frame = create_lazy_tracking_hawkeye(
+            ball_data=ball_data_processed,
+            player_data=player_data_processed,
             meta_data=meta_data,
+            schema=schema,
             layout=layout,
             coordinates=coordinates,
             orientation=orientation,
@@ -201,7 +210,7 @@ def load_tracking(
         )
 
         return TrackingDataset(
-            tracking=lazy_loader,
+            tracking=lazy_frame,
             metadata=metadata_df,
             teams=team_df,
             players=player_df,

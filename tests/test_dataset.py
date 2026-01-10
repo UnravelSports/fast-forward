@@ -6,7 +6,6 @@ from pathlib import Path
 
 from kloppy_light import secondspectrum
 from kloppy_light._dataset import TrackingDataset
-from kloppy_light._lazy import LazyTrackingLoader
 
 # Test data paths
 DATA_DIR = Path(__file__).parent / "files"
@@ -81,10 +80,10 @@ class TestTrackingDatasetEager:
 class TestTrackingDatasetLazy:
     """Tests for lazy loading (lazy=True)."""
 
-    def test_lazy_tracking_is_lazy_loader(self):
-        """Test that lazy tracking is a LazyTrackingLoader."""
+    def test_lazy_tracking_is_lazyframe(self):
+        """Test that lazy tracking is a pl.LazyFrame."""
         dataset = secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=True)
-        assert isinstance(dataset.tracking, LazyTrackingLoader)
+        assert isinstance(dataset.tracking, pl.LazyFrame)
 
     def test_lazy_metadata_is_eager(self):
         """Test that metadata is always eager."""
@@ -198,7 +197,7 @@ class TestTrackingDatasetRepr:
         # Lazy loading
         dataset_lazy = secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=True)
         repr_lazy = repr(dataset_lazy)
-        assert "tracking=LazyTrackingLoader" in repr_lazy
+        assert "tracking=LazyFrame" in repr_lazy
 
     def test_repr_contains_periods_count(self):
         """Test that repr contains periods count."""
@@ -312,3 +311,150 @@ class TestTrackingDatasetWithDifferentProviders:
         assert isinstance(dataset, TrackingDataset)
         assert isinstance(dataset.tracking, pl.DataFrame)
         assert isinstance(dataset.periods, pl.DataFrame)
+
+
+class TestLazyFrameFunctionality:
+    """Tests for full pl.LazyFrame functionality with lazy loading."""
+
+    def test_schema_access_before_collect(self):
+        """Test that schema is accessible before calling collect()."""
+        dataset = secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=True)
+
+        # Schema should be accessible without loading data
+        schema = dataset.tracking.collect_schema()
+        assert "frame_id" in schema
+        assert "period_id" in schema
+        assert "x" in schema
+        assert "y" in schema
+
+    def test_with_columns_operation(self):
+        """Test that with_columns works on lazy tracking."""
+        dataset = secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=True)
+
+        # Add a new column
+        result = (
+            dataset.tracking
+            .with_columns((pl.col("x") * 100).alias("x_cm"))
+            .collect()
+        )
+
+        assert "x_cm" in result.columns
+        # x_cm should be approximately 100x the x value (allow for float precision)
+        sample = result.select(["x", "x_cm"]).head(1)
+        assert abs(sample["x_cm"][0] - sample["x"][0] * 100) < 0.01
+
+    def test_group_by_operation(self):
+        """Test that group_by works on lazy tracking."""
+        dataset = secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=True)
+
+        # Group by player and compute mean x
+        result = (
+            dataset.tracking
+            .filter(pl.col("team_id") != "ball")
+            .group_by("player_id")
+            .agg(pl.col("x").mean().alias("mean_x"))
+            .collect()
+        )
+
+        assert "player_id" in result.columns
+        assert "mean_x" in result.columns
+        assert len(result) > 0
+
+    def test_join_operation(self):
+        """Test that join works between lazy tracking and players."""
+        dataset = secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=True)
+
+        # Join tracking with players to get player names
+        result = (
+            dataset.tracking
+            .filter(pl.col("team_id") != "ball")
+            .head(100)
+            .join(
+                dataset.players.lazy(),
+                on="player_id",
+                how="left"
+            )
+            .collect()
+        )
+
+        # Should have player columns from the join
+        assert "player_id" in result.columns
+        # Original tracking columns should still be present
+        assert "x" in result.columns
+        assert "frame_id" in result.columns
+
+    def test_filter_multiple_conditions(self):
+        """Test complex filtering on lazy tracking."""
+        dataset = secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=True)
+
+        result = (
+            dataset.tracking
+            .filter(
+                (pl.col("period_id") == 1) &
+                (pl.col("team_id") != "ball") &
+                (pl.col("x") > 0)
+            )
+            .collect()
+        )
+
+        # All rows should match filters
+        assert all(p == 1 for p in result["period_id"].to_list())
+        assert "ball" not in result["team_id"].to_list()
+        assert all(x > 0 for x in result["x"].to_list())
+
+    def test_sort_operation(self):
+        """Test that sort works on lazy tracking."""
+        dataset = secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=True)
+
+        result = (
+            dataset.tracking
+            .sort("frame_id", descending=True)
+            .head(10)
+            .collect()
+        )
+
+        # Should be sorted descending by frame_id
+        frame_ids = result["frame_id"].to_list()
+        assert frame_ids == sorted(frame_ids, reverse=True)
+
+    def test_unique_operation(self):
+        """Test that unique works on lazy tracking."""
+        dataset = secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=True)
+
+        result = (
+            dataset.tracking
+            .select("team_id")
+            .unique()
+            .collect()
+        )
+
+        # Should have unique team_ids including "ball"
+        team_ids = result["team_id"].to_list()
+        assert "ball" in team_ids
+        # At most 3 unique values (home, away, ball)
+        assert len(team_ids) <= 3
+
+    def test_lazy_chain_multiple_operations(self):
+        """Test chaining multiple lazy operations."""
+        dataset = secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=True)
+
+        result = (
+            dataset.tracking
+            .filter(pl.col("period_id") == 1)
+            .filter(pl.col("team_id") != "ball")
+            .with_columns((pl.col("x") ** 2 + pl.col("y") ** 2).sqrt().alias("distance"))
+            .group_by("player_id")
+            .agg([
+                pl.col("distance").mean().alias("avg_distance"),
+                pl.col("x").count().alias("n_observations")
+            ])
+            .sort("avg_distance", descending=True)
+            .collect()
+        )
+
+        assert "player_id" in result.columns
+        assert "avg_distance" in result.columns
+        assert "n_observations" in result.columns
+        # Should be sorted by avg_distance descending
+        distances = result["avg_distance"].to_list()
+        assert distances == sorted(distances, reverse=True)

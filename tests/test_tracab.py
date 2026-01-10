@@ -365,12 +365,10 @@ class TestOrientationParameter:
 class TestLazyParameter:
     """Tests for the lazy parameter."""
 
-    def test_lazy_true_returns_lazy_loader(self):
-        """Test that lazy=True returns LazyTrackingLoader for tracking."""
-        from kloppy_light._lazy import LazyTrackingLoader
-
+    def test_lazy_true_returns_lazyframe(self):
+        """Test that lazy=True returns pl.LazyFrame for tracking."""
         dataset = tracab.load_tracking(RAW_DAT_PATH, META_XML_PATH, lazy=True)
-        assert isinstance(dataset.tracking, LazyTrackingLoader)
+        assert isinstance(dataset.tracking, pl.LazyFrame)
 
     def test_lazy_false_returns_dataframe(self):
         """Test that lazy=False returns DataFrame directly."""

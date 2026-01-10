@@ -157,7 +157,7 @@ def load_tracking_impl(
 ) -> TrackingDataset:
     """Generic implementation for standard providers.
 
-    This handles SecondSpectrum, SkillCorner, and Sportec.
+    This handles SecondSpectrum, SkillCorner, Sportec, and Tracab.
     HawkEye uses its own implementation due to dual-input structure.
 
     Parameters
@@ -179,16 +179,17 @@ def load_tracking_impl(
     include_game_id : bool or str
         Whether to include game_id column
     lazy : bool
-        If True, return lazy loader; if False, load eagerly
+        If True, return pl.LazyFrame; if False, load eagerly
     **provider_kwargs
         Provider-specific parameters
 
     Returns
     -------
     TrackingDataset
-        Dataset with tracking, metadata, teams, players, periods
+        Dataset with tracking (pl.LazyFrame or pl.DataFrame), metadata, teams, players, periods
     """
-    from kloppy_light._lazy import LazyTrackingLoader
+    from kloppy_light._lazy import create_lazy_tracking
+    from kloppy_light._schema import get_tracking_schema
 
     config = get_provider(provider_name)
     rust_module = config["rust_module"]
@@ -222,11 +223,19 @@ def load_tracking_impl(
                 UserWarning,
             )
 
-        # Create lazy loader with all params
-        lazy_loader = LazyTrackingLoader(
+        # Generate schema for the tracking DataFrame
+        schema = get_tracking_schema(
+            layout=layout,
+            players_df=player_df,
+            include_game_id=bool(include_game_id),
+        )
+
+        # Create real pl.LazyFrame using register_io_source
+        lazy_frame = create_lazy_tracking(
             provider=provider_name,
             raw_data=raw_data,
             meta_data=meta_data,
+            schema=schema,
             layout=layout,
             coordinates=coordinates,
             orientation=orientation,
@@ -236,7 +245,7 @@ def load_tracking_impl(
         )
 
         return TrackingDataset(
-            tracking=lazy_loader,
+            tracking=lazy_frame,
             metadata=metadata_df,
             teams=team_df,
             players=player_df,

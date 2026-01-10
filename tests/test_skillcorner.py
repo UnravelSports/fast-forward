@@ -394,15 +394,15 @@ class TestErrorHandling:
 class TestLazyParameter:
     """Tests for lazy loading parameter."""
 
-    def test_lazy_returns_lazy_dataset(self):
-        """Test that lazy=True returns a TrackingDataset with LazyTrackingLoader."""
-        from kloppy_light import TrackingDataset, LazyTrackingLoader
+    def test_lazy_returns_lazyframe(self):
+        """Test that lazy=True returns a TrackingDataset with pl.LazyFrame."""
+        from kloppy_light import TrackingDataset
 
         dataset = skillcorner.load_tracking(
             RAW_DATA_PATH, META_DATA_PATH, lazy=True
         )
         assert isinstance(dataset, TrackingDataset)
-        assert isinstance(dataset.tracking, LazyTrackingLoader)
+        assert isinstance(dataset.tracking, pl.LazyFrame)
         assert isinstance(dataset.metadata, pl.DataFrame)  # Metadata is eager
         assert isinstance(dataset.teams, pl.DataFrame)
         assert isinstance(dataset.players, pl.DataFrame)

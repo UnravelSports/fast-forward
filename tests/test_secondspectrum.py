@@ -464,16 +464,15 @@ class TestOrientationParameter:
 class TestLazyParameter:
     """Tests for lazy loading parameter."""
 
-    def test_lazy_returns_lazy_loader(self):
-        """Test that lazy=True returns a TrackingDataset with LazyTrackingLoader."""
-        from kloppy_light import LazyTrackingLoader
+    def test_lazy_returns_lazyframe(self):
+        """Test that lazy=True returns a TrackingDataset with pl.LazyFrame."""
         from kloppy_light._dataset import TrackingDataset
 
         dataset = secondspectrum.load_tracking(
             RAW_DATA_PATH, META_DATA_PATH, lazy=True
         )
         assert isinstance(dataset, TrackingDataset)
-        assert isinstance(dataset.tracking, LazyTrackingLoader)
+        assert isinstance(dataset.tracking, pl.LazyFrame)
         assert isinstance(dataset.metadata, pl.DataFrame)  # Metadata is eager
         assert isinstance(dataset.teams, pl.DataFrame)
         assert isinstance(dataset.players, pl.DataFrame)
@@ -514,11 +513,13 @@ class TestLazyParameter:
         assert dataset_lazy.tracking.collect().equals(dataset_eager.tracking)
 
     def test_lazy_repr(self):
-        """Test that LazyTrackingLoader has a useful repr."""
+        """Test that pl.LazyFrame has a useful repr."""
         dataset = secondspectrum.load_tracking(
             RAW_DATA_PATH, META_DATA_PATH, lazy=True
         )
-        assert "secondspectrum" in repr(dataset.tracking)
+        # LazyFrame repr shows column names and types
+        repr_str = repr(dataset.tracking)
+        assert "frame_id" in repr_str or "LazyFrame" in repr_str
 
 
 class TestTimestampBehavior:

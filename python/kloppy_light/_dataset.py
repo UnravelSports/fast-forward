@@ -2,7 +2,6 @@
 
 from typing import Union
 import polars as pl
-from kloppy_light._lazy import LazyTrackingLoader
 
 
 class TrackingDataset:
@@ -10,9 +9,11 @@ class TrackingDataset:
 
     Attributes
     ----------
-    tracking : pl.DataFrame or LazyTrackingLoader
-        Tracking data. DataFrame if loaded eagerly, LazyTrackingLoader if lazy=True.
+    tracking : pl.DataFrame or pl.LazyFrame
+        Tracking data. DataFrame if loaded eagerly (lazy=False), LazyFrame if lazy=True.
         For lazy loading, call .collect() to get DataFrame.
+        LazyFrame provides full Polars functionality including schema introspection,
+        filter pushdown, and all LazyFrame methods (join, group_by, with_columns, etc.).
     metadata : pl.DataFrame
         Single-row DataFrame with match-level metadata
     teams : pl.DataFrame
@@ -32,16 +33,28 @@ class TrackingDataset:
     >>> dataset.metadata  # pl.DataFrame (1 row)
     >>> dataset.periods   # pl.DataFrame (2+ rows)
 
-    Lazy loading:
+    Lazy loading (default):
 
     >>> dataset = secondspectrum.load_tracking("tracking.jsonl", "meta.json")
-    >>> dataset.tracking  # LazyTrackingLoader
+    >>> dataset.tracking  # pl.LazyFrame
+    >>> dataset.tracking.schema  # Access schema before collect
     >>> period1 = dataset.tracking.filter(pl.col("period_id") == 1).collect()
+
+    Full LazyFrame functionality:
+
+    >>> result = (
+    ...     dataset.tracking
+    ...     .filter(pl.col("period_id") == 1)
+    ...     .with_columns(pl.col("x") * 100)
+    ...     .group_by("player_id")
+    ...     .agg(pl.col("x").mean())
+    ...     .collect()
+    ... )
     """
 
     def __init__(
         self,
-        tracking: Union[pl.DataFrame, LazyTrackingLoader],
+        tracking: Union[pl.DataFrame, pl.LazyFrame],
         metadata: pl.DataFrame,
         teams: pl.DataFrame,
         players: pl.DataFrame,
@@ -51,8 +64,8 @@ class TrackingDataset:
 
         Parameters
         ----------
-        tracking : pl.DataFrame or LazyTrackingLoader
-            Tracking data
+        tracking : pl.DataFrame or pl.LazyFrame
+            Tracking data. LazyFrame when lazy=True (default), DataFrame when lazy=False.
         metadata : pl.DataFrame
             Metadata (single row)
         teams : pl.DataFrame
@@ -69,8 +82,8 @@ class TrackingDataset:
         self._periods = periods
 
     @property
-    def tracking(self) -> Union[pl.DataFrame, LazyTrackingLoader]:
-        """Get tracking data (DataFrame or LazyTrackingLoader)."""
+    def tracking(self) -> Union[pl.DataFrame, pl.LazyFrame]:
+        """Get tracking data (DataFrame or LazyFrame)."""
         return self._tracking
 
     @property

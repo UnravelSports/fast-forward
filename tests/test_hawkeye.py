@@ -593,14 +593,12 @@ class TestHawkEyeLazyLoading:
 
     def test_lazy_loading_metadata_only(self):
         """Test that lazy mode doesn't parse tracking data immediately."""
-        from kloppy_light._lazy import LazyTrackingLoader
-
         dataset = hawkeye.load_tracking(
             BALL_FILES, PLAYER_FILES, META_JSON, lazy=True
         )
 
-        # Should return LazyTrackingLoader
-        assert isinstance(dataset.tracking, LazyTrackingLoader)
+        # Should return pl.LazyFrame
+        assert isinstance(dataset.tracking, pl.LazyFrame)
 
         # Metadata should be loaded
         assert len(dataset.metadata) == 1
