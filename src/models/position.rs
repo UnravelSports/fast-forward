@@ -215,6 +215,20 @@ impl Position {
             _ => Position::Unknown,
         }
     }
+
+    /// Parse position from Tracab format
+    /// Tracab uses single-letter codes: G (Goalkeeper), D (Defender), M (Midfielder), A (Attacker), S (Substitute)
+    pub fn from_tracab(raw: &str) -> Self {
+        match raw.to_uppercase().as_str() {
+            "G" => Position::GK,
+            "D" => Position::CB,  // Generic defender
+            "M" => Position::CM,  // Generic midfielder
+            "A" => Position::ST,  // Generic attacker/forward
+            "S" => Position::SUB, // Substitute
+            "O" => Position::SUB, // Off (subbed off)
+            _ => Position::Unknown,
+        }
+    }
 }
 
 #[cfg(test)]

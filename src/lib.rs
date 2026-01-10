@@ -33,5 +33,10 @@ fn _kloppy_light(m: &Bound<'_, PyModule>) -> PyResult<()> {
     providers::hawkeye::register_module(&hawkeye)?;
     m.add_submodule(&hawkeye)?;
 
+    // Register tracab submodule
+    let tracab = PyModule::new_bound(m.py(), "tracab")?;
+    providers::tracab::register_module(&tracab)?;
+    m.add_submodule(&tracab)?;
+
     Ok(())
 }

@@ -1,5 +1,6 @@
 """Base module with provider registry and shared implementation."""
 
+import warnings
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Union
 
@@ -212,6 +213,15 @@ def load_tracking_impl(
             meta_bytes, **metadata_kwargs
         )
 
+        # Warn if players DataFrame is empty (tracab-specific: metadata may not have players)
+        if provider_name == "tracab" and player_df.height == 0:
+            warnings.warn(
+                "No player metadata available with lazy loading. "
+                "Player names and details will not be available. "
+                "Use lazy=False to extract players from tracking data.",
+                UserWarning,
+            )
+
         # Create lazy loader with all params
         lazy_loader = LazyTrackingLoader(
             provider=provider_name,
@@ -270,6 +280,7 @@ def _register_standard_providers() -> None:
     from kloppy_light._kloppy_light import secondspectrum as _ss
     from kloppy_light._kloppy_light import skillcorner as _sc
     from kloppy_light._kloppy_light import sportec as _sp
+    from kloppy_light._kloppy_light import tracab as _tr
 
     register_provider(
         name="secondspectrum",
@@ -290,6 +301,13 @@ def _register_standard_providers() -> None:
         rust_module=_sp,
         metadata_params=["include_referees"],
         tracking_params=["include_referees"],
+    )
+
+    register_provider(
+        name="tracab",
+        rust_module=_tr,
+        metadata_params=[],
+        tracking_params=[],
     )
 
 
