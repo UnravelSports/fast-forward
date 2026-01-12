@@ -4,6 +4,7 @@ use pyo3::types::PyModule;
 mod coordinates;
 mod dataframe;
 mod error;
+mod filter_pushdown;
 mod models;
 mod orientation;
 mod providers;

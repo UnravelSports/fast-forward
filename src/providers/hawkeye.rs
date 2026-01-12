@@ -5,8 +5,9 @@ use std::collections::HashMap;
 use std::io::{BufReader, Cursor};
 
 use crate::coordinates::{transform_from_cdf, CoordinateSystem};
-use crate::dataframe::{build_metadata_df, build_periods_df, build_player_df, build_team_df, build_tracking_df, Layout};
+use crate::dataframe::{build_metadata_df, build_periods_df, build_player_df, build_team_df, build_tracking_df_with_pushdown, Layout};
 use crate::error::KloppyError;
+use crate::filter_pushdown::{extract_pushdown_filters, PushdownFilters};
 use crate::models::{
     BallState, Ground, Position, StandardBall, StandardFrame, StandardMetadata,
     StandardPlayer, StandardPlayerPosition, StandardTeam,
@@ -685,18 +686,102 @@ fn build_tracking_df_from_files(
     only_alive: bool,
     game_id_value: Option<&str>,
     object_id: &str,
+    pushdown: &PushdownFilters,
 ) -> Result<DataFrame, KloppyError> {
     // Build StandardFrames using HashMap for incremental construction
     let mut frame_map: HashMap<u32, PartialFrame> = HashMap::new();
 
     // Parse all ball files and populate frame_map with ball data
     for (period_id, minute, data) in ball_files {
+        // FILE-LEVEL PUSHDOWN: Skip entire file if period doesn't match
+        if let Some(ref periods) = pushdown.period_ids {
+            if !periods.contains(&(period_id as i32)) {
+                continue;  // Skip entire file!
+            }
+        }
+
         let ball_data = parse_ball_file(data, period_id, minute, metadata.fps, object_id)?;
 
         for (frame_id, timestamp_ms, ball_state, ball_owning_team_id, pos) in ball_data.samples {
             // Filter by only_alive if needed
             if only_alive && ball_state == BallState::Dead {
                 continue;
+            }
+
+            // FRAME-LEVEL PUSHDOWN: Skip frames based on frame_id range
+            if let Some(min) = pushdown.frame_id_min {
+                if frame_id < min {
+                    continue;
+                }
+            }
+            if let Some(max) = pushdown.frame_id_max {
+                if frame_id > max {
+                    continue;
+                }
+            }
+            if let Some(ref ids) = pushdown.frame_ids {
+                if !ids.contains(&frame_id) {
+                    continue;
+                }
+            }
+
+            // FRAME-LEVEL PUSHDOWN: Skip frames based on ball_state
+            if let Some(ref state) = pushdown.ball_state {
+                if ball_state.as_str() != state {
+                    continue;
+                }
+            }
+
+            // FRAME-LEVEL PUSHDOWN: Skip frames based on ball_owning_team_id
+            if let Some(is_null) = pushdown.ball_owning_team_is_null {
+                if is_null && ball_owning_team_id.is_some() {
+                    continue;
+                }
+                if !is_null && ball_owning_team_id.is_none() {
+                    continue;
+                }
+            }
+            if let Some(ref teams) = pushdown.ball_owning_team_ids {
+                match &ball_owning_team_id {
+                    Some(team) => {
+                        if !teams.contains(team) {
+                            continue;
+                        }
+                    }
+                    None => continue,
+                }
+            }
+
+            // FRAME-LEVEL PUSHDOWN: Skip frames based on ball position
+            if let Some(min) = pushdown.ball_x_min {
+                if pos[0] < min {
+                    continue;
+                }
+            }
+            if let Some(max) = pushdown.ball_x_max {
+                if pos[0] > max {
+                    continue;
+                }
+            }
+            if let Some(min) = pushdown.ball_y_min {
+                if pos[1] < min {
+                    continue;
+                }
+            }
+            if let Some(max) = pushdown.ball_y_max {
+                if pos[1] > max {
+                    continue;
+                }
+            }
+            if let Some(min) = pushdown.ball_z_min {
+                if pos[2] < min {
+                    continue;
+                }
+            }
+            if let Some(max) = pushdown.ball_z_max {
+                if pos[2] > max {
+                    continue;
+                }
             }
 
             // Create or update frame
@@ -731,8 +816,16 @@ fn build_tracking_df_from_files(
 
     // Parse all player files and add player positions to frames
     for (period_id, minute, data) in player_files {
+        // FILE-LEVEL PUSHDOWN: Skip entire file if period doesn't match
+        if let Some(ref periods) = pushdown.period_ids {
+            if !periods.contains(&(period_id as i32)) {
+                continue;  // Skip entire file!
+            }
+        }
+
         let player_data = parse_player_file(data, period_id, minute, metadata.fps, object_id, false)?;
 
+        let has_player_filters = pushdown.has_player_filters();
         for (frame_id, positions) in player_data.samples {
             // Only add player positions if we have this frame in our map
             // Note: Dead frames are already filtered out when creating the frame_map,
@@ -740,6 +833,10 @@ fn build_tracking_df_from_files(
             if let Some(partial_frame) = frame_map.get_mut(&frame_id) {
                 // Add player positions to this frame
                 for (team_id, player_id, pos) in positions {
+                    // EARLY PUSHDOWN: Skip players that don't match team_id/player_id filters
+                    if has_player_filters && !pushdown.should_include_player(&team_id, &player_id) {
+                        continue;
+                    }
                     partial_frame.players.push(StandardPlayerPosition {
                         team_id,
                         player_id,
@@ -805,9 +902,9 @@ fn build_tracking_df_from_files(
         orientation_enum,
     );
 
-    // Apply layout transformation using existing infrastructure
+    // Apply layout transformation using existing infrastructure with row-level pushdown
     let layout_enum = Layout::from_str(layout)?;
-    build_tracking_df(&frames, layout_enum, game_id_value)
+    build_tracking_df_with_pushdown(&frames, layout_enum, game_id_value, pushdown)
 }
 
 // ============================================================================
@@ -988,8 +1085,15 @@ fn load_tracking(
         Some(game_id.clone())
     };
 
-    // Build tracking DataFrame
-    let mut tracking_df = build_tracking_df_from_files(
+    // Extract pushdown filters from predicate (ALL IN RUST)
+    let layout_enum = Layout::from_str(layout)?;
+    let pushdown = predicate
+        .as_ref()
+        .map(|p| extract_pushdown_filters(&p.0, layout_enum))
+        .unwrap_or_default();
+
+    // Build tracking DataFrame with pushdown filtering
+    let tracking_df = build_tracking_df_from_files(
         ball_files_with_metadata.clone(),
         player_files_with_metadata.clone(),
         &metadata,
@@ -999,6 +1103,7 @@ fn load_tracking(
         only_alive,
         game_id_value.as_deref(),
         object_id,
+        &pushdown,
     )
     .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))?;
 
@@ -1037,15 +1142,6 @@ fn load_tracking(
     // Build player DataFrame
     let player_df = build_player_df(&all_players, game_id_value.as_deref())
         .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))?;
-
-    // Apply predicate filter if provided (filter pushdown from Polars lazy)
-    if let Some(pred) = predicate {
-        tracking_df = tracking_df
-            .lazy()
-            .filter(pred.0)
-            .collect()
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Filter error: {}", e)))?;
-    }
 
     Ok((
         PyDataFrame(tracking_df),

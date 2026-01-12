@@ -57,14 +57,7 @@ def create_lazy_tracking(
     """
     from kloppy_light._base import get_provider
 
-    # Pre-read files to bytes for closure capture
-    # This is necessary because the generator is called later by Polars
-    with open_as_file(raw_data) as f:
-        raw_bytes = f.read() if f else b""
-    with open_as_file(meta_data) as f:
-        meta_bytes = f.read() if f else b""
-
-    # Get provider config
+    # Get provider config eagerly (small, fast)
     config = get_provider(provider)
     rust_module = config["rust_module"]
     tracking_params = config.get("tracking_params", [])
@@ -80,6 +73,12 @@ def create_lazy_tracking(
         This is called by Polars when .collect() is invoked.
         The predicate and with_columns are passed for optimization.
         """
+        # Read files LAZILY here, at .collect() time (not at LazyFrame creation time)
+        with open_as_file(raw_data) as f:
+            raw_bytes = f.read() if f else b""
+        with open_as_file(meta_data) as f:
+            meta_bytes = f.read() if f else b""
+
         # Build kwargs for Rust call
         call_kwargs = {
             "layout": layout,
@@ -95,22 +94,25 @@ def create_lazy_tracking(
                 call_kwargs[param_name] = provider_kwargs[param_name]
 
         # Call Rust to load tracking data with predicate pushdown
-        # Try to pass predicate to Rust; fall back to Python if serialization fails
-        # (Complex expressions with & operators may fail to serialize between versions)
+        # Rust handles some filters (period_id, frame_id) but not all (team_id, player_id, is_between)
+        # So we always apply the predicate in Python after to ensure correctness
         try:
             tracking_df, _, _, _, _ = rust_module.load_tracking(
                 raw_bytes, meta_bytes, predicate=predicate, **call_kwargs
             )
         except RuntimeError as e:
             if "deserializing" in str(e) or "BindingsError" in str(e):
-                # Fall back to loading without predicate and applying in Python
+                # Fall back to loading without predicate
                 tracking_df, _, _, _, _ = rust_module.load_tracking(
                     raw_bytes, meta_bytes, **call_kwargs
                 )
-                if predicate is not None:
-                    tracking_df = tracking_df.filter(predicate)
             else:
                 raise
+
+        # Always apply predicate in Python to handle filters Rust couldn't push down
+        # This ensures correctness for team_id, player_id, is_between, etc.
+        if predicate is not None:
+            tracking_df = tracking_df.filter(predicate)
 
         # Apply column projection
         if with_columns is not None:
@@ -181,25 +183,9 @@ def create_lazy_tracking_hawkeye(
     from kloppy_light._base import get_filename_from_filelike
     from kloppy_light._kloppy_light import hawkeye as _hawkeye
 
-    # Convert to lists
+    # Only convert to lists eagerly (no file reading)
     ball_list = ball_data if isinstance(ball_data, list) else [ball_data]
     player_list = player_data if isinstance(player_data, list) else [player_data]
-
-    # Pre-read all files to bytes for closure capture
-    ball_bytes_list: List[Tuple[str, bytes]] = []
-    for ball_file in ball_list:
-        with open_as_file(ball_file) as f:
-            filename = get_filename_from_filelike(ball_file)
-            ball_bytes_list.append((filename, f.read() if f else b""))
-
-    player_bytes_list: List[Tuple[str, bytes]] = []
-    for player_file in player_list:
-        with open_as_file(player_file) as f:
-            filename = get_filename_from_filelike(player_file)
-            player_bytes_list.append((filename, f.read() if f else b""))
-
-    with open_as_file(meta_data) as f:
-        meta_bytes = f.read() if f else b""
 
     def source_generator(
         with_columns: Optional[List[str]],
@@ -208,8 +194,25 @@ def create_lazy_tracking_hawkeye(
         batch_size: Optional[int],
     ) -> Iterator[pl.DataFrame]:
         """Generator that yields HawkEye tracking DataFrame."""
+        # Read files LAZILY here, at .collect() time (not at LazyFrame creation time)
+        ball_bytes_list: List[Tuple[str, bytes]] = []
+        for ball_file in ball_list:
+            with open_as_file(ball_file) as f:
+                filename = get_filename_from_filelike(ball_file)
+                ball_bytes_list.append((filename, f.read() if f else b""))
+
+        player_bytes_list: List[Tuple[str, bytes]] = []
+        for player_file in player_list:
+            with open_as_file(player_file) as f:
+                filename = get_filename_from_filelike(player_file)
+                player_bytes_list.append((filename, f.read() if f else b""))
+
+        with open_as_file(meta_data) as f:
+            meta_bytes = f.read() if f else b""
+
         # Call Rust to load tracking data with predicate pushdown
-        # Try to pass predicate to Rust; fall back to Python if serialization fails
+        # Rust handles some filters (period_id, frame_id) but not all (team_id, player_id, is_between)
+        # So we always apply the predicate in Python after to ensure correctness
         try:
             tracking_df, _, _, _, _ = _hawkeye.load_tracking(
                 ball_bytes_list,
@@ -227,7 +230,7 @@ def create_lazy_tracking_hawkeye(
             )
         except RuntimeError as e:
             if "deserializing" in str(e) or "BindingsError" in str(e):
-                # Fall back to loading without predicate and applying in Python
+                # Fall back to loading without predicate
                 tracking_df, _, _, _, _ = _hawkeye.load_tracking(
                     ball_bytes_list,
                     player_bytes_list,
@@ -241,10 +244,13 @@ def create_lazy_tracking_hawkeye(
                     object_id=object_id,
                     include_game_id=include_game_id,
                 )
-                if predicate is not None:
-                    tracking_df = tracking_df.filter(predicate)
             else:
                 raise
+
+        # Always apply predicate in Python to handle filters Rust couldn't push down
+        # This ensures correctness for team_id, player_id, is_between, etc.
+        if predicate is not None:
+            tracking_df = tracking_df.filter(predicate)
 
         # Apply column projection
         if with_columns is not None:

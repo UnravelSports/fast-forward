@@ -6,8 +6,9 @@ use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Cursor};
 
 use crate::coordinates::{transform_from_cdf, CoordinateSystem};
-use crate::dataframe::{build_metadata_df, build_periods_df, build_player_df, build_team_df, build_tracking_df, Layout};
+use crate::dataframe::{build_metadata_df, build_periods_df, build_player_df, build_team_df, build_tracking_df_with_pushdown, Layout};
 use crate::error::KloppyError;
+use crate::filter_pushdown::{extract_pushdown_filters, PushdownFilters};
 use crate::models::{
     BallState, Ground, Position, StandardBall, StandardFrame, StandardMetadata, StandardPeriod,
     StandardPlayer, StandardPlayerPosition, StandardTeam,
@@ -253,6 +254,7 @@ fn parse_tracking_frames(
     away_team_id: &str,
     _coordinate_system: CoordinateSystem,
     only_alive: bool,
+    pushdown: &PushdownFilters,
 ) -> Result<Vec<StandardFrame>, KloppyError> {
     let cursor = Cursor::new(data);
     let reader = BufReader::new(cursor);
@@ -273,6 +275,30 @@ fn parse_tracking_frames(
         }
 
         let raw: RawTrackingFrame = serde_json::from_str(&line)?;
+
+        // EARLY PUSHDOWN: Skip frames based on frame_id
+        if let Some(min) = pushdown.frame_id_min {
+            if raw.frame_idx < min {
+                continue;
+            }
+        }
+        if let Some(max) = pushdown.frame_id_max {
+            if raw.frame_idx > max {
+                continue;
+            }
+        }
+        if let Some(ref ids) = pushdown.frame_ids {
+            if !ids.contains(&raw.frame_idx) {
+                continue;
+            }
+        }
+
+        // EARLY PUSHDOWN: Skip frames based on period_id
+        if let Some(ref periods) = pushdown.period_ids {
+            if !periods.contains(&(raw.period as i32)) {
+                continue;
+            }
+        }
 
         // Skip dead ball frames if only_alive is true
         if only_alive && !raw.live {
@@ -309,9 +335,14 @@ fn parse_tracking_frames(
             speed: Some(raw.ball.speed),
         };
 
+        let has_player_filters = pushdown.has_player_filters();
         let mut players = Vec::new();
 
         for p in raw.home_players {
+            // EARLY PUSHDOWN: Skip players that don't match team_id/player_id filters
+            if has_player_filters && !pushdown.should_include_player(home_team_id, &p.player_id) {
+                continue;
+            }
             players.push(StandardPlayerPosition {
                 team_id: home_team_id.to_string(),
                 player_id: p.player_id,
@@ -323,6 +354,10 @@ fn parse_tracking_frames(
         }
 
         for p in raw.away_players {
+            // EARLY PUSHDOWN: Skip players that don't match team_id/player_id filters
+            if has_player_filters && !pushdown.should_include_player(away_team_id, &p.player_id) {
+                continue;
+            }
             players.push(StandardPlayerPosition {
                 team_id: away_team_id.to_string(),
                 player_id: p.player_id,
@@ -406,6 +441,15 @@ fn load_tracking(
     let layout_enum = Layout::from_str(layout)?;
     let orientation_enum = Orientation::from_str(orientation)?;
 
+    // Extract pushdown filters from predicate (layout-aware)
+    let pushdown = predicate
+        .as_ref()
+        .map(|p| extract_pushdown_filters(&p.0, layout_enum))
+        .unwrap_or_default();
+
+    // Emit any warnings from filter extraction
+    pushdown.emit_warnings();
+
     // Parse metadata first to get team IDs and periods
     let (metadata_struct, home_team_id, away_team_id, periods) =
         parse_metadata(meta_data, coordinates, orientation)?;
@@ -413,13 +457,14 @@ fn load_tracking(
     // Determine game_id based on include_game_id parameter
     let game_id: Option<String> = resolve_game_id(py, include_game_id, &metadata_struct.game_id)?;
 
-    // Parse tracking frames
+    // Parse tracking frames with pushdown filtering
     let mut frames = parse_tracking_frames(
         raw_data,
         &home_team_id,
         &away_team_id,
         coordinate_system,
         only_alive,
+        &pushdown,
     )?;
 
     // Apply orientation transformation
@@ -460,26 +505,17 @@ fn load_tracking(
         }
     }
 
-    // Build DataFrames
+    // Build DataFrames with row-level pushdown filtering
     // For metadata_df, we only pass game_id_override when it's a custom string (not from metadata)
     let game_id_override = game_id
         .as_ref()
         .filter(|id| *id != &metadata_struct.game_id)
         .map(|s| s.as_str());
-    let mut tracking_df = build_tracking_df(&frames, layout_enum, game_id.as_deref())?;
+    let tracking_df = build_tracking_df_with_pushdown(&frames, layout_enum, game_id.as_deref(), &pushdown)?;
     let metadata_df = build_metadata_df(&metadata_struct, game_id_override)?;
     let periods_df = build_periods_df(&metadata_struct, game_id.as_deref())?;
     let team_df = build_team_df(&metadata_struct.teams, game_id.as_deref())?;
     let player_df = build_player_df(&metadata_struct.players, game_id.as_deref())?;
-
-    // Apply predicate filter if provided (filter pushdown from Polars lazy)
-    if let Some(pred) = predicate {
-        tracking_df = tracking_df
-            .lazy()
-            .filter(pred.0)
-            .collect()
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Filter error: {}", e)))?;
-    }
 
     Ok((
         PyDataFrame(tracking_df),

@@ -1,10 +1,15 @@
 use crate::error::KloppyError;
+use crate::filter_pushdown::PushdownFilters;
 use crate::models::StandardFrame;
 use polars::prelude::*;
 
-/// Build long format tracking DataFrame
+/// Build long format tracking DataFrame with row-level pushdown filtering
 /// Ball is included as a row with team_id="ball", player_id="ball"
-pub fn build(frames: &[StandardFrame], game_id: Option<&str>) -> Result<DataFrame, KloppyError> {
+pub fn build_with_pushdown(
+    frames: &[StandardFrame],
+    game_id: Option<&str>,
+    pushdown: &PushdownFilters,
+) -> Result<DataFrame, KloppyError> {
     // Estimate capacity: ~23 entities per frame (22 players + 1 ball)
     let estimated_rows = frames.len() * 23;
 
@@ -20,27 +25,18 @@ pub fn build(frames: &[StandardFrame], game_id: Option<&str>) -> Result<DataFram
     let mut y_coords: Vec<f32> = Vec::with_capacity(estimated_rows);
     let mut z_coords: Vec<f32> = Vec::with_capacity(estimated_rows);
 
+    let has_row_filters = pushdown.has_row_filters();
+
     for frame in frames {
         let ball_state_str = frame.ball_state.as_str();
         let ball_owning = frame.ball_owning_team_id.as_deref();
 
-        // Add ball row
-        if let Some(gid) = game_id {
-            game_ids.push(gid);
-        }
-        frame_ids.push(frame.frame_id);
-        period_ids.push(frame.period_id as i32);
-        timestamps.push(frame.timestamp_ms);
-        ball_states.push(ball_state_str);
-        ball_owning_team_ids.push(ball_owning);
-        team_ids.push("ball");
-        player_ids.push("ball");
-        x_coords.push(frame.ball.x);
-        y_coords.push(frame.ball.y);
-        z_coords.push(frame.ball.z);
+        // Add ball row (with row-level pushdown check)
+        // In long layout, ball uses team_id="ball", player_id="ball"
+        let include_ball = !has_row_filters
+            || pushdown.should_include_row("ball", "ball", frame.ball.x, frame.ball.y, frame.ball.z);
 
-        // Add player rows
-        for player in &frame.players {
+        if include_ball {
             if let Some(gid) = game_id {
                 game_ids.push(gid);
             }
@@ -49,11 +45,33 @@ pub fn build(frames: &[StandardFrame], game_id: Option<&str>) -> Result<DataFram
             timestamps.push(frame.timestamp_ms);
             ball_states.push(ball_state_str);
             ball_owning_team_ids.push(ball_owning);
-            team_ids.push(&player.team_id);
-            player_ids.push(&player.player_id);
-            x_coords.push(player.x);
-            y_coords.push(player.y);
-            z_coords.push(player.z);
+            team_ids.push("ball");
+            player_ids.push("ball");
+            x_coords.push(frame.ball.x);
+            y_coords.push(frame.ball.y);
+            z_coords.push(frame.ball.z);
+        }
+
+        // Add player rows (with row-level pushdown check)
+        for player in &frame.players {
+            let include_player = !has_row_filters
+                || pushdown.should_include_row(&player.team_id, &player.player_id, player.x, player.y, player.z);
+
+            if include_player {
+                if let Some(gid) = game_id {
+                    game_ids.push(gid);
+                }
+                frame_ids.push(frame.frame_id);
+                period_ids.push(frame.period_id as i32);
+                timestamps.push(frame.timestamp_ms);
+                ball_states.push(ball_state_str);
+                ball_owning_team_ids.push(ball_owning);
+                team_ids.push(&player.team_id);
+                player_ids.push(&player.player_id);
+                x_coords.push(player.x);
+                y_coords.push(player.y);
+                z_coords.push(player.z);
+            }
         }
     }
 

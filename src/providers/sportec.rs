@@ -7,7 +7,8 @@ use std::collections::HashMap;
 use std::io::{BufReader, Cursor};
 
 use crate::coordinates::{transform_from_cdf, CoordinateSystem};
-use crate::dataframe::{build_metadata_df, build_periods_df, build_player_df, build_team_df, build_tracking_df, Layout};
+use crate::dataframe::{build_metadata_df, build_periods_df, build_player_df, build_team_df, build_tracking_df_with_pushdown, Layout};
+use crate::filter_pushdown::{extract_pushdown_filters, PushdownFilters};
 use crate::error::KloppyError;
 use crate::models::{
     BallState, Ground, Position, StandardBall, StandardFrame, StandardMetadata, StandardPeriod,
@@ -360,6 +361,7 @@ fn parse_tracking_frames(
     player_id_map: &HashMap<String, (String, String)>,
     home_team_id: &str,
     only_alive: bool,
+    pushdown: &PushdownFilters,
 ) -> Result<(Vec<StandardFrame>, Vec<StandardPeriod>), KloppyError> {
     let cursor = Cursor::new(tracking_data);
     let reader = BufReader::new(cursor);
@@ -403,10 +405,45 @@ fn parse_tracking_frames(
                             .parse()
                             .unwrap_or(0);
 
+                        // EARLY PUSHDOWN: Skip frames based on period_id and frame_id
+                        // This is checked early before parsing other attributes
+                        if let Some(ref periods) = pushdown.period_ids {
+                            if !periods.contains(&(period_id as i32)) {
+                                continue;
+                            }
+                        }
+                        if let Some(min) = pushdown.frame_id_min {
+                            if frame_n < min {
+                                continue;
+                            }
+                        }
+                        if let Some(max) = pushdown.frame_id_max {
+                            if frame_n > max {
+                                continue;
+                            }
+                        }
+                        if let Some(ref ids) = pushdown.frame_ids {
+                            if !ids.contains(&frame_n) {
+                                continue;
+                            }
+                        }
+
                         // Parse timestamp
                         let timestamp_ms = get_attr_value(&attrs, b"T")?
                             .map(|t| parse_iso_timestamp_ms(&t))
                             .unwrap_or(0);
+
+                        // EARLY PUSHDOWN: Skip frames based on timestamp
+                        if let Some(min) = pushdown.timestamp_min_ms {
+                            if timestamp_ms < min {
+                                continue;
+                            }
+                        }
+                        if let Some(max) = pushdown.timestamp_max_ms {
+                            if timestamp_ms > max {
+                                continue;
+                            }
+                        }
 
                         let x: f32 = get_attr_value(&attrs, b"X")?
                             .unwrap_or_else(|| "0.0".to_string())
@@ -449,6 +486,10 @@ fn parse_tracking_frames(
                         } else {
                             // Player data
                             if let Some((player_team_id, player_id)) = player_id_map.get(person_id) {
+                                // EARLY PUSHDOWN: Skip players that don't match team_id/player_id filters
+                                if pushdown.has_player_filters() && !pushdown.should_include_player(player_team_id, player_id) {
+                                    continue;
+                                }
                                 frame_entry.2.push(StandardPlayerPosition {
                                     team_id: player_team_id.clone(),
                                     player_id: player_id.clone(),
@@ -492,7 +533,7 @@ fn parse_tracking_frames(
         .collect();
     periods.sort_by_key(|p| p.period_id);
 
-    // Build frames
+    // Build frames with frame-level pushdown filtering
     let mut frames: Vec<StandardFrame> = Vec::new();
     for ((period_id, frame_id), (timestamp_ms, ball, players, ball_possession, ball_status)) in frame_data {
         // Determine ball state from ball_status
@@ -524,6 +565,23 @@ fn parse_tracking_frames(
             z: 0.0,
             speed: None,
         });
+
+        // FRAME-LEVEL PUSHDOWN: Skip frames that don't match filters
+        // This provides maximum performance savings by skipping entire frames
+        if pushdown.has_frame_filters() {
+            if !pushdown.should_include_frame(
+                frame_id,
+                period_id as i32,
+                timestamp_ms,
+                ball_state.as_str(),
+                ball_owning_team_id.as_deref(),
+                ball.x,
+                ball.y,
+                ball.z,
+            ) {
+                continue;
+            }
+        }
 
         frames.push(StandardFrame {
             frame_id,
@@ -645,6 +703,15 @@ fn load_tracking(
     let layout_enum = Layout::from_str(layout)?;
     let orientation_enum = Orientation::from_str(orientation)?;
 
+    // Extract pushdown filters from predicate (layout-aware)
+    let pushdown = predicate
+        .as_ref()
+        .map(|p| extract_pushdown_filters(&p.0, layout_enum))
+        .unwrap_or_default();
+
+    // Emit any warnings from filter extraction
+    pushdown.emit_warnings();
+
     // Parse metadata
     let (mut metadata_struct, home_team_id, away_team_id, _, player_id_map, _) =
         parse_metadata(meta_data, coordinates, orientation, include_referees)?;
@@ -652,8 +719,8 @@ fn load_tracking(
     // Determine game_id
     let game_id: Option<String> = resolve_game_id(py, include_game_id, &metadata_struct.game_id)?;
 
-    // Parse tracking frames
-    let (mut frames, periods) = parse_tracking_frames(raw_data, &player_id_map, &home_team_id, only_alive)?;
+    // Parse tracking frames with frame-level pushdown filtering
+    let (mut frames, periods) = parse_tracking_frames(raw_data, &player_id_map, &home_team_id, only_alive, &pushdown)?;
 
     // Normalize timestamps so each period starts at 0ms
     normalize_timestamps_per_period(&mut frames);
@@ -697,26 +764,17 @@ fn load_tracking(
         }
     }
 
-    // Build DataFrames
+    // Build DataFrames with row-level pushdown filtering
     // For metadata_df, we only pass game_id_override when it's a custom string (not from metadata)
     let game_id_override = game_id
         .as_ref()
         .filter(|id| *id != &metadata_struct.game_id)
         .map(|s| s.as_str());
-    let mut tracking_df = build_tracking_df(&frames, layout_enum, game_id.as_deref())?;
+    let tracking_df = build_tracking_df_with_pushdown(&frames, layout_enum, game_id.as_deref(), &pushdown)?;
     let metadata_df = build_metadata_df(&metadata_struct, game_id_override)?;
     let periods_df = build_periods_df(&metadata_struct, game_id.as_deref())?;
     let team_df = build_team_df(&metadata_struct.teams, game_id.as_deref())?;
     let player_df = build_player_df(&metadata_struct.players, game_id.as_deref())?;
-
-    // Apply predicate filter if provided (filter pushdown from Polars lazy)
-    if let Some(pred) = predicate {
-        tracking_df = tracking_df
-            .lazy()
-            .filter(pred.0)
-            .collect()
-            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Filter error: {}", e)))?;
-    }
 
     Ok((
         PyDataFrame(tracking_df),
