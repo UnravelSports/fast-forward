@@ -204,7 +204,13 @@ class TrackingDataset:
 
     @property
     def tracking(self) -> Union[pl.DataFrame, pl.LazyFrame]:
-        """Get tracking data (DataFrame or LazyFrame)."""
+        """Get tracking data (DataFrame or LazyFrame).
+
+        Returns the collected DataFrame if collect() was previously called,
+        otherwise returns the original LazyFrame.
+        """
+        if self._collected_df is not None:
+            return self._collected_df
         return self._tracking
 
     @property
@@ -233,6 +239,9 @@ class TrackingDataset:
         Convenience method that calls self.tracking.collect().
         For lazy datasets, this triggers the actual data loading.
 
+        After calling collect(), subsequent access to dataset.tracking
+        will return the collected DataFrame instead of the LazyFrame.
+
         Returns
         -------
         pl.DataFrame
@@ -242,11 +251,20 @@ class TrackingDataset:
         --------
         >>> dataset = tracab.load_tracking("raw.dat", "meta.xml")
         >>> df = dataset.collect()  # Same as dataset.tracking.collect()
+        >>> dataset.tracking  # Now returns DataFrame, not LazyFrame
         """
-        if isinstance(self._tracking, pl.DataFrame):
-            return self._tracking
+        # Return cached result if already collected
+        if self._collected_df is not None:
+            return self._collected_df
 
-        return self._tracking.collect()
+        # If already a DataFrame, cache and return it
+        if isinstance(self._tracking, pl.DataFrame):
+            self._collected_df = self._tracking
+            return self._collected_df
+
+        # Collect LazyFrame, cache, and return
+        self._collected_df = self._tracking.collect()
+        return self._collected_df
 
     def collect_with_metadata(self) -> "TrackingDataset":
         """Collect lazy tracking data and populate metadata.
