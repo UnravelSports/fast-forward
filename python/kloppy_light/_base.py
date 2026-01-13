@@ -153,8 +153,7 @@ def load_tracking_impl(
     only_alive: bool,
     include_game_id: Union[bool, str],
     lazy: bool,
-    cache: bool = False,
-    cache_dir: Optional[str] = None,
+    from_cache: bool = False,
     **provider_kwargs,
 ) -> TrackingDataset:
     """Generic implementation for standard providers.
@@ -182,12 +181,9 @@ def load_tracking_impl(
         Whether to include game_id column
     lazy : bool
         If True, return pl.LazyFrame; if False, load eagerly
-    cache : bool
-        If True, cache parsed data as Parquet for faster subsequent loads.
-        Only used when lazy=True.
-    cache_dir : str, optional
-        Cache directory path or URI (e.g., "s3://bucket/cache").
-        If None, uses platform-specific default cache directory.
+    from_cache : bool
+        If True, load from cache if available. Warns if no cache exists.
+        Use dataset.write_cache() to create cache after loading.
     **provider_kwargs
         Provider-specific parameters
 
@@ -196,11 +192,93 @@ def load_tracking_impl(
     TrackingDataset
         Dataset with tracking (pl.LazyFrame or pl.DataFrame), metadata, teams, players, periods
     """
-    from kloppy_light._lazy import create_lazy_tracking
+    from kloppy_light._lazy import create_lazy_tracking, _is_local_file
     from kloppy_light._schema import get_tracking_schema
+    from kloppy_light._cache import (
+        compute_cache_key_fast,
+        compute_cache_key,
+        get_cache_path,
+        cache_exists,
+        read_cache,
+        CACHE_SCHEMA_VERSION,
+    )
 
     config = get_provider(provider_name)
     rust_module = config["rust_module"]
+
+    # Build config string for cache key (must match _lazy.py)
+    config_str = f"{layout}|{coordinates}|{orientation}|{only_alive}|{include_game_id}"
+    for param_name in sorted(config["tracking_params"]):
+        if param_name in provider_kwargs:
+            config_str += f"|{param_name}={provider_kwargs[param_name]}"
+
+    # Compute cache key
+    cache_key: Optional[str] = None
+    if lazy:
+        if _is_local_file(raw_data) and _is_local_file(meta_data):
+            cache_key = compute_cache_key_fast(
+                str(raw_data),
+                str(meta_data),
+                config_str,
+            )
+        else:
+            # For remote files, we need to read content for hash
+            with open_as_file(raw_data) as f:
+                raw_bytes = f.read() if f else b""
+            with open_as_file(meta_data) as f:
+                meta_bytes = f.read() if f else b""
+            cache_key = compute_cache_key(raw_bytes, meta_bytes, config_str)
+
+        # Check for cache hit if from_cache=True
+        if from_cache and cache_key:
+            cache_path = get_cache_path(cache_key, provider_name)
+            if cache_exists(cache_path):
+                # Cache hit - load from cache
+                result = read_cache(cache_path)
+                if isinstance(result, tuple):
+                    lazy_frame, metadata_df, team_df, player_df, periods_df = result
+                    return TrackingDataset(
+                        tracking=lazy_frame,
+                        metadata=metadata_df,
+                        teams=team_df,
+                        players=player_df,
+                        periods=periods_df,
+                        _provider=provider_name,
+                        _cache_key=cache_key,
+                    )
+                else:
+                    # Old cache format without metadata - still usable
+                    lazy_frame = result
+                    # Load metadata from source
+                    with open_as_file(meta_data) as meta_file:
+                        meta_bytes_for_load = meta_file.read() if meta_file else b""
+                    metadata_kwargs = {
+                        "coordinates": coordinates,
+                        "orientation": orientation,
+                        "include_game_id": include_game_id,
+                    }
+                    for param_name in config["metadata_params"]:
+                        if param_name in provider_kwargs:
+                            metadata_kwargs[param_name] = provider_kwargs[param_name]
+                    metadata_df, team_df, player_df, periods_df = rust_module.load_metadata_only(
+                        meta_bytes_for_load, **metadata_kwargs
+                    )
+                    return TrackingDataset(
+                        tracking=lazy_frame,
+                        metadata=metadata_df,
+                        teams=team_df,
+                        players=player_df,
+                        periods=periods_df,
+                        _provider=provider_name,
+                        _cache_key=cache_key,
+                    )
+            else:
+                # Cache miss with from_cache=True - warn user
+                warnings.warn(
+                    "No cache found for this file. "
+                    "Use dataset.write_cache() after loading to create one.",
+                    UserWarning,
+                )
 
     if lazy:
         # Convert meta_data to bytes for metadata loading
@@ -230,8 +308,7 @@ def load_tracking_impl(
         )
 
         # Create real pl.LazyFrame using register_io_source
-        # Pass metadata for caching, get back cached metadata on cache hit
-        result = create_lazy_tracking(
+        lazy_frame = create_lazy_tracking(
             provider=provider_name,
             raw_data=raw_data,
             meta_data=meta_data,
@@ -241,33 +318,16 @@ def load_tracking_impl(
             orientation=orientation,
             only_alive=only_alive,
             include_game_id=include_game_id,
-            cache=cache,
-            cache_dir=cache_dir,
-            metadata_df=metadata_df,
-            teams_df=team_df,
-            players_df=player_df,
-            periods_df=periods_df,
             **provider_kwargs,
         )
 
-        # Handle cache hit (returns tuple) vs cache miss (returns LazyFrame)
-        cache_hit = False
-        if isinstance(result, tuple):
-            # Cache hit with metadata
-            lazy_frame, metadata_df, team_df, player_df, periods_df = result
-            cache_hit = True
-        else:
-            # Cache miss or no caching - use metadata we already loaded
-            lazy_frame = result
-
-        # Warn if players DataFrame is empty and NOT a cache hit
-        # (on cache hit, players will be populated from cache after first collect)
-        if provider_name == "tracab" and player_df.height == 0 and not cache_hit:
+        # Warn if players DataFrame is empty for Tracab
+        if provider_name == "tracab" and player_df.height == 0:
             warnings.warn(
                 "No player metadata available with lazy loading. "
                 "Player names and details will not be available until after .collect(). "
-                "Use lazy=False to extract players from tracking data, or use cache=True "
-                "to persist player data after first load.",
+                "Use lazy=False to extract players from tracking data, or use "
+                "dataset.write_cache() to persist player data after first load.",
                 UserWarning,
             )
 
@@ -277,6 +337,8 @@ def load_tracking_impl(
             teams=team_df,
             players=player_df,
             periods=periods_df,
+            _provider=provider_name,
+            _cache_key=cache_key,
         )
     else:
         # Eager loading
@@ -302,12 +364,18 @@ def load_tracking_impl(
             rust_module.load_tracking(raw_bytes, meta_bytes, **tracking_kwargs)
         )
 
+        # Compute cache key for eager loading too
+        if cache_key is None:
+            cache_key = compute_cache_key(raw_bytes, meta_bytes, config_str)
+
         return TrackingDataset(
             tracking=tracking_df,
             metadata=metadata_df,
             teams=team_df,
             players=player_df,
             periods=periods_df,
+            _provider=provider_name,
+            _cache_key=cache_key,
         )
 
 

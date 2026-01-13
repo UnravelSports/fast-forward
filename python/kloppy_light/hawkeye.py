@@ -7,6 +7,7 @@ HawkEye tracking data consists of multiple per-minute files:
 Supports both eager and lazy loading modes.
 """
 
+import warnings
 from pathlib import Path
 from typing import List, Literal, Optional, Tuple, Union
 import polars as pl
@@ -18,7 +19,7 @@ from kloppy_light._base import (
     get_filename_from_filelike,
 )
 from kloppy_light._kloppy_light import hawkeye as _hawkeye
-from kloppy_light._lazy import create_lazy_tracking_hawkeye
+from kloppy_light._lazy import create_lazy_tracking_hawkeye, _is_local_file
 from kloppy_light._schema import get_tracking_schema
 from kloppy_light._dataset import TrackingDataset
 
@@ -56,8 +57,7 @@ def load_tracking(
     include_game_id: Union[bool, str] = True,
     *,
     lazy: bool = True,
-    cache: bool = False,
-    cache_dir: Optional[str] = None,
+    from_cache: bool = False,
 ) -> TrackingDataset:
     """
     Load HawkEye tracking data.
@@ -110,15 +110,18 @@ def load_tracking(
         If False, no game_id column is added.
         If str, use the provided string as the game_id value.
     lazy : bool, default True
-        If True, return a TrackingDataset with LazyTrackingLoader for tracking.
+        If True, return a TrackingDataset with LazyFrame for tracking.
         If False, return a TrackingDataset with eager DataFrame for tracking.
         Lazy loading is useful for large datasets where you want to filter before loading all data.
+    from_cache : bool, default False
+        If True, load from cache if available.
+        Warns if no cache exists. Use dataset.write_cache() to create cache.
 
     Returns
     -------
     TrackingDataset
         Object with .tracking, .metadata, .teams, .players, .periods properties.
-        If lazy=True, .tracking returns LazyTrackingLoader (call .collect() to get DataFrame).
+        If lazy=True, .tracking returns pl.LazyFrame (call .collect() to get DataFrame).
         If lazy=False, .tracking returns pl.DataFrame directly.
 
     Notes
@@ -133,23 +136,18 @@ def load_tracking(
 
     >>> ball_files = ["hawkeye_1_1.ball", "hawkeye_1_2.ball"]
     >>> player_files = ["hawkeye_1_1.centroids", "hawkeye_1_2.centroids"]
-    >>> tracking_df, metadata_df, team_df, player_df = load_tracking(
-    ...     ball_files, player_files, "hawkeye_meta.json"
-    ... )
+    >>> dataset = load_tracking(ball_files, player_files, "hawkeye_meta.json")
+    >>> tracking_df = dataset.tracking.collect()
 
     Load with specific object ID preference:
 
-    >>> tracking_df, metadata_df, team_df, player_df = load_tracking(
-    ...     ball_files, player_files, "hawkeye_meta.json", object_id="fifa"
-    ... )
+    >>> dataset = load_tracking(ball_files, player_files, "hawkeye_meta.json", object_id="fifa")
 
-    Lazy loading with filtering:
-    >>> tracking_lazy, metadata_df, team_df, player_df = load_tracking(
-    ...     ball_files, player_files, "hawkeye_meta.json", lazy=True
-    ... )
-    >>> # No data loaded yet
-    >>> period1_df = tracking_lazy.filter(pl.col("period_id") == 1).collect()
-    >>> # Now data is loaded and filtered
+    Cache workflow:
+
+    >>> dataset = load_tracking(ball_files, player_files, "hawkeye_meta.json")
+    >>> dataset.write_cache()  # Write to cache
+    >>> dataset = load_tracking(ball_files, player_files, "hawkeye_meta.json", from_cache=True)
     """
     # Handle lazy loading
     if lazy:
@@ -176,6 +174,56 @@ def load_tracking(
                 f"{len(player_data_processed)} player files"
             )
 
+        # Build config string for cache key
+        config_str = (
+            f"{layout}|{coordinates}|{orientation}|{only_alive}|"
+            f"{pitch_length}|{pitch_width}|{object_id}|{include_game_id}"
+        )
+
+        # Compute cache key
+        cache_key: Optional[str] = None
+        all_files = list(ball_data_processed) + list(player_data_processed) + [meta_data]
+        is_local = all(_is_local_file(f) for f in all_files)
+
+        if is_local:
+            from kloppy_light._cache import compute_cache_key_fast_multi
+
+            all_paths = [str(f) for f in ball_data_processed] + [str(f) for f in player_data_processed]
+            try:
+                cache_key = compute_cache_key_fast_multi(
+                    all_paths, str(meta_data), config_str
+                )
+            except FileNotFoundError:
+                # Files don't exist, cache key cannot be computed
+                cache_key = None
+
+        # Check for cache hit if from_cache=True
+        if from_cache and cache_key:
+            from kloppy_light._cache import cache_exists, get_cache_path, read_cache
+
+            cache_path = get_cache_path(cache_key, "hawkeye")
+            if cache_exists(cache_path):
+                # Cache hit - load from cache
+                result = read_cache(cache_path)
+                if isinstance(result, tuple):
+                    lazy_frame, metadata_df, team_df, player_df, periods_df = result
+                    return TrackingDataset(
+                        tracking=lazy_frame,
+                        metadata=metadata_df,
+                        teams=team_df,
+                        players=player_df,
+                        periods=periods_df,
+                        _provider="hawkeye",
+                        _cache_key=cache_key,
+                    )
+            else:
+                # Cache miss with from_cache=True - warn user
+                warnings.warn(
+                    "No cache found for this file. "
+                    "Use dataset.write_cache() after loading to create one.",
+                    UserWarning,
+                )
+
         # Load metadata only (fast) - NOW WITH TEAM/PLAYER DATA
         metadata_df, team_df, player_df, periods_df = load_metadata_only(
             meta_data,
@@ -196,8 +244,7 @@ def load_tracking(
         )
 
         # Create real pl.LazyFrame using register_io_source
-        # Pass metadata for caching, get back cached metadata on cache hit
-        result = create_lazy_tracking_hawkeye(
+        lazy_frame = create_lazy_tracking_hawkeye(
             ball_data=ball_data_processed,
             player_data=player_data_processed,
             meta_data=meta_data,
@@ -210,21 +257,7 @@ def load_tracking(
             pitch_width=pitch_width,
             object_id=object_id,
             include_game_id=include_game_id,
-            cache=cache,
-            cache_dir=cache_dir,
-            metadata_df=metadata_df,
-            teams_df=team_df,
-            players_df=player_df,
-            periods_df=periods_df,
         )
-
-        # Handle cache hit (returns tuple) vs cache miss (returns LazyFrame)
-        if isinstance(result, tuple):
-            # Cache hit with metadata
-            lazy_frame, metadata_df, team_df, player_df, periods_df = result
-        else:
-            # Cache miss or no caching - use metadata we already loaded
-            lazy_frame = result
 
         return TrackingDataset(
             tracking=lazy_frame,
@@ -232,6 +265,8 @@ def load_tracking(
             teams=team_df,
             players=player_df,
             periods=periods_df,
+            _provider="hawkeye",
+            _cache_key=cache_key,
         )
 
     # Eager loading (existing logic)
@@ -291,12 +326,30 @@ def load_tracking(
         include_game_id=include_game_id,
     )
 
+    # Compute cache key for eager loading too
+    cache_key = None
+    all_files = list(ball_data_list) + list(player_data_list) + [meta_data]
+    is_local = all(_is_local_file(f) for f in all_files)
+    if is_local:
+        from kloppy_light._cache import compute_cache_key_fast_multi
+
+        config_str = (
+            f"{layout}|{coordinates}|{orientation}|{only_alive}|"
+            f"{pitch_length}|{pitch_width}|{object_id}|{include_game_id}"
+        )
+        all_paths = [str(f) for f in ball_data_list] + [str(f) for f in player_data_list]
+        cache_key = compute_cache_key_fast_multi(
+            all_paths, str(meta_data), config_str
+        )
+
     return TrackingDataset(
         tracking=tracking_df,
         metadata=metadata_df,
         teams=team_df,
         players=player_df,
         periods=periods_df,
+        _provider="hawkeye",
+        _cache_key=cache_key,
     )
 
 

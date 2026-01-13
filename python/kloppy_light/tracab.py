@@ -42,8 +42,7 @@ def load_tracking(
     include_game_id: Union[bool, str] = True,
     *,
     lazy: bool = True,
-    cache: bool = False,
-    cache_dir: Optional[str] = None,
+    from_cache: bool = False,
 ) -> TrackingDataset:
     """
     Load Tracab tracking data.
@@ -69,10 +68,8 @@ def load_tracking(
         include_game_id: Include game_id column. True uses metadata value,
             False omits column, string uses custom value.
         lazy: If True, return lazy loader. Call .collect() to load data.
-        cache: If True, cache parsed data as Parquet for faster subsequent loads.
-            Only used when lazy=True.
-        cache_dir: Cache directory path or URI (e.g., "s3://bucket/cache").
-            If None, uses platform-specific default cache directory.
+        from_cache: If True, load from cache if available.
+            Warns if no cache exists. Use dataset.write_cache() to create cache.
 
     Returns:
         TrackingDataset with .tracking, .metadata, .teams, .players, .periods
@@ -87,6 +84,11 @@ def load_tracking(
 
         >>> # Get tracab coordinates (centimeters)
         >>> dataset = tracab.load_tracking("tracking.dat", "meta.xml", coordinates="tracab")
+
+        >>> # Cache workflow
+        >>> dataset = tracab.load_tracking("tracking.dat", "meta.xml")
+        >>> dataset.write_cache()  # Write to cache
+        >>> dataset = tracab.load_tracking("tracking.dat", "meta.xml", from_cache=True)  # Load from cache
     """
     return load_tracking_impl(
         provider_name="tracab",
@@ -98,6 +100,5 @@ def load_tracking(
         only_alive=only_alive,
         include_game_id=include_game_id,
         lazy=lazy,
-        cache=cache,
-        cache_dir=cache_dir,
+        from_cache=from_cache,
     )

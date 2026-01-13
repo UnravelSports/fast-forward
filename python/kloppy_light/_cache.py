@@ -19,24 +19,73 @@ from kloppy.io import open_as_file
 # Increment this when cache format changes (e.g., adding metadata storage)
 CACHE_SCHEMA_VERSION = "2"
 
+# Environment variable name for cache directory
+CACHE_DIR_ENV_VAR = "KLOPPY_LIGHT_CACHE_DIR"
+
+# Global cache directory setting (None = use default)
+_global_cache_dir: Optional[str] = None
+
 
 # Type alias for cache result with metadata
 CacheResult = Tuple[pl.LazyFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame]
 
 
+def set_cache_dir(path: Union[str, Path, None]) -> None:
+    """Set the global cache directory.
+
+    This affects all subsequent cache operations. The setting persists
+    for the lifetime of the Python process.
+
+    Args:
+        path: Cache directory path or URI (e.g., "/path/to/cache" or "s3://bucket/cache").
+              Pass None to reset to default behavior.
+
+    Example:
+        >>> import kloppy_light
+        >>> kloppy_light.set_cache_dir("/my/cache/dir")
+        >>> # All subsequent cache operations use this directory
+        >>> kloppy_light.set_cache_dir(None)  # Reset to default
+    """
+    global _global_cache_dir
+    _global_cache_dir = str(path) if path is not None else None
+
+
+def get_cache_dir() -> Path:
+    """Get the current cache directory.
+
+    Returns the cache directory in order of precedence:
+    1. Global setting via set_cache_dir()
+    2. KLOPPY_LIGHT_CACHE_DIR environment variable
+    3. Platform-specific default directory
+
+    Returns:
+        Path to the cache directory
+
+    Example:
+        >>> import kloppy_light
+        >>> kloppy_light.get_cache_dir()
+        PosixPath('/Users/user/Library/Caches/kloppy-light')
+    """
+    if _global_cache_dir is not None:
+        return Path(_global_cache_dir)
+
+    if cache_dir := os.environ.get(CACHE_DIR_ENV_VAR):
+        return Path(cache_dir)
+
+    return get_default_cache_dir()
+
+
 def get_default_cache_dir() -> Path:
-    """Get default cache directory (cross-platform).
+    """Get default platform-specific cache directory.
 
     Returns platform-specific cache directory:
     - Linux: ~/.cache/kloppy-light/
     - macOS: ~/Library/Caches/kloppy-light/
     - Windows: %LOCALAPPDATA%/kloppy-light/cache/
 
-    Can be overridden via KLOPPY_CACHE_DIR environment variable.
+    Note: Use get_cache_dir() to get the effective cache directory,
+    which respects set_cache_dir() and KLOPPY_LIGHT_CACHE_DIR env var.
     """
-    if cache_dir := os.environ.get("KLOPPY_CACHE_DIR"):
-        return Path(cache_dir)
-
     system = platform.system()
     if system == "Windows":
         base = Path(
@@ -169,7 +218,8 @@ def get_cache_path(
     Args:
         cache_key: The computed cache key
         provider: Provider name (e.g., "secondspectrum", "sportec")
-        cache_dir: Optional custom cache directory (local path or S3/GCS URI)
+        cache_dir: Optional custom cache directory (local path or S3/GCS URI).
+                   If None, uses get_cache_dir() (respects set_cache_dir and env var).
 
     Returns:
         Full path/URI to the cache file
@@ -179,8 +229,8 @@ def get_cache_path(
         base = cache_dir.rstrip("/")
         return f"{base}/{provider}/{cache_key}.parquet"
     else:
-        # Default local path
-        local_dir = get_default_cache_dir() / provider
+        # Use global cache directory (respects set_cache_dir and env var)
+        local_dir = get_cache_dir() / provider
         local_dir.mkdir(parents=True, exist_ok=True)
         return str(local_dir / f"{cache_key}.parquet")
 
@@ -330,7 +380,7 @@ def clear_cache(provider: Optional[str] = None) -> int:
     Returns:
         Number of parquet files deleted (sidecar .meta.json files are also deleted)
     """
-    cache_dir = get_default_cache_dir()
+    cache_dir = get_cache_dir()
     if not cache_dir.exists():
         return 0
 
@@ -368,7 +418,7 @@ def get_cache_size(provider: Optional[str] = None) -> int:
     Returns:
         Total cache size in bytes
     """
-    cache_dir = get_default_cache_dir()
+    cache_dir = get_cache_dir()
     if not cache_dir.exists():
         return 0
 

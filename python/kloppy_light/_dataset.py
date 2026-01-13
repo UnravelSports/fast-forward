@@ -164,6 +164,10 @@ class TrackingDataset:
         teams: pl.DataFrame,
         players: pl.DataFrame,
         periods: pl.DataFrame,
+        *,
+        _original_tracking: Optional[pl.LazyFrame] = None,
+        _provider: Optional[str] = None,
+        _cache_key: Optional[str] = None,
     ):
         """Initialize TrackingDataset.
 
@@ -179,12 +183,24 @@ class TrackingDataset:
             Players data
         periods : pl.DataFrame
             Periods data with period_id, start_frame_id, end_frame_id
+        _original_tracking : pl.LazyFrame, optional
+            Internal: Original unmodified LazyFrame for cache writes.
+        _provider : str, optional
+            Internal: Provider name for cache path.
+        _cache_key : str, optional
+            Internal: Cache key for cache path.
         """
         self._tracking = tracking
         self._metadata = metadata
         self._teams = teams
         self._players = players
         self._periods = periods
+
+        # Internal state for caching
+        self._original_tracking = _original_tracking if _original_tracking is not None else tracking
+        self._provider = _provider
+        self._cache_key = _cache_key
+        self._collected_df: Optional[pl.DataFrame] = None
 
     @property
     def tracking(self) -> Union[pl.DataFrame, pl.LazyFrame]:
@@ -211,7 +227,28 @@ class TrackingDataset:
         """Get periods DataFrame with period_id, start_frame_id, end_frame_id."""
         return self._periods
 
-    def collect(self) -> "TrackingDataset":
+    def collect(self) -> pl.DataFrame:
+        """Collect the tracking LazyFrame into a DataFrame.
+
+        Convenience method that calls self.tracking.collect().
+        For lazy datasets, this triggers the actual data loading.
+
+        Returns
+        -------
+        pl.DataFrame
+            The collected tracking data.
+
+        Examples
+        --------
+        >>> dataset = tracab.load_tracking("raw.dat", "meta.xml")
+        >>> df = dataset.collect()  # Same as dataset.tracking.collect()
+        """
+        if isinstance(self._tracking, pl.DataFrame):
+            return self._tracking
+
+        return self._tracking.collect()
+
+    def collect_with_metadata(self) -> "TrackingDataset":
         """Collect lazy tracking data and populate metadata.
 
         If tracking is already eager (pl.DataFrame), returns self unchanged.
@@ -233,7 +270,7 @@ class TrackingDataset:
         >>> dataset = tracab.load_tracking("raw.dat", "meta.xml", lazy=True)
         >>> dataset.players.height  # May be 0 for Tracab
         0
-        >>> eager_dataset = dataset.collect()
+        >>> eager_dataset = dataset.collect_with_metadata()
         >>> eager_dataset.players.height  # Now populated from tracking data
         22
         """
@@ -258,6 +295,70 @@ class TrackingDataset:
             teams=self._teams,
             players=players_df,
             periods=self._periods,
+            _provider=self._provider,
+            _cache_key=self._cache_key,
+        )
+
+    def write_cache(self) -> None:
+        """Write tracking data to cache.
+
+        Caches the original (unmodified) tracking data to the global cache directory.
+        The cache directory is configured via kloppy_light.set_cache_dir() or
+        the KLOPPY_LIGHT_CACHE_DIR environment variable.
+
+        This method:
+        1. Collects the original LazyFrame (not any filtered/modified version)
+        2. Extracts player metadata from tracking data if empty
+        3. Writes parquet file and metadata sidecar to cache
+
+        Raises
+        ------
+        RuntimeError
+            If cache information is not available (dataset not loaded with
+            cache support enabled).
+
+        Examples
+        --------
+        >>> dataset = tracab.load_tracking("raw.dat", "meta.xml")
+        >>> dataset.write_cache()  # Writes to global cache directory
+        """
+        from kloppy_light._cache import (
+            get_cache_path,
+            write_cache as cache_write,
+        )
+
+        if self._provider is None or self._cache_key is None:
+            raise RuntimeError(
+                "Cannot write cache: dataset was not loaded with cache support. "
+                "Ensure you're using the standard load_tracking() function."
+            )
+
+        # Collect original (unmodified) tracking data
+        if isinstance(self._original_tracking, pl.LazyFrame):
+            tracking_df = self._original_tracking.collect()
+        else:
+            tracking_df = self._original_tracking
+
+        # Extract players from tracking if not available
+        players_df = self._players
+        if players_df.height == 0 and "player_id" in tracking_df.columns:
+            players_df = extract_players_from_tracking(
+                tracking_df,
+                self._periods,
+                existing_players_df=self._players,
+            )
+
+        # Get cache path using global config
+        cache_path = get_cache_path(self._cache_key, self._provider)
+
+        # Write to cache
+        cache_write(
+            tracking_df=tracking_df,
+            cache_path=cache_path,
+            metadata_df=self._metadata,
+            teams_df=self._teams,
+            players_df=players_df,
+            periods_df=self._periods,
         )
 
     def __repr__(self) -> str:

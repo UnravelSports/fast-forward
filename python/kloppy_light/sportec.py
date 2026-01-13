@@ -38,8 +38,7 @@ def load_tracking(
     include_referees: bool = False,
     *,
     lazy: bool = True,
-    cache: bool = False,
-    cache_dir: Optional[str] = None,
+    from_cache: bool = False,
 ) -> TrackingDataset:
     """
     Load Sportec tracking data from XML files.
@@ -79,20 +78,17 @@ def load_tracking(
         REF (Main Referee), AREF (Assistant Referee), VAR (Video Assistant Referee),
         AVAR (Assistant VAR), 4TH (Fourth Official)
     lazy : bool, default True
-        If True, return a TrackingDataset with LazyTrackingLoader for tracking.
+        If True, return a TrackingDataset with LazyFrame for tracking.
         If False, return a TrackingDataset with eager DataFrame for tracking.
-    cache : bool, default False
-        If True, cache parsed data as Parquet for faster subsequent loads.
-        Only used when lazy=True.
-    cache_dir : str, optional
-        Cache directory path or URI (e.g., "s3://bucket/cache").
-        If None, uses platform-specific default cache directory.
+    from_cache : bool, default False
+        If True, load from cache if available.
+        Warns if no cache exists. Use dataset.write_cache() to create cache.
 
     Returns
     -------
     TrackingDataset
         Object with .tracking, .metadata, .teams, .players, .periods properties.
-        If lazy=True, .tracking returns LazyTrackingLoader (call .collect() to get DataFrame).
+        If lazy=True, .tracking returns pl.LazyFrame (call .collect() to get DataFrame).
         If lazy=False, .tracking returns pl.DataFrame directly.
     """
     return load_tracking_impl(
@@ -105,7 +101,6 @@ def load_tracking(
         only_alive=only_alive,
         include_game_id=include_game_id,
         lazy=lazy,
-        cache=cache,
-        cache_dir=cache_dir,
+        from_cache=from_cache,
         include_referees=include_referees,
     )
