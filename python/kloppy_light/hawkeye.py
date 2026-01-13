@@ -56,6 +56,8 @@ def load_tracking(
     include_game_id: Union[bool, str] = True,
     *,
     lazy: bool = True,
+    cache: bool = False,
+    cache_dir: Optional[str] = None,
 ) -> TrackingDataset:
     """
     Load HawkEye tracking data.
@@ -194,7 +196,8 @@ def load_tracking(
         )
 
         # Create real pl.LazyFrame using register_io_source
-        lazy_frame = create_lazy_tracking_hawkeye(
+        # Pass metadata for caching, get back cached metadata on cache hit
+        result = create_lazy_tracking_hawkeye(
             ball_data=ball_data_processed,
             player_data=player_data_processed,
             meta_data=meta_data,
@@ -207,7 +210,21 @@ def load_tracking(
             pitch_width=pitch_width,
             object_id=object_id,
             include_game_id=include_game_id,
+            cache=cache,
+            cache_dir=cache_dir,
+            metadata_df=metadata_df,
+            teams_df=team_df,
+            players_df=player_df,
+            periods_df=periods_df,
         )
+
+        # Handle cache hit (returns tuple) vs cache miss (returns LazyFrame)
+        if isinstance(result, tuple):
+            # Cache hit with metadata
+            lazy_frame, metadata_df, team_df, player_df, periods_df = result
+        else:
+            # Cache miss or no caching - use metadata we already loaded
+            lazy_frame = result
 
         return TrackingDataset(
             tracking=lazy_frame,

@@ -6,7 +6,7 @@ Supports multiple metadata formats (XML hierarchical, XML flat, JSON)
 and multiple raw data formats (DAT, JSON).
 """
 
-from typing import Literal, Union
+from typing import Literal, Optional, Union
 
 from kloppy_light._base import load_tracking_impl
 from kloppy_light._dataset import TrackingDataset
@@ -42,6 +42,8 @@ def load_tracking(
     include_game_id: Union[bool, str] = True,
     *,
     lazy: bool = True,
+    cache: bool = False,
+    cache_dir: Optional[str] = None,
 ) -> TrackingDataset:
     """
     Load Tracab tracking data.
@@ -67,6 +69,10 @@ def load_tracking(
         include_game_id: Include game_id column. True uses metadata value,
             False omits column, string uses custom value.
         lazy: If True, return lazy loader. Call .collect() to load data.
+        cache: If True, cache parsed data as Parquet for faster subsequent loads.
+            Only used when lazy=True.
+        cache_dir: Cache directory path or URI (e.g., "s3://bucket/cache").
+            If None, uses platform-specific default cache directory.
 
     Returns:
         TrackingDataset with .tracking, .metadata, .teams, .players, .periods
@@ -92,4 +98,6 @@ def load_tracking(
         only_alive=only_alive,
         include_game_id=include_game_id,
         lazy=lazy,
+        cache=cache,
+        cache_dir=cache_dir,
     )

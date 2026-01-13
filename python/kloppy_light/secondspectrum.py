@@ -1,6 +1,6 @@
 """SecondSpectrum provider wrapper with lazy loading support."""
 
-from typing import Literal, Union
+from typing import Literal, Optional, Union
 
 from kloppy.io import FileLike
 
@@ -37,6 +37,8 @@ def load_tracking(
     include_game_id: Union[bool, str] = True,
     *,
     lazy: bool = True,
+    cache: bool = False,
+    cache_dir: Optional[str] = None,
 ) -> TrackingDataset:
     """
     Load SecondSpectrum tracking data.
@@ -74,6 +76,12 @@ def load_tracking(
     lazy : bool, default True
         If True, return a TrackingDataset with LazyTrackingLoader for tracking.
         If False, return a TrackingDataset with eager DataFrame for tracking.
+    cache : bool, default False
+        If True, cache parsed data as Parquet for faster subsequent loads.
+        Only used when lazy=True.
+    cache_dir : str, optional
+        Cache directory path or URI (e.g., "s3://bucket/cache").
+        If None, uses platform-specific default cache directory.
 
     Returns
     -------
@@ -92,4 +100,6 @@ def load_tracking(
         only_alive=only_alive,
         include_game_id=include_game_id,
         lazy=lazy,
+        cache=cache,
+        cache_dir=cache_dir,
     )

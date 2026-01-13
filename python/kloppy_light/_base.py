@@ -2,7 +2,7 @@
 
 import warnings
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import polars as pl
 from kloppy.io import FileLike, open_as_file
@@ -153,6 +153,8 @@ def load_tracking_impl(
     only_alive: bool,
     include_game_id: Union[bool, str],
     lazy: bool,
+    cache: bool = False,
+    cache_dir: Optional[str] = None,
     **provider_kwargs,
 ) -> TrackingDataset:
     """Generic implementation for standard providers.
@@ -180,6 +182,12 @@ def load_tracking_impl(
         Whether to include game_id column
     lazy : bool
         If True, return pl.LazyFrame; if False, load eagerly
+    cache : bool
+        If True, cache parsed data as Parquet for faster subsequent loads.
+        Only used when lazy=True.
+    cache_dir : str, optional
+        Cache directory path or URI (e.g., "s3://bucket/cache").
+        If None, uses platform-specific default cache directory.
     **provider_kwargs
         Provider-specific parameters
 
@@ -214,15 +222,6 @@ def load_tracking_impl(
             meta_bytes, **metadata_kwargs
         )
 
-        # Warn if players DataFrame is empty (tracab-specific: metadata may not have players)
-        if provider_name == "tracab" and player_df.height == 0:
-            warnings.warn(
-                "No player metadata available with lazy loading. "
-                "Player names and details will not be available. "
-                "Use lazy=False to extract players from tracking data.",
-                UserWarning,
-            )
-
         # Generate schema for the tracking DataFrame
         schema = get_tracking_schema(
             layout=layout,
@@ -231,7 +230,8 @@ def load_tracking_impl(
         )
 
         # Create real pl.LazyFrame using register_io_source
-        lazy_frame = create_lazy_tracking(
+        # Pass metadata for caching, get back cached metadata on cache hit
+        result = create_lazy_tracking(
             provider=provider_name,
             raw_data=raw_data,
             meta_data=meta_data,
@@ -241,8 +241,35 @@ def load_tracking_impl(
             orientation=orientation,
             only_alive=only_alive,
             include_game_id=include_game_id,
+            cache=cache,
+            cache_dir=cache_dir,
+            metadata_df=metadata_df,
+            teams_df=team_df,
+            players_df=player_df,
+            periods_df=periods_df,
             **provider_kwargs,
         )
+
+        # Handle cache hit (returns tuple) vs cache miss (returns LazyFrame)
+        cache_hit = False
+        if isinstance(result, tuple):
+            # Cache hit with metadata
+            lazy_frame, metadata_df, team_df, player_df, periods_df = result
+            cache_hit = True
+        else:
+            # Cache miss or no caching - use metadata we already loaded
+            lazy_frame = result
+
+        # Warn if players DataFrame is empty and NOT a cache hit
+        # (on cache hit, players will be populated from cache after first collect)
+        if provider_name == "tracab" and player_df.height == 0 and not cache_hit:
+            warnings.warn(
+                "No player metadata available with lazy loading. "
+                "Player names and details will not be available until after .collect(). "
+                "Use lazy=False to extract players from tracking data, or use cache=True "
+                "to persist player data after first load.",
+                UserWarning,
+            )
 
         return TrackingDataset(
             tracking=lazy_frame,

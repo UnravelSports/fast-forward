@@ -34,6 +34,12 @@ from kloppy_light import sportec
 from kloppy_light import hawkeye
 from kloppy_light import tracab
 from kloppy_light._dataset import TrackingDataset
+from kloppy_light._cache import (
+    get_default_cache_dir,
+    clear_cache,
+    get_cache_size,
+    CACHE_SCHEMA_VERSION,
+)
 from kloppy.io import FileLike
 
 __all__ = [
@@ -45,4 +51,9 @@ __all__ = [
     "tracab",
     "TrackingDataset",
     "FileLike",
+    # Cache management
+    "get_default_cache_dir",
+    "clear_cache",
+    "get_cache_size",
+    "CACHE_SCHEMA_VERSION",
 ]
