@@ -279,10 +279,11 @@ fn parse_metadata(
     ];
 
     // Build player_id -> (team_id, player_id) mapping
-    let mut player_id_map: HashMap<String, (String, String)> = HashMap::new();
+    // Typical squad ~25 players per team
+    let mut player_id_map: HashMap<String, (String, String)> = HashMap::with_capacity(players.len());
 
     // Build player structures
-    let mut standard_players: Vec<StandardPlayer> = Vec::new();
+    let mut standard_players: Vec<StandardPlayer> = Vec::with_capacity(players.len());
     for p in &players {
         let full_name = format!("{} {}", p.first_name, p.last_name);
         player_id_map.insert(p.person_id.clone(), (p.team_id.clone(), p.person_id.clone()));
@@ -372,8 +373,9 @@ fn parse_tracking_frames(
 
     // Collect all frame data grouped by frame_id
     // Key: (period_id, frame_id), Value: (timestamp_ms, ball, players, ball_possession, ball_status)
+    // Note: We don't pre-allocate here because the complex tuple values make it hard to estimate memory
     let mut frame_data: HashMap<(u8, u32), (i64, Option<StandardBall>, Vec<StandardPlayerPosition>, Option<String>, Option<u8>)> = HashMap::new();
-    let mut period_frame_ranges: HashMap<u8, (u32, u32)> = HashMap::new(); // period_id -> (min_frame, max_frame)
+    let mut period_frame_ranges: HashMap<u8, (u32, u32)> = HashMap::with_capacity(4); // period_id -> (min_frame, max_frame)
 
     let mut current_game_section: Option<String> = None;
     let mut current_team_id: Option<String> = None;
@@ -534,7 +536,7 @@ fn parse_tracking_frames(
     periods.sort_by_key(|p| p.period_id);
 
     // Build frames with frame-level pushdown filtering
-    let mut frames: Vec<StandardFrame> = Vec::new();
+    let mut frames: Vec<StandardFrame> = Vec::with_capacity(frame_data.len());
     for ((period_id, frame_id), (timestamp_ms, ball, players, ball_possession, ball_status)) in frame_data {
         // Determine ball state from ball_status
         // BallStatus=1 typically means alive, other values mean dead
