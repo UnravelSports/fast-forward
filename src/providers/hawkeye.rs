@@ -1301,7 +1301,7 @@ fn build_tracking_df_from_files(
                     frame_id,
                     period_id,
                     timestamp_ms,
-                    ball_state: ball_state.clone(),
+                    ball_state,
                     ball_owning_team_id: ball_owning_team_id.clone(),
                     ball: StandardBall {
                         x: pos[0],
