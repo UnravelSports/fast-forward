@@ -15,14 +15,7 @@ Sportec tracking file: 355.9 MiB
 ## Sportec (kloppy-light) - long layout
 Eager loading                2106.44 MiB     1.615s     1,971,514
 Lazy (no collect)               0.25 MiB     0.167s           N/A
-Lazy (with collect)           797.02 MiB     1.379s     1,971,514
-
-## Sportec (kloppy-light) - filter pushdown
-Filter: period_id==2          354.92 MiB     0.827s       948,681
-Filter: frame<=50k            177.59 MiB     0.588s       626,244
-Filter: combined              181.94 MiB     0.605s       626,244
-Filter: team                  377.41 MiB     0.980s       942,898
-Filter: player                 72.47 MiB     0.661s        85,718
-Filter: between               600.06 MiB     1.394s       589,858
+Lazy parallel (with collect)  797.02 MiB     1.379s     1,971,514
+Lazy (with collect)           595.59 MiB     5.636s     1,971,514
 
 ======================================================================
