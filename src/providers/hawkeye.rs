@@ -600,6 +600,12 @@ fn parse_player_file(
     let samples = if metadata_only {
         HashMap::new()  // Return empty samples to save parsing time
     } else {
+        // Build player_id -> team_id lookup for O(1) access
+        let player_to_team: HashMap<&str, &str> = players
+            .iter()
+            .map(|p| (p.player_id.as_str(), p.team_id.as_str()))
+            .collect();
+
         // Calculate base frame offset for this minute
         let minute_offset = (period_id as f32 - 1.0) * 45.0 + minute as f32;
 
@@ -608,11 +614,10 @@ fn parse_player_file(
         for person in feed.samples.people {
             let person_player_id = get_object_id(&person.person_id, object_id)?;
 
-            // Find the team_id for this player
-            let team_id = players
-                .iter()
-                .find(|p| p.player_id == person_player_id)
-                .map(|p| p.team_id.clone())
+            // Find the team_id for this player using O(1) HashMap lookup
+            let team_id = player_to_team
+                .get(person_player_id.as_str())
+                .map(|s| s.to_string())
                 .unwrap_or_else(|| "unknown".to_string());
 
             for centroid in person.centroid {
