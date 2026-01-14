@@ -184,9 +184,10 @@ fn parse_metadata(
 
     // Build player_id -> (team_id, player_id_string) mapping
     // Note: In SkillCorner tracking data, 'player_id' field actually contains the player's id
-    let mut player_id_map: HashMap<i64, (String, String)> = HashMap::new();
+    // Typical squad size is ~25 players per team
+    let mut player_id_map: HashMap<i64, (String, String)> = HashMap::with_capacity(50);
 
-    let mut players = Vec::new();
+    let mut players = Vec::with_capacity(raw.players.len());
     for p in &raw.players {
         let team_id = p.team_id.to_string();
         let player_id = p.id.to_string();
@@ -298,7 +299,9 @@ fn parse_tracking_frames(
     let cursor = Cursor::new(data);
     let reader = BufReader::new(cursor);
 
-    let mut frames = Vec::new();
+    // Estimate capacity: ~120 bytes per line average for SkillCorner JSONL
+    let estimated_frames = data.len() / 120;
+    let mut frames = Vec::with_capacity(estimated_frames);
 
     for line in reader.lines() {
         let mut line = line?;
@@ -433,7 +436,8 @@ fn parse_tracking_frames(
 
         // Parse player positions
         let has_player_filters = pushdown.has_player_filters();
-        let mut players = Vec::new();
+        // Typical match has ~22 players on field at any time
+        let mut players = Vec::with_capacity(24);
         for p in raw.player_data {
             if let Some((team_id, player_id)) = player_id_map.get(&p.player_id) {
                 // EARLY PUSHDOWN: Skip players that don't match team_id/player_id filters
