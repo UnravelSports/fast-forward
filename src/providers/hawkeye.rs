@@ -1548,17 +1548,14 @@ fn load_tracking(
         }
     }
 
-    // Parse player files to get players (before parallel processing consumes the data)
-    let mut all_players = Vec::new();
-    for (period_id, minute, data) in player_files_with_metadata.iter() {
-        if let Ok(player_data) = parse_player_file(data, *period_id, *minute, fps, object_id, false) {
-            for player in player_data.players {
-                if !all_players.iter().any(|p: &StandardPlayer| p.player_id == player.player_id) {
-                    all_players.push(player);
-                }
-            }
-        }
-    }
+    // Parse first player file to get players (first file contains all players)
+    let all_players = if let Some((period_id, minute, data)) = player_files_with_metadata.first() {
+        extract_metadata_from_player_file(data, *period_id, *minute, fps, object_id)
+            .map(|(_, players)| players)
+            .unwrap_or_default()
+    } else {
+        Vec::new()
+    };
 
     // Build tracking DataFrame with pushdown filtering (parallel or sequential)
     let tracking_df = if parallel {

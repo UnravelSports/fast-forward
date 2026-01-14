@@ -1,0 +1,49 @@
+======================================================================
+kloppy-light Benchmark
+======================================================================
+Memory measurement: memory_profiler (accurate)
+Providers: hawkeye
+Layouts: long, long_ball, wide
+Features: kloppy
+
+Data directory: /Users/jbekkers/PycharmProjects/kloppy-light/data
+
+Operation                     Memory         Time          Rows
+----------------------------------------------------------------------
+
+Hawkeye tracking file: 2632.3 MiB
+
+## Hawkeye - parallel vs sequential (long layout)
+Sequential loading           7473.73 MiB    17.938s     6,996,515
+Parallel loading             4435.14 MiB    11.579s     6,996,515
+Lazy seq (collect)           4611.72 MiB    16.362s     6,996,515
+Lazy parallel (collect)      3188.44 MiB    11.542s     6,996,515
+
+## Hawkeye (kloppy-light) - long layout
+Eager loading                3590.75 MiB    11.160s     6,996,515
+Lazy (no collect)              22.03 MiB     0.336s           N/A
+Lazy (with collect)          3766.67 MiB    11.024s     6,996,515
+
+## Hawkeye (kloppy-light) - long_ball layout
+Eager loading                3978.42 MiB    10.959s     6,727,990
+Lazy (no collect)              22.44 MiB     0.343s           N/A
+Lazy (with collect)          3979.47 MiB    10.961s     6,727,990
+
+## Hawkeye (kloppy-light) - wide layout
+Eager loading                4200.88 MiB    11.289s       268,525
+Lazy (no collect)              16.64 MiB     0.328s           N/A
+Lazy (with collect)          4029.67 MiB    11.081s       268,525
+
+## Hawkeye (kloppy-light) - filter pushdown
+Filter: period_id==2         3731.97 MiB     9.744s     3,797,708
+Filter: frame<=75k           3754.66 MiB    10.201s     1,657,226
+Filter: combined             3907.30 MiB     9.323s     1,657,226
+Filter: team                 3946.38 MiB    10.366s     2,960,246
+Filter: player               3854.09 MiB     9.920s       269,129
+Filter: between              4052.81 MiB    10.682s     1,187,775
+
+## Hawkeye (kloppy)
+Load (default)               4172.69 MiB   119.054s       270,000
+Load (native coords)          912.86 MiB    62.334s       270,000
+
+======================================================================

@@ -1,0 +1,39 @@
+======================================================================
+kloppy-light Benchmark
+======================================================================
+Memory measurement: memory_profiler (accurate)
+Providers: hawkeye
+Layouts: long, long_ball, wide
+Features: kloppy
+
+Data directory: /Users/jbekkers/PycharmProjects/kloppy-light/data
+
+Operation                     Memory         Time          Rows
+----------------------------------------------------------------------
+
+Hawkeye tracking file: 2632.3 MiB
+
+## Hawkeye (kloppy-light) - long layout
+Eager loading                6535.75 MiB    12.654s     6,996,515
+Lazy (no collect)              28.42 MiB     0.331s           N/A
+Lazy (with collect)          3943.67 MiB    11.091s     6,996,515
+
+## Hawkeye (kloppy-light) - long_ball layout
+Eager loading                3972.34 MiB    10.986s     6,727,990
+Lazy (no collect)              28.62 MiB     0.298s           N/A
+Lazy (with collect)          3868.38 MiB    11.071s     6,727,990
+
+## Hawkeye (kloppy-light) - wide layout
+Eager loading                4244.83 MiB    11.277s       268,525
+Lazy (no collect)              25.70 MiB     0.290s           N/A
+Lazy (with collect)          4130.39 MiB    11.040s       268,525
+
+## Hawkeye (kloppy-light) - filter pushdown
+Filter: period_id==2         3778.95 MiB     9.345s     3,797,708
+Filter: frame<=75k           3900.27 MiB    10.067s     1,657,226
+Filter: combined             3914.53 MiB     8.992s     1,657,226
+Filter: team                 3905.86 MiB     9.980s     2,960,246
+Filter: player               3951.42 MiB     9.891s       269,129
+Filter: between              4141.02 MiB    10.629s     1,187,775
+
+## Hawkeye (kloppy)

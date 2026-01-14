@@ -1,0 +1,44 @@
+======================================================================
+kloppy-light Benchmark
+======================================================================
+Memory measurement: memory_profiler (accurate)
+Providers: hawkeye
+Layouts: long, long_ball, wide
+
+Data directory: /Users/jbekkers/PycharmProjects/kloppy-light/data
+
+Operation                     Memory         Time          Rows
+----------------------------------------------------------------------
+
+Hawkeye tracking file: 2632.3 MiB
+
+## Hawkeye - parallel vs sequential (long layout)
+Sequential loading           7600.36 MiB    17.492s     6,996,515
+Parallel loading             5915.62 MiB    10.795s     6,996,515
+Lazy seq (collect)           5194.38 MiB    18.008s     6,996,515
+Lazy parallel (collect)      5676.70 MiB    11.791s     6,996,515
+
+## Hawkeye (kloppy-light) - long layout
+Eager loading                5635.11 MiB    11.454s     6,996,515
+Lazy (no collect)              37.70 MiB     0.418s           N/A
+Lazy (with collect)          6019.50 MiB    11.808s     6,996,515
+
+## Hawkeye (kloppy-light) - long_ball layout
+Eager loading                5935.98 MiB    11.790s     6,727,990
+Lazy (no collect)              51.95 MiB     0.473s           N/A
+Lazy (with collect)          5756.06 MiB    11.883s     6,727,990
+
+## Hawkeye (kloppy-light) - wide layout
+Eager loading                5733.03 MiB    11.107s       268,525
+Lazy (no collect)              37.69 MiB     0.412s           N/A
+Lazy (with collect)          5706.58 MiB    10.792s       268,525
+
+## Hawkeye (kloppy-light) - filter pushdown
+Filter: period_id==2         4630.34 MiB    10.239s     3,797,708
+Filter: frame<=75k           5756.39 MiB    10.476s     1,657,226
+Filter: combined             4726.20 MiB     9.530s     1,657,226
+Filter: team                 5728.59 MiB    10.826s     2,960,246
+Filter: player               5678.11 MiB    10.070s       269,129
+Filter: between              5791.72 MiB    11.439s     1,187,775
+
+======================================================================

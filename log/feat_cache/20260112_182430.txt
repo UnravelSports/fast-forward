@@ -1,0 +1,27 @@
+======================================================================
+kloppy-light Benchmark
+======================================================================
+Memory measurement: memory_profiler (accurate)
+Providers: secondspectrum
+Layouts: long
+Features: cache, no-pushdown
+
+Data directory: /Users/jbekkers/PycharmProjects/kloppy-light/data
+
+Operation                     Memory         Time          Rows
+----------------------------------------------------------------------
+
+Secondspectrum tracking file: 423.4 MiB
+
+## Secondspectrum (kloppy-light) - long layout
+Eager loading                1375.22 MiB     1.612s     1,909,069
+Lazy (no collect)               0.11 MiB     0.185s           N/A
+Lazy (with collect)           305.30 MiB     1.835s     1,909,069
+
+## Secondspectrum (kloppy-light) - cache performance
+Cache miss (collect)          347.06 MiB     1.645s     1,909,069
+Cache hit (no collect)          0.42 MiB     0.690s           N/A
+Cache hit (collect)           149.78 MiB     0.896s     1,909,069
+  Cache file: 1ab6a26d9d0e8768.parquet (10.3 MiB)
+
+======================================================================
