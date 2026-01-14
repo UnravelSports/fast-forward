@@ -1198,7 +1198,9 @@ fn build_tracking_df_from_files(
     pushdown: &PushdownFilters,
 ) -> Result<DataFrame, KloppyError> {
     // Build StandardFrames using HashMap for incremental construction
-    let mut frame_map: HashMap<u32, PartialFrame> = HashMap::new();
+    // Pre-allocate capacity: ~2500 frames per minute file
+    let estimated_frames = ball_files.len() * 2500;
+    let mut frame_map: HashMap<u32, PartialFrame> = HashMap::with_capacity(estimated_frames);
 
     // Parse all ball files and populate frame_map with ball data
     for (period_id, minute, data) in ball_files {
@@ -1307,7 +1309,7 @@ fn build_tracking_df_from_files(
                         z: pos[2],
                         speed: None,
                     },
-                    players: Vec::new(),
+                    players: Vec::with_capacity(25), // Pre-allocate for typical team size
                 }
             });
 
