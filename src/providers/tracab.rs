@@ -690,11 +690,15 @@ fn parse_tracking_dat(
 ) -> Result<TrackingParseResult, KloppyError> {
     let cursor = Cursor::new(data);
     let reader = BufReader::new(cursor);
-    let mut frames = Vec::new();
+
+    // Estimate capacity: ~100 bytes per line average for Tracab DAT format
+    let estimated_frames = data.len() / 100;
+    let mut frames = Vec::with_capacity(estimated_frames);
 
     // Build jersey -> player_id map (to be filled dynamically)
-    let mut home_jersey_map: HashMap<i32, String> = HashMap::new();
-    let mut away_jersey_map: HashMap<i32, String> = HashMap::new();
+    // Typical match has ~22 players (11 per team)
+    let mut home_jersey_map: HashMap<i32, String> = HashMap::with_capacity(14);
+    let mut away_jersey_map: HashMap<i32, String> = HashMap::with_capacity(14);
 
     // Build BTreeMap for O(log n) period lookup instead of O(n) linear search
     // Key: start_frame, Value: (period_id, start_frame, end_frame)
@@ -802,7 +806,8 @@ fn parse_tracking_dat(
 
         // Parse player data
         let has_player_filters = pushdown.has_player_filters();
-        let mut player_positions: Vec<StandardPlayerPosition> = Vec::new();
+        // Typical match has ~22 players on field at any time
+        let mut player_positions: Vec<StandardPlayerPosition> = Vec::with_capacity(24);
 
         for player_str in players_str.split(';') {
             if player_str.is_empty() {
@@ -899,9 +904,11 @@ fn parse_tracking_json(
     let raw: JsonTrackingData = serde_json::from_slice(data)
         .map_err(|e| KloppyError::InvalidInput(format!("Failed to parse JSON tracking: {}", e)))?;
 
-    let mut frames = Vec::new();
-    let mut home_jersey_map: HashMap<i32, String> = HashMap::new();
-    let mut away_jersey_map: HashMap<i32, String> = HashMap::new();
+    // Pre-allocate with known size from parsed JSON
+    let mut frames = Vec::with_capacity(raw.frame_data.len());
+    // Typical match has ~22 players (11 per team)
+    let mut home_jersey_map: HashMap<i32, String> = HashMap::with_capacity(14);
+    let mut away_jersey_map: HashMap<i32, String> = HashMap::with_capacity(14);
 
     // Build BTreeMap for O(log n) period lookup instead of O(n) linear search
     let period_map: std::collections::BTreeMap<u32, (u8, u32, u32)> = periods
@@ -1008,7 +1015,8 @@ fn parse_tracking_json(
 
         // Parse players
         let has_player_filters = pushdown.has_player_filters();
-        let mut player_positions: Vec<StandardPlayerPosition> = Vec::new();
+        // Typical match has ~22 players on field at any time
+        let mut player_positions: Vec<StandardPlayerPosition> = Vec::with_capacity(24);
 
         for pp in &frame_data.player_positions {
             // Skip non-player entries (team == -1, 3, 4)
