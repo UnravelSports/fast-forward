@@ -676,6 +676,451 @@ impl PartialFrame {
     }
 }
 
+// ============================================================================
+// Parallel Processing Types (for rayon-based multi-file loading)
+// ============================================================================
+
+/// A single ball sample with all data needed for merging (thread-safe, owned)
+#[derive(Clone)]
+struct BallSampleForMerge {
+    frame_id: u32,
+    period_id: u8,
+    timestamp_ms: i64,
+    ball_state: BallState,
+    ball_owning_team_id: Option<String>,
+    pos: [f32; 3],
+}
+
+/// Result from parsing a single ball file (thread-safe, owned data)
+struct BallFileResult {
+    samples: Vec<BallSampleForMerge>,
+}
+
+/// A single player sample with all data needed for merging (thread-safe, owned)
+#[derive(Clone)]
+struct PlayerSampleForMerge {
+    frame_id: u32,
+    team_id: String,
+    player_id: String,
+    pos: [f32; 2],
+}
+
+/// Result from parsing a single player file (thread-safe, owned data)
+struct PlayerFileResult {
+    samples: Vec<PlayerSampleForMerge>,
+}
+
+/// Parse a ball file and return owned results suitable for parallel processing
+fn parse_ball_file_for_merge(
+    data: &[u8],
+    period_id: u8,
+    minute: u8,
+    fps: f32,
+    object_id: &str,
+    only_alive: bool,
+    pushdown: &PushdownFilters,
+) -> Result<BallFileResult, KloppyError> {
+    if data.is_empty() {
+        return Ok(BallFileResult { samples: Vec::new() });
+    }
+
+    let feed: RawBallFeed = serde_json::from_slice(data)?;
+
+    // Calculate base frame offset for this minute (for frame_id calculation)
+    let minute_offset = (period_id as f32 - 1.0) * 45.0 + minute as f32;
+
+    // Calculate period-relative minute offset for timestamp (resets each period)
+    let period_start_minute = match period_id {
+        1 => 0,
+        2 => 45,
+        3 => 90,
+        4 => 105,
+        _ => 0,
+    };
+    let minute_in_period = (minute as f32 - period_start_minute as f32 - 1.0).max(0.0);
+
+    let mut samples = Vec::with_capacity(feed.samples.ball.len());
+
+    for sample in feed.samples.ball {
+        let frame_id = ((minute_offset * 60.0 + sample.time as f32) * fps) as u32;
+        let timestamp_ms = ((minute_in_period * 60.0 + sample.time as f32) * 1000.0) as i64;
+
+        let ball_state = if sample.play == "In" {
+            BallState::Alive
+        } else {
+            BallState::Dead
+        };
+
+        // Filter by only_alive if needed
+        if only_alive && ball_state == BallState::Dead {
+            continue;
+        }
+
+        // FRAME-LEVEL PUSHDOWN: Skip frames based on frame_id range
+        if let Some(min) = pushdown.frame_id_min {
+            if frame_id < min {
+                continue;
+            }
+        }
+        if let Some(max) = pushdown.frame_id_max {
+            if frame_id > max {
+                continue;
+            }
+        }
+        if let Some(ref ids) = pushdown.frame_ids {
+            if !ids.contains(&frame_id) {
+                continue;
+            }
+        }
+
+        // FRAME-LEVEL PUSHDOWN: Skip frames based on ball_state
+        if let Some(ref state) = pushdown.ball_state {
+            if ball_state.as_str() != state {
+                continue;
+            }
+        }
+
+        let ball_owning_team_id = sample
+            .possession
+            .and_then(|p| p.team_id)
+            .and_then(|id| get_object_id(&id, object_id).ok());
+
+        // FRAME-LEVEL PUSHDOWN: Skip frames based on ball_owning_team_id
+        if let Some(is_null) = pushdown.ball_owning_team_is_null {
+            if is_null && ball_owning_team_id.is_some() {
+                continue;
+            }
+            if !is_null && ball_owning_team_id.is_none() {
+                continue;
+            }
+        }
+        if let Some(ref teams) = pushdown.ball_owning_team_ids {
+            match &ball_owning_team_id {
+                Some(team) => {
+                    if !teams.contains(team) {
+                        continue;
+                    }
+                }
+                None => continue,
+            }
+        }
+
+        // FRAME-LEVEL PUSHDOWN: Skip frames based on ball position
+        if let Some(min) = pushdown.ball_x_min {
+            if sample.pos[0] < min {
+                continue;
+            }
+        }
+        if let Some(max) = pushdown.ball_x_max {
+            if sample.pos[0] > max {
+                continue;
+            }
+        }
+        if let Some(min) = pushdown.ball_y_min {
+            if sample.pos[1] < min {
+                continue;
+            }
+        }
+        if let Some(max) = pushdown.ball_y_max {
+            if sample.pos[1] > max {
+                continue;
+            }
+        }
+        if let Some(min) = pushdown.ball_z_min {
+            if sample.pos[2] < min {
+                continue;
+            }
+        }
+        if let Some(max) = pushdown.ball_z_max {
+            if sample.pos[2] > max {
+                continue;
+            }
+        }
+
+        samples.push(BallSampleForMerge {
+            frame_id,
+            period_id,
+            timestamp_ms,
+            ball_state,
+            ball_owning_team_id,
+            pos: sample.pos,
+        });
+    }
+
+    Ok(BallFileResult { samples })
+}
+
+/// Parse a player file and return owned results suitable for parallel processing
+fn parse_player_file_for_merge(
+    data: &[u8],
+    period_id: u8,
+    minute: u8,
+    fps: f32,
+    object_id: &str,
+    pushdown: &PushdownFilters,
+    player_id_to_team: &HashMap<String, String>,
+) -> Result<PlayerFileResult, KloppyError> {
+    if data.is_empty() {
+        return Ok(PlayerFileResult { samples: Vec::new() });
+    }
+
+    let feed: RawPlayerFeed = serde_json::from_slice(data)?;
+
+    // Calculate base frame offset for this minute
+    let minute_offset = (period_id as f32 - 1.0) * 45.0 + minute as f32;
+
+    let has_player_filters = pushdown.has_player_filters();
+    let mut samples = Vec::new();
+
+    for person in feed.samples.people {
+        let person_player_id = get_object_id(&person.person_id, object_id)?;
+
+        // Find the team_id for this player from the pre-built lookup
+        let team_id = player_id_to_team
+            .get(&person_player_id)
+            .cloned()
+            .unwrap_or_else(|| "unknown".to_string());
+
+        // EARLY PUSHDOWN: Skip players that don't match team_id/player_id filters
+        if has_player_filters && !pushdown.should_include_player(&team_id, &person_player_id) {
+            continue;
+        }
+
+        for centroid in person.centroid {
+            let frame_id = ((minute_offset * 60.0 + centroid.time as f32) * fps) as u32;
+            samples.push(PlayerSampleForMerge {
+                frame_id,
+                team_id: team_id.clone(),
+                player_id: person_player_id.clone(),
+                pos: centroid.pos,
+            });
+        }
+    }
+
+    Ok(PlayerFileResult { samples })
+}
+
+/// Merge parallel parsing results into a sorted Vec<StandardFrame>
+fn merge_parallel_results(
+    ball_results: Vec<BallFileResult>,
+    player_results: Vec<PlayerFileResult>,
+) -> Vec<StandardFrame> {
+    // Estimate total capacity
+    let estimated_frames: usize = ball_results.iter().map(|r| r.samples.len()).sum();
+    let mut frame_map: HashMap<u32, PartialFrame> = HashMap::with_capacity(estimated_frames);
+
+    // Insert all ball samples
+    for result in ball_results {
+        for sample in result.samples {
+            let partial_frame = frame_map.entry(sample.frame_id).or_insert_with(|| {
+                PartialFrame {
+                    frame_id: sample.frame_id,
+                    period_id: sample.period_id,
+                    timestamp_ms: sample.timestamp_ms,
+                    ball_state: sample.ball_state.clone(),
+                    ball_owning_team_id: sample.ball_owning_team_id.clone(),
+                    ball: StandardBall {
+                        x: sample.pos[0],
+                        y: sample.pos[1],
+                        z: sample.pos[2],
+                        speed: None,
+                    },
+                    players: Vec::with_capacity(25), // Pre-allocate for typical team size + officials
+                }
+            });
+            // Update ball data (handles duplicate frame_ids if they occur)
+            partial_frame.ball = StandardBall {
+                x: sample.pos[0],
+                y: sample.pos[1],
+                z: sample.pos[2],
+                speed: None,
+            };
+            partial_frame.ball_state = sample.ball_state;
+            partial_frame.ball_owning_team_id = sample.ball_owning_team_id;
+        }
+    }
+
+    // Add player positions to existing frames
+    for result in player_results {
+        for sample in result.samples {
+            if let Some(partial_frame) = frame_map.get_mut(&sample.frame_id) {
+                partial_frame.players.push(StandardPlayerPosition {
+                    team_id: sample.team_id,
+                    player_id: sample.player_id,
+                    x: sample.pos[0],
+                    y: sample.pos[1],
+                    z: 0.0, // Players have no Z coordinate
+                    speed: None,
+                });
+            }
+        }
+    }
+
+    // Convert to sorted Vec
+    let mut frames: Vec<StandardFrame> = frame_map
+        .into_iter()
+        .map(|(_, pf)| pf.into_standard_frame())
+        .collect();
+
+    // Sort by (period_id, frame_id) for correct ordering
+    frames.sort_by_key(|f| (f.period_id, f.frame_id));
+
+    frames
+}
+
+/// Build player_id -> team_id lookup from first player file
+fn build_player_team_lookup(
+    player_files: &[(u8, u8, Vec<u8>)],
+    object_id: &str,
+) -> Result<HashMap<String, String>, KloppyError> {
+    let mut lookup = HashMap::new();
+
+    // Just use first file - it contains all players
+    if let Some((period_id, minute, data)) = player_files.first() {
+        if !data.is_empty() {
+            let feed: RawPlayerFeed = serde_json::from_slice(data)?;
+            for player in feed.details.players {
+                let player_id = get_object_id(&player.id, object_id)?;
+                let team_id_raw = get_object_id(&player.team_id, object_id)?;
+
+                // Check if this is an official/referee
+                let team_id = if player.role.name.to_lowercase().contains("referee") {
+                    "official".to_string()
+                } else {
+                    team_id_raw
+                };
+
+                lookup.insert(player_id, team_id);
+            }
+        }
+    }
+
+    Ok(lookup)
+}
+
+/// Parallel version of build_tracking_df_from_files using rayon
+fn build_tracking_df_from_files_parallel(
+    ball_files: Vec<(u8, u8, Vec<u8>)>,  // (period_id, minute, data) - owned
+    player_files: Vec<(u8, u8, Vec<u8>)>,
+    metadata: &StandardMetadata,
+    layout: &str,
+    coordinates: &str,
+    orientation: &str,
+    only_alive: bool,
+    game_id_value: Option<&str>,
+    object_id: &str,
+    pushdown: &PushdownFilters,
+) -> Result<DataFrame, KloppyError> {
+    use rayon::prelude::*;
+
+    // Build player_id -> team_id lookup (needed for player file parsing)
+    let player_team_lookup = build_player_team_lookup(&player_files, object_id)?;
+
+    // PHASE 1: Parallel ball file parsing with file-level pushdown
+    let ball_results: Result<Vec<BallFileResult>, KloppyError> = ball_files
+        .into_par_iter()
+        .filter_map(|(period_id, minute, data)| {
+            // FILE-LEVEL PUSHDOWN: Skip entire file if period doesn't match
+            if let Some(ref periods) = pushdown.period_ids {
+                if !periods.contains(&(period_id as i32)) {
+                    return None;
+                }
+            }
+            Some((period_id, minute, data))
+        })
+        .map(|(period_id, minute, data)| {
+            parse_ball_file_for_merge(
+                &data,
+                period_id,
+                minute,
+                metadata.fps,
+                object_id,
+                only_alive,
+                pushdown,
+            )
+        })
+        .collect();
+
+    let ball_results = ball_results?;
+
+    // PHASE 2: Parallel player file parsing with file-level pushdown
+    let player_results: Result<Vec<PlayerFileResult>, KloppyError> = player_files
+        .into_par_iter()
+        .filter_map(|(period_id, minute, data)| {
+            // FILE-LEVEL PUSHDOWN: Skip entire file if period doesn't match
+            if let Some(ref periods) = pushdown.period_ids {
+                if !periods.contains(&(period_id as i32)) {
+                    return None;
+                }
+            }
+            Some((period_id, minute, data))
+        })
+        .map(|(period_id, minute, data)| {
+            parse_player_file_for_merge(
+                &data,
+                period_id,
+                minute,
+                metadata.fps,
+                object_id,
+                pushdown,
+                &player_team_lookup,
+            )
+        })
+        .collect();
+
+    let player_results = player_results?;
+
+    // PHASE 3: Sequential merge
+    let mut frames = merge_parallel_results(ball_results, player_results);
+
+    // PHASE 4: Apply coordinate transformation if not CDF
+    let coordinate_system = CoordinateSystem::from_str(coordinates)?;
+    if coordinate_system != CoordinateSystem::Cdf {
+        for frame in &mut frames {
+            // Transform ball
+            let (bx, by, bz) = transform_from_cdf(
+                frame.ball.x,
+                frame.ball.y,
+                frame.ball.z,
+                coordinate_system,
+                metadata.pitch_length,
+                metadata.pitch_width,
+            );
+            frame.ball.x = bx;
+            frame.ball.y = by;
+            frame.ball.z = bz;
+
+            // Transform all players
+            for player in &mut frame.players {
+                let (px, py, pz) = transform_from_cdf(
+                    player.x,
+                    player.y,
+                    player.z,
+                    coordinate_system,
+                    metadata.pitch_length,
+                    metadata.pitch_width,
+                );
+                player.x = px;
+                player.y = py;
+                player.z = pz;
+            }
+        }
+    }
+
+    // PHASE 5: Apply orientation transformation
+    let orientation_enum = Orientation::from_str(orientation)?;
+    transform_frames(
+        &mut frames,
+        &metadata.periods,
+        &metadata.home_team_id,
+        orientation_enum,
+    );
+
+    // PHASE 6: Build DataFrame with row-level pushdown
+    let layout_enum = Layout::from_str(layout)?;
+    build_tracking_df_with_pushdown(&frames, layout_enum, game_id_value, pushdown)
+}
+
 fn build_tracking_df_from_files(
     ball_files: Vec<(u8, u8, &[u8])>,  // (period_id, minute, data)
     player_files: Vec<(u8, u8, &[u8])>,
@@ -924,7 +1369,8 @@ fn build_tracking_df_from_files(
     pitch_width=68.0,
     object_id="auto",
     include_game_id=None,
-    predicate=None
+    predicate=None,
+    parallel=true
 ))]
 fn load_tracking(
     _py: Python<'_>,
@@ -940,6 +1386,7 @@ fn load_tracking(
     object_id: &str,
     include_game_id: Option<Bound<'_, PyAny>>,
     predicate: Option<PyExpr>,
+    parallel: bool,
 ) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
     // Convert PyAny to Vec<(String, Vec<u8>)> - tuples of (filename, bytes)
     let ball_bytes_list: Vec<(String, Vec<u8>)> = if let Ok(list) = ball_data.downcast::<pyo3::types::PyList>() {
@@ -1014,10 +1461,11 @@ fn load_tracking(
     // Extract period_id and minute from filenames using regex
     let fps = 50.0; // HawkEye standard
 
-    let mut ball_files_with_metadata = Vec::new();
-    for (idx, (filename, data)) in ball_bytes_list.iter().enumerate() {
+    // Build owned file lists for parallel processing
+    let mut ball_files_with_metadata: Vec<(u8, u8, Vec<u8>)> = Vec::new();
+    for (idx, (filename, data)) in ball_bytes_list.into_iter().enumerate() {
         // Try to extract period/minute from filename first
-        let (period_id, minute) = extract_period_minute_from_filename(filename)
+        let (period_id, minute) = extract_period_minute_from_filename(&filename)
             .unwrap_or_else(|| {
                 // Fallback: infer from index (legacy behavior)
                 // Period 1: minutes 1-45, Period 2: minutes 46-90
@@ -1029,13 +1477,13 @@ fn load_tracking(
                 );
                 (period, min)
             });
-        ball_files_with_metadata.push((period_id, minute, data.as_slice()));
+        ball_files_with_metadata.push((period_id, minute, data));  // Owned data
     }
 
-    let mut player_files_with_metadata = Vec::new();
-    for (idx, (filename, data)) in player_bytes_list.iter().enumerate() {
+    let mut player_files_with_metadata: Vec<(u8, u8, Vec<u8>)> = Vec::new();
+    for (idx, (filename, data)) in player_bytes_list.into_iter().enumerate() {
         // Try to extract period/minute from filename first
-        let (period_id, minute) = extract_period_minute_from_filename(filename)
+        let (period_id, minute) = extract_period_minute_from_filename(&filename)
             .unwrap_or_else(|| {
                 // Fallback: infer from index (legacy behavior)
                 let period = if idx < 45 { 1 } else { 2 };
@@ -1046,7 +1494,7 @@ fn load_tracking(
                 );
                 (period, min)
             });
-        player_files_with_metadata.push((period_id, minute, data.as_slice()));
+        player_files_with_metadata.push((period_id, minute, data));  // Owned data
     }
 
     // Build minimal StandardMetadata
@@ -1092,22 +1540,7 @@ fn load_tracking(
         .map(|p| extract_pushdown_filters(&p.0, layout_enum))
         .unwrap_or_default();
 
-    // Build tracking DataFrame with pushdown filtering
-    let tracking_df = build_tracking_df_from_files(
-        ball_files_with_metadata.clone(),
-        player_files_with_metadata.clone(),
-        &metadata,
-        layout,
-        coordinates,
-        orientation,
-        only_alive,
-        game_id_value.as_deref(),
-        object_id,
-        &pushdown,
-    )
-    .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))?;
-
-    // Parse ball files to get teams
+    // Parse ball files to get teams (before parallel processing consumes the data)
     let mut teams = Vec::new();
     if let Some((period_id, minute, data)) = ball_files_with_metadata.first() {
         if let Ok(ball_data) = parse_ball_file(data, *period_id, *minute, fps, object_id) {
@@ -1115,7 +1548,7 @@ fn load_tracking(
         }
     }
 
-    // Parse player files to get players
+    // Parse player files to get players (before parallel processing consumes the data)
     let mut all_players = Vec::new();
     for (period_id, minute, data) in player_files_with_metadata.iter() {
         if let Ok(player_data) = parse_player_file(data, *period_id, *minute, fps, object_id, false) {
@@ -1126,6 +1559,45 @@ fn load_tracking(
             }
         }
     }
+
+    // Build tracking DataFrame with pushdown filtering (parallel or sequential)
+    let tracking_df = if parallel {
+        build_tracking_df_from_files_parallel(
+            ball_files_with_metadata,
+            player_files_with_metadata,
+            &metadata,
+            layout,
+            coordinates,
+            orientation,
+            only_alive,
+            game_id_value.as_deref(),
+            object_id,
+            &pushdown,
+        )
+    } else {
+        // Sequential version - convert owned Vec<u8> to slices
+        let ball_refs: Vec<(u8, u8, &[u8])> = ball_files_with_metadata
+            .iter()
+            .map(|(p, m, d)| (*p, *m, d.as_slice()))
+            .collect();
+        let player_refs: Vec<(u8, u8, &[u8])> = player_files_with_metadata
+            .iter()
+            .map(|(p, m, d)| (*p, *m, d.as_slice()))
+            .collect();
+        build_tracking_df_from_files(
+            ball_refs,
+            player_refs,
+            &metadata,
+            layout,
+            coordinates,
+            orientation,
+            only_alive,
+            game_id_value.as_deref(),
+            object_id,
+            &pushdown,
+        )
+    }
+    .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))?;
 
     // Build metadata DataFrame
     let metadata_df = build_metadata_df(&metadata, game_id_value.as_deref())
