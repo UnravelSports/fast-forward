@@ -153,6 +153,7 @@ def create_lazy_tracking_hawkeye(
     pitch_width: float,
     object_id: str,
     include_game_id: Union[bool, str],
+    parallel: bool = True,
 ) -> pl.LazyFrame:
     """Create a lazy tracking DataFrame for HawkEye's dual-input format.
 
@@ -235,6 +236,7 @@ def create_lazy_tracking_hawkeye(
                 object_id=object_id,
                 include_game_id=include_game_id,
                 predicate=predicate,
+                parallel=parallel,
             )
         except RuntimeError as e:
             if "deserializing" in str(e) or "BindingsError" in str(e):
@@ -251,6 +253,7 @@ def create_lazy_tracking_hawkeye(
                     pitch_width=pitch_width,
                     object_id=object_id,
                     include_game_id=include_game_id,
+                    parallel=parallel,
                 )
             else:
                 raise

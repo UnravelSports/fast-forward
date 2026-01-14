@@ -1144,6 +1144,7 @@ dependencies = [
  "pyo3",
  "pyo3-polars",
  "quick-xml 0.31.0",
+ "rayon",
  "regex",
  "serde",
  "serde_json",
