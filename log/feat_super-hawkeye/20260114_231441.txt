@@ -1,0 +1,28 @@
+======================================================================
+kloppy-light Benchmark
+======================================================================
+Memory measurement: memory_profiler (accurate)
+Providers: tracab
+Layouts: long
+
+Data directory: /Users/jbekkers/PycharmProjects/kloppy-light/data
+
+Operation                     Memory         Time          Rows
+----------------------------------------------------------------------
+
+Tracab tracking file: 113.4 MiB
+
+## Tracab (kloppy-light) - long layout
+Eager loading                 749.88 MiB     0.945s     1,900,849
+Lazy (no collect)               1.00 MiB     0.167s           N/A
+Lazy (with collect)           191.73 MiB     0.880s     1,900,849
+
+## Tracab (kloppy-light) - filter pushdown
+Filter: period_id==2          111.97 MiB     0.557s       925,534
+Filter: frame>=1219k          160.88 MiB     0.558s       925,534
+Filter: combined               63.89 MiB     0.432s       514,004
+Filter: team                  144.45 MiB     0.893s       909,392
+Filter: player                 55.06 MiB     0.861s        82,672
+Filter: between               183.08 MiB     0.836s       556,945
+
+======================================================================

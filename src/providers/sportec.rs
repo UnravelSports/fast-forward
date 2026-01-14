@@ -3,6 +3,7 @@ use pyo3::prelude::*;
 use pyo3_polars::{PyDataFrame, PyExpr};
 use quick_xml::events::Event;
 use quick_xml::Reader;
+use rayon::prelude::*;
 use std::collections::HashMap;
 use std::io::{BufReader, Cursor};
 
@@ -89,6 +90,388 @@ fn game_section_to_period_id(game_section: &str) -> u8 {
         "penaltyshootout" => 5,
         _ => 0,
     }
+}
+
+// ============================================================================
+// FrameSet Parallel Processing
+// ============================================================================
+
+/// Index of a FrameSet in the XML data for parallel processing
+#[derive(Clone)]
+struct FrameSetIndex {
+    /// Start byte position in the XML data
+    start_pos: usize,
+    /// End byte position in the XML data (exclusive)
+    end_pos: usize,
+    /// Game section (e.g., "firstHalf", "secondHalf")
+    game_section: String,
+    /// Team ID for this FrameSet
+    team_id: String,
+    /// Person ID (player or ball)
+    person_id: String,
+}
+
+/// Collect FrameSet positions from XML for parallel processing
+/// This does a quick scan to find FrameSet boundaries without parsing frames
+fn collect_frameset_positions(tracking_data: &[u8]) -> Result<Vec<FrameSetIndex>, KloppyError> {
+    // Quick regex-based scan to find FrameSet tags
+    // This is faster than full XML parsing for position collection
+    let data_str = std::str::from_utf8(tracking_data)
+        .map_err(|e| KloppyError::InvalidInput(format!("Invalid UTF-8: {}", e)))?;
+
+    let mut positions = Vec::new();
+    let mut search_start = 0;
+
+    while let Some(start_tag_pos) = data_str[search_start..].find("<FrameSet ") {
+        let abs_start = search_start + start_tag_pos;
+
+        // Find the end of this FrameSet
+        if let Some(end_tag_rel) = data_str[abs_start..].find("</FrameSet>") {
+            let abs_end = abs_start + end_tag_rel + "</FrameSet>".len();
+
+            // Extract attributes from start tag
+            let tag_end = data_str[abs_start..].find('>').unwrap_or(0) + abs_start;
+            let tag_content = &data_str[abs_start..tag_end];
+
+            let game_section = extract_attr(tag_content, "GameSection").unwrap_or_default();
+            let team_id = extract_attr(tag_content, "TeamId").unwrap_or_default();
+            let person_id = extract_attr(tag_content, "PersonId").unwrap_or_default();
+
+            // Only include valid FrameSets (skip unknown periods)
+            if game_section_to_period_id(&game_section) != 0 {
+                positions.push(FrameSetIndex {
+                    start_pos: abs_start,
+                    end_pos: abs_end,
+                    game_section,
+                    team_id,
+                    person_id,
+                });
+            }
+
+            search_start = abs_end;
+        } else {
+            break;
+        }
+    }
+
+    Ok(positions)
+}
+
+/// Extract attribute value from XML tag string
+fn extract_attr(tag: &str, attr_name: &str) -> Option<String> {
+    let pattern = format!("{}=\"", attr_name);
+    if let Some(start) = tag.find(&pattern) {
+        let value_start = start + pattern.len();
+        if let Some(end) = tag[value_start..].find('"') {
+            return Some(tag[value_start..value_start + end].to_string());
+        }
+    }
+    None
+}
+
+/// Result from parsing a single FrameSet
+struct FrameSetResult {
+    /// Frames parsed from this FrameSet: ((period_id, frame_id), frame_data)
+    frames: Vec<((u8, u32), FrameData)>,
+    /// Period frame ranges found in this FrameSet
+    period_ranges: Vec<(u8, u32, u32)>, // (period_id, min_frame, max_frame)
+}
+
+/// Parsed frame data from a FrameSet
+struct FrameData {
+    timestamp_ms: i64,
+    ball: Option<StandardBall>,
+    player: Option<StandardPlayerPosition>,
+    ball_possession: Option<String>,
+    ball_status: Option<u8>,
+}
+
+/// Parse a single FrameSet in parallel
+fn parse_single_frameset(
+    tracking_data: &[u8],
+    index: &FrameSetIndex,
+    player_id_map: &HashMap<String, (String, String)>,
+    pushdown: &PushdownFilters,
+) -> Result<FrameSetResult, KloppyError> {
+    let period_id = game_section_to_period_id(&index.game_section);
+    let is_ball = index.team_id.to_uppercase() == "BALL" || index.team_id.to_uppercase().contains("BALL");
+
+    // Get the XML slice for this FrameSet
+    let frameset_xml = &tracking_data[index.start_pos..index.end_pos];
+
+    let cursor = Cursor::new(frameset_xml);
+    let reader = BufReader::new(cursor);
+    let mut xml_reader = Reader::from_reader(reader);
+    xml_reader.trim_text(true);
+
+    let mut buf = Vec::new();
+    let mut frames = Vec::new();
+    let mut min_frame: Option<u32> = None;
+    let mut max_frame: Option<u32> = None;
+
+    loop {
+        match xml_reader.read_event_into(&mut buf) {
+            Ok(Event::Empty(ref e)) => {
+                if e.name().as_ref() == b"Frame" {
+                    let attrs = e.attributes();
+                    let frame_n: u32 = get_attr_value(&attrs, b"N")?
+                        .unwrap_or_else(|| "0".to_string())
+                        .parse()
+                        .unwrap_or(0);
+
+                    // EARLY PUSHDOWN: Skip frames based on period_id and frame_id
+                    if let Some(ref periods) = pushdown.period_ids {
+                        if !periods.contains(&(period_id as i32)) {
+                            continue;
+                        }
+                    }
+                    if let Some(min) = pushdown.frame_id_min {
+                        if frame_n < min {
+                            continue;
+                        }
+                    }
+                    if let Some(max) = pushdown.frame_id_max {
+                        if frame_n > max {
+                            continue;
+                        }
+                    }
+                    if let Some(ref ids) = pushdown.frame_ids {
+                        if !ids.contains(&frame_n) {
+                            continue;
+                        }
+                    }
+
+                    // Parse timestamp
+                    let timestamp_ms = get_attr_value(&attrs, b"T")?
+                        .map(|t| parse_iso_timestamp_ms(&t))
+                        .unwrap_or(0);
+
+                    // EARLY PUSHDOWN: Skip frames based on timestamp
+                    if let Some(min_ts) = pushdown.timestamp_min_ms {
+                        if timestamp_ms < min_ts {
+                            continue;
+                        }
+                    }
+                    if let Some(max_ts) = pushdown.timestamp_max_ms {
+                        if timestamp_ms > max_ts {
+                            continue;
+                        }
+                    }
+
+                    let x: f32 = get_attr_value(&attrs, b"X")?
+                        .unwrap_or_else(|| "0.0".to_string())
+                        .parse()
+                        .unwrap_or(0.0);
+                    let y: f32 = get_attr_value(&attrs, b"Y")?
+                        .unwrap_or_else(|| "0.0".to_string())
+                        .parse()
+                        .unwrap_or(0.0);
+                    let z: f32 = get_attr_value(&attrs, b"Z")?
+                        .unwrap_or_else(|| "0.0".to_string())
+                        .parse()
+                        .unwrap_or(0.0);
+
+                    // Track frame range
+                    min_frame = Some(min_frame.map_or(frame_n, |m| m.min(frame_n)));
+                    max_frame = Some(max_frame.map_or(frame_n, |m| m.max(frame_n)));
+
+                    let key = (period_id, frame_n);
+
+                    if is_ball {
+                        let ball_possession = get_attr_value(&attrs, b"BallPossession")?;
+                        let ball_status: Option<u8> = get_attr_value(&attrs, b"BallStatus")?
+                            .and_then(|s| s.parse().ok());
+
+                        frames.push((key, FrameData {
+                            timestamp_ms,
+                            ball: Some(StandardBall {
+                                x,
+                                y,
+                                z,
+                                speed: get_attr_value(&attrs, b"S")?.and_then(|s| s.parse().ok()),
+                            }),
+                            player: None,
+                            ball_possession,
+                            ball_status,
+                        }));
+                    } else {
+                        // Player data
+                        if let Some((player_team_id, player_id)) = player_id_map.get(&index.person_id) {
+                            // EARLY PUSHDOWN: Skip players that don't match team_id/player_id filters
+                            if pushdown.has_player_filters() && !pushdown.should_include_player(player_team_id, player_id) {
+                                continue;
+                            }
+                            frames.push((key, FrameData {
+                                timestamp_ms,
+                                ball: None,
+                                player: Some(StandardPlayerPosition {
+                                    team_id: player_team_id.clone(),
+                                    player_id: player_id.clone(),
+                                    x,
+                                    y,
+                                    z,
+                                    speed: get_attr_value(&attrs, b"S")?.and_then(|s| s.parse().ok()),
+                                }),
+                                ball_possession: None,
+                                ball_status: None,
+                            }));
+                        }
+                    }
+                }
+            }
+            Ok(Event::Eof) => break,
+            Err(e) => return Err(KloppyError::Xml(e)),
+            _ => {}
+        }
+        buf.clear();
+    }
+
+    let period_ranges = if let (Some(min), Some(max)) = (min_frame, max_frame) {
+        vec![(period_id, min, max)]
+    } else {
+        vec![]
+    };
+
+    Ok(FrameSetResult {
+        frames,
+        period_ranges,
+    })
+}
+
+/// Parse tracking frames in parallel using FrameSet-level parallelism
+fn parse_tracking_frames_parallel(
+    tracking_data: &[u8],
+    player_id_map: &HashMap<String, (String, String)>,
+    home_team_id: &str,
+    only_alive: bool,
+    pushdown: &PushdownFilters,
+) -> Result<(Vec<StandardFrame>, Vec<StandardPeriod>), KloppyError> {
+    // Phase 1: Collect FrameSet positions (sequential)
+    let frameset_positions = collect_frameset_positions(tracking_data)?;
+
+    // Phase 2: Parse FrameSets in parallel
+    let results: Vec<Result<FrameSetResult, KloppyError>> = frameset_positions
+        .par_iter()
+        .map(|index| parse_single_frameset(tracking_data, index, player_id_map, pushdown))
+        .collect();
+
+    // Check for errors
+    let results: Vec<FrameSetResult> = results.into_iter().collect::<Result<Vec<_>, _>>()?;
+
+    // Phase 3: Merge results
+    // Collect period ranges
+    let mut period_frame_ranges: HashMap<u8, (u32, u32)> = HashMap::with_capacity(4);
+    for result in &results {
+        for &(period_id, min, max) in &result.period_ranges {
+            let entry = period_frame_ranges.entry(period_id).or_insert((min, max));
+            entry.0 = entry.0.min(min);
+            entry.1 = entry.1.max(max);
+        }
+    }
+
+    // Merge frame data into HashMap
+    let total_frames: usize = results.iter().map(|r| r.frames.len()).sum();
+    let mut frame_data: HashMap<(u8, u32), (i64, Option<StandardBall>, Vec<StandardPlayerPosition>, Option<String>, Option<u8>)> =
+        HashMap::with_capacity(total_frames / 20); // Rough estimate: ~20 players+ball per frame
+
+    for result in results {
+        for ((period_id, frame_id), data) in result.frames {
+            let entry = frame_data.entry((period_id, frame_id)).or_insert_with(|| {
+                (data.timestamp_ms, None, Vec::new(), None, None)
+            });
+
+            if let Some(ball) = data.ball {
+                entry.1 = Some(ball);
+                entry.3 = data.ball_possession;
+                entry.4 = data.ball_status;
+            }
+            if let Some(player) = data.player {
+                entry.2.push(player);
+            }
+        }
+    }
+
+    // Build periods from collected frame ranges
+    let mut periods: Vec<StandardPeriod> = period_frame_ranges
+        .into_iter()
+        .map(|(period_id, (start, end))| StandardPeriod {
+            period_id,
+            start_frame_id: start,
+            end_frame_id: end,
+            home_attacking_direction: if period_id % 2 == 1 {
+                AttackingDirection::LeftToRight
+            } else {
+                AttackingDirection::RightToLeft
+            },
+        })
+        .collect();
+    periods.sort_by_key(|p| p.period_id);
+
+    // Build frames with frame-level pushdown filtering
+    let mut frames: Vec<StandardFrame> = Vec::with_capacity(frame_data.len());
+    for ((period_id, frame_id), (timestamp_ms, ball, players, ball_possession, ball_status)) in frame_data {
+        // Determine ball state from ball_status
+        let ball_state = if ball_status.map(|s| s == 1).unwrap_or(false) {
+            BallState::Alive
+        } else {
+            BallState::Dead
+        };
+
+        // Skip dead frames if only_alive
+        if only_alive && ball_state == BallState::Dead {
+            continue;
+        }
+
+        // Determine ball owning team from possession
+        let ball_owning_team_id = ball_possession.and_then(|p| {
+            match p.as_str() {
+                "1" => Some(home_team_id.to_string()),
+                "2" => Some(home_team_id.to_string()),
+                _ => None,
+            }
+        });
+
+        let ball = ball.unwrap_or(StandardBall {
+            x: 0.0,
+            y: 0.0,
+            z: 0.0,
+            speed: None,
+        });
+
+        // FRAME-LEVEL PUSHDOWN: Skip frames that don't match filters
+        if pushdown.has_frame_filters() {
+            if !pushdown.should_include_frame(
+                frame_id,
+                period_id as i32,
+                timestamp_ms,
+                ball_state.as_str(),
+                ball_owning_team_id.as_deref(),
+                ball.x,
+                ball.y,
+                ball.z,
+            ) {
+                continue;
+            }
+        }
+
+        frames.push(StandardFrame {
+            frame_id,
+            period_id,
+            timestamp_ms,
+            ball_state,
+            ball_owning_team_id,
+            ball,
+            players,
+        });
+    }
+
+    // Sort frames by period_id then frame_id
+    frames.sort_by(|a, b| {
+        a.period_id.cmp(&b.period_id)
+            .then(a.frame_id.cmp(&b.frame_id))
+    });
+
+    Ok((frames, periods))
 }
 
 // ============================================================================
@@ -721,8 +1104,8 @@ fn load_tracking(
     // Determine game_id
     let game_id: Option<String> = resolve_game_id(py, include_game_id, &metadata_struct.game_id)?;
 
-    // Parse tracking frames with frame-level pushdown filtering
-    let (mut frames, periods) = parse_tracking_frames(raw_data, &player_id_map, &home_team_id, only_alive, &pushdown)?;
+    // Parse tracking frames in parallel with frame-level pushdown filtering
+    let (mut frames, periods) = parse_tracking_frames_parallel(raw_data, &player_id_map, &home_team_id, only_alive, &pushdown)?;
 
     // Normalize timestamps so each period starts at 0ms
     normalize_timestamps_per_period(&mut frames);
