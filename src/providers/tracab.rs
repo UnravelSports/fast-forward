@@ -696,6 +696,13 @@ fn parse_tracking_dat(
     let mut home_jersey_map: HashMap<i32, String> = HashMap::new();
     let mut away_jersey_map: HashMap<i32, String> = HashMap::new();
 
+    // Build BTreeMap for O(log n) period lookup instead of O(n) linear search
+    // Key: start_frame, Value: (period_id, start_frame, end_frame)
+    let period_map: std::collections::BTreeMap<u32, (u8, u32, u32)> = periods
+        .iter()
+        .map(|&(pid, start, end)| (start, (pid, start, end)))
+        .collect();
+
     for line in reader.lines() {
         let line = line?;
         if line.is_empty() {
@@ -735,20 +742,11 @@ fn parse_tracking_dat(
         let players_str = parts[1];
         let ball_str = parts[2];
 
-        // Determine which period this frame belongs to
-        let mut period_id: u8 = 0;
-        let mut period_start_frame: u32 = 0;
-        for &(pid, start, end) in periods {
-            if frame_id >= start && frame_id <= end {
-                period_id = pid;
-                period_start_frame = start;
-                break;
-            }
-        }
-
-        if period_id == 0 {
-            continue; // Frame not in any period
-        }
+        // Determine which period this frame belongs to using O(log n) BTreeMap lookup
+        let (period_id, period_start_frame) = match period_map.range(..=frame_id).next_back() {
+            Some((&_start, &(pid, start, end))) if frame_id <= end => (pid, start),
+            _ => continue, // Frame not in any period
+        };
 
         // EARLY PUSHDOWN: Skip frames based on period_id
         if let Some(ref periods) = pushdown.period_ids {
@@ -905,6 +903,12 @@ fn parse_tracking_json(
     let mut home_jersey_map: HashMap<i32, String> = HashMap::new();
     let mut away_jersey_map: HashMap<i32, String> = HashMap::new();
 
+    // Build BTreeMap for O(log n) period lookup instead of O(n) linear search
+    let period_map: std::collections::BTreeMap<u32, (u8, u32, u32)> = periods
+        .iter()
+        .map(|&(pid, start, end)| (start, (pid, start, end)))
+        .collect();
+
     for frame_data in raw.frame_data {
         // Get ball status for only_alive filter
         let ball_pos = frame_data.ball_position.first();
@@ -933,20 +937,11 @@ fn parse_tracking_json(
             }
         }
 
-        // Determine which period this frame belongs to
-        let mut period_id: u8 = 0;
-        let mut period_start_frame: u32 = 0;
-        for &(pid, start, end) in periods {
-            if frame_id >= start && frame_id <= end {
-                period_id = pid;
-                period_start_frame = start;
-                break;
-            }
-        }
-
-        if period_id == 0 {
-            continue;
-        }
+        // Determine which period this frame belongs to using O(log n) BTreeMap lookup
+        let (period_id, period_start_frame) = match period_map.range(..=frame_id).next_back() {
+            Some((&_start, &(pid, start, end))) if frame_id <= end => (pid, start),
+            _ => continue, // Frame not in any period
+        };
 
         // EARLY PUSHDOWN: Skip frames based on period_id
         if let Some(ref period_filter) = pushdown.period_ids {
