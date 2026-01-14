@@ -15,6 +15,44 @@ use crate::models::{
 use crate::orientation::{transform_frames, Orientation};
 
 // ============================================================================
+// String Interning for Memory Optimization
+// ============================================================================
+
+/// Thread-safe string interner that stores unique strings and returns u32 indices.
+/// This reduces memory usage by avoiding duplicate string allocations.
+struct StringInterner {
+    strings: Vec<String>,
+    lookup: HashMap<String, u32>,
+}
+
+impl StringInterner {
+    fn new() -> Self {
+        Self {
+            strings: Vec::with_capacity(64), // Typical: ~44 players + ~3 teams
+            lookup: HashMap::with_capacity(64),
+        }
+    }
+
+    /// Intern a string, returning its index. If already interned, returns existing index.
+    fn intern(&mut self, s: String) -> u32 {
+        if let Some(&idx) = self.lookup.get(&s) {
+            idx
+        } else {
+            let idx = self.strings.len() as u32;
+            self.lookup.insert(s.clone(), idx);
+            self.strings.push(s);
+            idx
+        }
+    }
+
+    /// Get the string for a given index.
+    fn get(&self, idx: u32) -> &str {
+        &self.strings[idx as usize]
+    }
+}
+
+
+// ============================================================================
 // HawkEye JSON Types
 // ============================================================================
 
@@ -701,12 +739,12 @@ struct BallFileResult {
     samples: Vec<BallSampleForMerge>,
 }
 
-/// A single player sample with all data needed for merging (thread-safe, owned)
-#[derive(Clone)]
+/// A single player sample with all data needed for merging (thread-safe, uses interned indices)
+#[derive(Clone, Copy)]
 struct PlayerSampleForMerge {
     frame_id: u32,
-    team_id: String,
-    player_id: String,
+    team_id_idx: u32,    // Index into StringInterner
+    player_id_idx: u32,  // Index into StringInterner
     pos: [f32; 2],
 }
 
@@ -856,6 +894,7 @@ fn parse_ball_file_for_merge(
 }
 
 /// Parse a player file and return owned results suitable for parallel processing
+/// Uses pre-interned lookup for team_id and player_id (no locking needed)
 fn parse_player_file_for_merge(
     data: &[u8],
     period_id: u8,
@@ -863,7 +902,9 @@ fn parse_player_file_for_merge(
     fps: f32,
     object_id: &str,
     pushdown: &PushdownFilters,
-    player_id_to_team: &HashMap<String, String>,
+    player_lookup: &HashMap<String, (u32, u32)>,  // Maps player_id -> (team_id_idx, player_id_idx)
+    interner: &StringInterner,  // For filter checking only (read-only)
+    unknown_idx: u32,  // Pre-interned "unknown" index
 ) -> Result<PlayerFileResult, KloppyError> {
     if data.is_empty() {
         return Ok(PlayerFileResult { samples: Vec::new() });
@@ -880,23 +921,26 @@ fn parse_player_file_for_merge(
     for person in feed.samples.people {
         let person_player_id = get_object_id(&person.person_id, object_id)?;
 
-        // Find the team_id for this player from the pre-built lookup
-        let team_id = player_id_to_team
+        // Get both team_id_idx and player_id_idx from pre-built lookup (no locking!)
+        let (team_id_idx, player_id_idx) = player_lookup
             .get(&person_player_id)
-            .cloned()
-            .unwrap_or_else(|| "unknown".to_string());
+            .copied()
+            .unwrap_or((unknown_idx, unknown_idx));
 
         // EARLY PUSHDOWN: Skip players that don't match team_id/player_id filters
-        if has_player_filters && !pushdown.should_include_player(&team_id, &person_player_id) {
-            continue;
+        if has_player_filters {
+            let team_id = interner.get(team_id_idx);
+            if !pushdown.should_include_player(team_id, &person_player_id) {
+                continue;
+            }
         }
 
         for centroid in person.centroid {
             let frame_id = ((minute_offset * 60.0 + centroid.time as f32) * fps) as u32;
             samples.push(PlayerSampleForMerge {
                 frame_id,
-                team_id: team_id.clone(),
-                player_id: person_player_id.clone(),
+                team_id_idx,
+                player_id_idx,
                 pos: centroid.pos,
             });
         }
@@ -906,9 +950,11 @@ fn parse_player_file_for_merge(
 }
 
 /// Merge parallel parsing results into a sorted Vec<StandardFrame>
+/// Resolves interned string indices back to actual strings
 fn merge_parallel_results(
     ball_results: Vec<BallFileResult>,
     player_results: Vec<PlayerFileResult>,
+    interner: &StringInterner,
 ) -> Vec<StandardFrame> {
     // Estimate total capacity
     let estimated_frames: usize = ball_results.iter().map(|r| r.samples.len()).sum();
@@ -922,7 +968,7 @@ fn merge_parallel_results(
                     frame_id: sample.frame_id,
                     period_id: sample.period_id,
                     timestamp_ms: sample.timestamp_ms,
-                    ball_state: sample.ball_state.clone(),
+                    ball_state: sample.ball_state,
                     ball_owning_team_id: sample.ball_owning_team_id.clone(),
                     ball: StandardBall {
                         x: sample.pos[0],
@@ -945,13 +991,13 @@ fn merge_parallel_results(
         }
     }
 
-    // Add player positions to existing frames
+    // Add player positions to existing frames (resolve indices to strings)
     for result in player_results {
         for sample in result.samples {
             if let Some(partial_frame) = frame_map.get_mut(&sample.frame_id) {
                 partial_frame.players.push(StandardPlayerPosition {
-                    team_id: sample.team_id,
-                    player_id: sample.player_id,
+                    team_id: interner.get(sample.team_id_idx).to_string(),
+                    player_id: interner.get(sample.player_id_idx).to_string(),
                     x: sample.pos[0],
                     y: sample.pos[1],
                     z: 0.0, // Players have no Z coordinate
@@ -973,15 +1019,17 @@ fn merge_parallel_results(
     frames
 }
 
-/// Build player_id -> team_id lookup from first player file
-fn build_player_team_lookup(
+/// Build complete player lookup from first player file with all strings pre-interned
+/// Returns (player_id -> (team_id_idx, player_id_idx), StringInterner)
+fn build_player_lookup_with_interner(
     player_files: &[(u8, u8, Vec<u8>)],
     object_id: &str,
-) -> Result<HashMap<String, String>, KloppyError> {
-    let mut lookup = HashMap::new();
+) -> Result<(HashMap<String, (u32, u32)>, StringInterner), KloppyError> {
+    let mut interner = StringInterner::new();
+    let mut lookup = HashMap::with_capacity(50);
 
     // Just use first file - it contains all players
-    if let Some((period_id, minute, data)) = player_files.first() {
+    if let Some((_period_id, _minute, data)) = player_files.first() {
         if !data.is_empty() {
             let feed: RawPlayerFeed = serde_json::from_slice(data)?;
             for player in feed.details.players {
@@ -995,12 +1043,18 @@ fn build_player_team_lookup(
                     team_id_raw
                 };
 
-                lookup.insert(player_id, team_id);
+                // Intern both team_id and player_id
+                let team_id_idx = interner.intern(team_id);
+                let player_id_idx = interner.intern(player_id.clone());
+                lookup.insert(player_id, (team_id_idx, player_id_idx));
             }
         }
     }
 
-    Ok(lookup)
+    // Also intern "unknown" for any players not found in the lookup
+    interner.intern("unknown".to_string());
+
+    Ok((lookup, interner))
 }
 
 /// Parallel version of build_tracking_df_from_files using rayon
@@ -1018,8 +1072,11 @@ fn build_tracking_df_from_files_parallel(
 ) -> Result<DataFrame, KloppyError> {
     use rayon::prelude::*;
 
-    // Build player_id -> team_id lookup (needed for player file parsing)
-    let player_team_lookup = build_player_team_lookup(&player_files, object_id)?;
+    // Build complete player lookup with all strings pre-interned (no locking during parallel!)
+    let (player_lookup, interner) = build_player_lookup_with_interner(&player_files, object_id)?;
+
+    // Get the "unknown" index for players not in the lookup
+    let unknown_idx = interner.lookup.get("unknown").copied().unwrap_or(0);
 
     // PHASE 1: Parallel ball file parsing with file-level pushdown
     let ball_results: Result<Vec<BallFileResult>, KloppyError> = ball_files
@@ -1048,7 +1105,7 @@ fn build_tracking_df_from_files_parallel(
 
     let ball_results = ball_results?;
 
-    // PHASE 2: Parallel player file parsing with file-level pushdown
+    // PHASE 2: Parallel player file parsing with file-level pushdown (no locking!)
     let player_results: Result<Vec<PlayerFileResult>, KloppyError> = player_files
         .into_par_iter()
         .filter_map(|(period_id, minute, data)| {
@@ -1068,15 +1125,17 @@ fn build_tracking_df_from_files_parallel(
                 metadata.fps,
                 object_id,
                 pushdown,
-                &player_team_lookup,
+                &player_lookup,
+                &interner,
+                unknown_idx,
             )
         })
         .collect();
 
     let player_results = player_results?;
 
-    // PHASE 3: Sequential merge
-    let mut frames = merge_parallel_results(ball_results, player_results);
+    // PHASE 3: Sequential merge (resolves string indices back to strings)
+    let mut frames = merge_parallel_results(ball_results, player_results, &interner);
 
     // PHASE 4: Apply coordinate transformation if not CDF
     let coordinate_system = CoordinateSystem::from_str(coordinates)?;
