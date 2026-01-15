@@ -47,6 +47,7 @@ Cache parsed tracking data for faster subsequent loads::
 
 from kloppy_light._kloppy_light import __version__
 from kloppy_light import cdf
+from kloppy_light import gradientsports
 from kloppy_light import secondspectrum
 from kloppy_light import skillcorner
 from kloppy_light import sportec
@@ -66,6 +67,7 @@ from kloppy.io import FileLike
 __all__ = [
     "__version__",
     "cdf",
+    "gradientsports",
     "secondspectrum",
     "skillcorner",
     "sportec",

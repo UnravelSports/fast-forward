@@ -20,6 +20,11 @@ fn _kloppy_light(m: &Bound<'_, PyModule>) -> PyResult<()> {
     providers::cdf::register_module(&cdf)?;
     m.add_submodule(&cdf)?;
 
+    // Register gradientsports submodule
+    let gradientsports = PyModule::new(m.py(), "gradientsports")?;
+    providers::gradientsports::register_module(&gradientsports)?;
+    m.add_submodule(&gradientsports)?;
+
     // Register secondspectrum submodule
     let secondspectrum = PyModule::new(m.py(), "secondspectrum")?;
     providers::secondspectrum::register_module(&secondspectrum)?;

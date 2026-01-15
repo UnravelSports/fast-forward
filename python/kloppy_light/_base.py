@@ -438,6 +438,7 @@ def load_tracking_impl(
 def _register_standard_providers() -> None:
     """Register the standard providers at module load time."""
     from kloppy_light._kloppy_light import cdf as _cdf
+    from kloppy_light._kloppy_light import gradientsports as _gs
     from kloppy_light._kloppy_light import secondspectrum as _ss
     from kloppy_light._kloppy_light import skillcorner as _sc
     from kloppy_light._kloppy_light import sportec as _sp
@@ -448,6 +449,13 @@ def _register_standard_providers() -> None:
         rust_module=_cdf,
         metadata_params=[],
         tracking_params=[],
+    )
+
+    register_provider(
+        name="gradientsports",
+        rust_module=_gs,
+        metadata_params=["roster_data"],
+        tracking_params=["roster_data"],
     )
 
     register_provider(

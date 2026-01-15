@@ -229,6 +229,39 @@ impl Position {
             _ => Position::Unknown,
         }
     }
+
+    /// Parse position from GradientSports (PFF) format
+    /// PFF uses position group codes like: GK, RB, LB, RCB, LCB, CB, CDM, CM, CAM, AM, RW, LW, CF, ST
+    pub fn from_gradientsports(raw: &str) -> Self {
+        match raw.to_uppercase().as_str() {
+            "GK" => Position::GK,
+            "LB" => Position::LB,
+            "RB" => Position::RB,
+            "LCB" => Position::LCB,
+            "CB" => Position::CB,
+            "RCB" => Position::RCB,
+            "LWB" => Position::LWB,
+            "RWB" => Position::RWB,
+            "LDM" => Position::LDM,
+            "CDM" | "DM" => Position::CDM,
+            "RDM" => Position::RDM,
+            "LCM" => Position::LCM,
+            "CM" => Position::CM,
+            "RCM" => Position::RCM,
+            "LAM" => Position::LAM,
+            "CAM" | "AM" => Position::CAM,
+            "RAM" => Position::RAM,
+            "LW" => Position::LW,
+            "RW" => Position::RW,
+            "LM" => Position::LM,
+            "RM" => Position::RM,
+            "LF" => Position::LF,
+            "ST" | "FW" => Position::ST,
+            "RF" => Position::RF,
+            "CF" => Position::CF,
+            _ => Position::Unknown,
+        }
+    }
 }
 
 #[cfg(test)]

@@ -43,7 +43,7 @@ impl CoordinateSystem {
     pub fn from_str(s: &str) -> Result<Self, KloppyError> {
         match s.to_lowercase().as_str() {
             // CDF and aliases
-            "cdf" | "secondspectrum" | "skillcorner" | "pff" | "sportec:tracking" | "hawkeye" => {
+            "cdf" | "secondspectrum" | "skillcorner" | "pff" | "gradientsports" | "sportec:tracking" | "hawkeye" => {
                 Ok(CoordinateSystem::Cdf)
             }
             // Distinct coordinate systems
