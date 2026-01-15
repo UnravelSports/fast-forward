@@ -1,0 +1,31 @@
+======================================================================
+kloppy-light Benchmark
+======================================================================
+Memory measurement: memory_profiler (accurate)
+Mode: lazy only (no kloppy comparison)
+
+Data directory: /Users/jbekkers/PycharmProjects/kloppy-light/data
+
+Operation                     Memory         Time          Rows
+----------------------------------------------------------------------
+
+Sportec tracking file: 355.9 MiB
+
+## Sportec (kloppy-light) - long layout
+Lazy (no collect)              29.05 MiB     0.235s           N/A
+Lazy (with collect)          1291.94 MiB     5.777s     1,971,514
+
+## Sportec (kloppy-light) - wide layout
+Lazy (no collect)               4.89 MiB     0.166s           N/A
+Lazy (with collect)           410.64 MiB     5.969s        85,718
+
+## Sportec (kloppy-light) - long_ball layout
+Lazy (no collect)               0.00 MiB     0.163s           N/A
+Lazy (with collect)           514.25 MiB     5.682s     1,885,796
+
+## Sportec (kloppy-light) - filter pushdown
+Filter: period_id==2          214.41 MiB     3.317s       948,681
+Filter: frame<=50k             73.72 MiB     2.270s       626,244
+Filter: combined                4.23 MiB     0.994s           N/A
+
+======================================================================

@@ -1,0 +1,28 @@
+======================================================================
+kloppy-light Benchmark
+======================================================================
+Memory measurement: memory_profiler (accurate)
+Providers: skillcorner
+Layouts: long
+
+Data directory: /Users/jbekkers/PycharmProjects/kloppy-light/data
+
+Operation                     Memory         Time          Rows
+----------------------------------------------------------------------
+
+Skillcorner tracking file: 85.1 MiB
+
+## Skillcorner (kloppy-light) - long layout
+Eager loading                 395.58 MiB     0.363s       725,006
+Lazy (no collect)               0.11 MiB     0.167s           N/A
+Lazy parallel (with collect)            57.55 MiB     0.276s       725,006
+
+## Skillcorner (kloppy-light) - filter pushdown
+Filter: period_id==2           43.47 MiB     0.246s       324,461
+Filter: frame<=15k             20.00 MiB     0.225s       220,915
+Filter: combined                6.25 MiB     0.240s       220,915
+Filter: team                   37.78 MiB     0.251s       346,742
+Filter: player                  2.59 MiB     0.219s        31,522
+Filter: between                21.88 MiB     0.280s       209,875
+
+======================================================================

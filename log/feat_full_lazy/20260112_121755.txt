@@ -1,0 +1,122 @@
+======================================================================
+kloppy-light Benchmark
+======================================================================
+Memory measurement: memory_profiler (accurate)
+Mode: lazy only (no kloppy comparison)
+
+Data directory: /Users/jbekkers/PycharmProjects/kloppy-light/data
+
+Operation                     Memory         Time          Rows
+----------------------------------------------------------------------
+
+SecondSpectrum tracking file: 423.4 MiB
+
+## SecondSpectrum (kloppy-light) - long layout
+Lazy (no collect)              28.34 MiB     0.254s           N/A
+Lazy (with collect)          1358.11 MiB     1.681s     1,909,069
+
+## SecondSpectrum (kloppy-light) - wide layout
+Lazy (no collect)               4.91 MiB     0.177s           N/A
+Lazy (with collect)           273.39 MiB     1.796s        83,003
+
+## SecondSpectrum (kloppy-light) - long_ball layout
+Lazy (no collect)               1.00 MiB     0.166s           N/A
+Lazy (with collect)           304.30 MiB     1.634s     1,826,066
+
+## SecondSpectrum (kloppy-light) - filter pushdown
+Filter: period_id==2          268.92 MiB     1.462s       962,343
+Filter: frame<=50k            126.17 MiB     1.444s       666,517
+Filter: combined              157.39 MiB     1.399s       522,606
+Filter: team                  205.92 MiB     1.598s       913,033
+Filter: player                425.08 MiB     1.623s        83,003
+Filter: between               269.05 MiB     1.587s       464,623
+
+SkillCorner tracking file: 85.1 MiB
+
+## SkillCorner (kloppy-light) - long layout
+Lazy (no collect)               0.03 MiB     0.173s           N/A
+Lazy (with collect)            97.95 MiB     0.518s       725,006
+
+## SkillCorner (kloppy-light) - wide layout
+Lazy (no collect)               0.97 MiB     0.183s           N/A
+Lazy (with collect)            10.28 MiB     0.531s        31,522
+
+## SkillCorner (kloppy-light) - long_ball layout
+Lazy (no collect)               0.00 MiB     0.183s           N/A
+Lazy (with collect)            13.38 MiB     0.505s       693,484
+
+## SkillCorner (kloppy-light) - filter pushdown
+Filter: period_id==2            5.44 MiB     0.414s       324,461
+Filter: frame<=15k              1.00 MiB     0.390s       220,915
+Filter: combined                2.23 MiB     0.408s       220,915
+Filter: team                   28.44 MiB     0.496s       346,742
+Filter: player                 12.88 MiB     0.477s        31,522
+Filter: between                14.95 MiB     0.478s       209,875
+
+Sportec tracking file: 355.9 MiB
+
+## Sportec (kloppy-light) - long layout
+Lazy (no collect)               0.03 MiB     0.177s           N/A
+Lazy (with collect)           440.03 MiB     6.051s     1,971,514
+
+## Sportec (kloppy-light) - wide layout
+Lazy (no collect)               0.00 MiB     0.192s           N/A
+Lazy (with collect)           262.67 MiB     5.965s        85,718
+
+## Sportec (kloppy-light) - long_ball layout
+Lazy (no collect)               0.00 MiB     0.177s           N/A
+Lazy (with collect)           217.03 MiB     6.033s     1,885,796
+
+## Sportec (kloppy-light) - filter pushdown
+Filter: period_id==2           56.25 MiB     3.447s       948,681
+Filter: frame<=50k             63.58 MiB     2.437s       626,244
+Filter: combined               62.09 MiB     2.437s       626,244
+Filter: team                  321.16 MiB     5.905s       942,898
+Filter: player                335.41 MiB     5.826s        85,718
+Filter: between               297.80 MiB     5.851s       589,858
+
+HawkEye tracking files: 2632.3 MiB (106 ball + 106 player)
+
+## HawkEye (kloppy-light) - long layout
+Lazy (no collect)              21.95 MiB     0.247s           N/A
+Lazy (with collect)          5170.75 MiB    18.935s     6,996,515
+
+## HawkEye (kloppy-light) - wide layout
+Lazy (no collect)               6.72 MiB     0.311s           N/A
+Lazy (with collect)          4372.16 MiB    17.609s       268,525
+
+## HawkEye (kloppy-light) - long_ball layout
+Lazy (no collect)              23.05 MiB     0.322s           N/A
+Lazy (with collect)          4132.33 MiB    17.607s     6,727,990
+
+## HawkEye (kloppy-light) - filter pushdown
+Filter: period_id==2         3984.41 MiB    13.987s     3,797,708
+Filter: frame<=75k           5109.86 MiB    16.848s     1,657,226
+Filter: combined             4063.69 MiB    11.149s     1,657,226
+Filter: team                 5282.78 MiB    15.782s     2,960,246
+Filter: player               5135.66 MiB    16.203s       269,129
+Filter: between              5073.05 MiB    16.201s     1,187,775
+
+Tracab tracking file: 113.4 MiB
+
+## Tracab (kloppy-light) - long layout
+Lazy (no collect)               0.16 MiB     0.190s           N/A
+Lazy (with collect)           363.95 MiB     0.914s     1,900,849
+
+## Tracab (kloppy-light) - wide layout
+Lazy (no collect)               0.95 MiB     0.184s           N/A
+Lazy (with collect)            70.50 MiB     0.972s        82,672
+
+## Tracab (kloppy-light) - long_ball layout
+Lazy (no collect)               0.00 MiB     0.187s           N/A
+Lazy (with collect)            76.53 MiB     0.942s     1,818,177
+
+## Tracab (kloppy-light) - filter pushdown
+Filter: period_id==2           10.47 MiB     0.593s       925,534
+Filter: frame>=1.2M            37.20 MiB     0.609s       925,534
+Filter: combined                6.88 MiB     0.472s       514,004
+Filter: team                  110.58 MiB     0.917s       909,392
+Filter: player                 38.75 MiB     0.926s        82,672
+Filter: between                41.05 MiB     0.905s       556,945
+
+======================================================================

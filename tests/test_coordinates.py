@@ -343,4 +343,4 @@ class TestCoordinateTransformationWithOrientation:
                     orientation=orient,
                     lazy=False
                 )
-                assert dataset.tracking.height > 0, f"Failed for {orient} + {coord}"
+                assert dataset.tracking.height == 8, f"Failed for {orient} + {coord}"

@@ -1,0 +1,19 @@
+======================================================================
+kloppy-light Benchmark
+======================================================================
+Memory measurement: memory_profiler (accurate)
+Providers: hawkeye
+Layouts: long, long_ball, wide
+
+Data directory: /Users/jbekkers/PycharmProjects/kloppy-light/data
+
+Operation                     Memory         Time          Rows
+----------------------------------------------------------------------
+
+Hawkeye tracking file: 2632.3 MiB
+
+## Hawkeye - parallel vs sequential (long layout)
+Parallel loading             6143.16 MiB     5.727s     6,996,515
+Lazy parallel (collect)      4248.89 MiB     5.680s     6,996,515
+
+======================================================================

@@ -1,0 +1,26 @@
+======================================================================
+kloppy-light Benchmark
+======================================================================
+Memory measurement: memory_profiler (accurate)
+Providers: sportec
+Layouts: long
+Features: cache, no-pushdown, no-eager
+
+Data directory: /Users/jbekkers/PycharmProjects/kloppy-light/data
+
+Operation                     Memory         Time          Rows
+----------------------------------------------------------------------
+
+Sportec tracking file: 355.9 MiB
+
+## Sportec (kloppy-light) - long layout
+Lazy (no collect)              28.20 MiB     0.230s           N/A
+Lazy (with collect)          1288.08 MiB     6.257s     1,971,514
+
+## Sportec (kloppy-light) - cache performance
+Cache miss (collect)          512.11 MiB     5.999s     1,971,514
+Cache hit (no collect)          0.16 MiB     0.170s           N/A
+Cache hit (collect)           155.34 MiB     0.199s     1,971,514
+  Cache file: 02386fbc97048f96.parquet (10.6 MiB)
+
+======================================================================

@@ -690,11 +690,22 @@ fn parse_tracking_dat(
 ) -> Result<TrackingParseResult, KloppyError> {
     let cursor = Cursor::new(data);
     let reader = BufReader::new(cursor);
-    let mut frames = Vec::new();
+
+    // Estimate capacity: ~100 bytes per line average for Tracab DAT format
+    let estimated_frames = data.len() / 100;
+    let mut frames = Vec::with_capacity(estimated_frames);
 
     // Build jersey -> player_id map (to be filled dynamically)
-    let mut home_jersey_map: HashMap<i32, String> = HashMap::new();
-    let mut away_jersey_map: HashMap<i32, String> = HashMap::new();
+    // Typical match has ~22 players (11 per team)
+    let mut home_jersey_map: HashMap<i32, String> = HashMap::with_capacity(14);
+    let mut away_jersey_map: HashMap<i32, String> = HashMap::with_capacity(14);
+
+    // Build BTreeMap for O(log n) period lookup instead of O(n) linear search
+    // Key: start_frame, Value: (period_id, start_frame, end_frame)
+    let period_map: std::collections::BTreeMap<u32, (u8, u32, u32)> = periods
+        .iter()
+        .map(|&(pid, start, end)| (start, (pid, start, end)))
+        .collect();
 
     for line in reader.lines() {
         let line = line?;
@@ -735,20 +746,11 @@ fn parse_tracking_dat(
         let players_str = parts[1];
         let ball_str = parts[2];
 
-        // Determine which period this frame belongs to
-        let mut period_id: u8 = 0;
-        let mut period_start_frame: u32 = 0;
-        for &(pid, start, end) in periods {
-            if frame_id >= start && frame_id <= end {
-                period_id = pid;
-                period_start_frame = start;
-                break;
-            }
-        }
-
-        if period_id == 0 {
-            continue; // Frame not in any period
-        }
+        // Determine which period this frame belongs to using O(log n) BTreeMap lookup
+        let (period_id, period_start_frame) = match period_map.range(..=frame_id).next_back() {
+            Some((&_start, &(pid, start, end))) if frame_id <= end => (pid, start),
+            _ => continue, // Frame not in any period
+        };
 
         // EARLY PUSHDOWN: Skip frames based on period_id
         if let Some(ref periods) = pushdown.period_ids {
@@ -804,7 +806,8 @@ fn parse_tracking_dat(
 
         // Parse player data
         let has_player_filters = pushdown.has_player_filters();
-        let mut player_positions: Vec<StandardPlayerPosition> = Vec::new();
+        // Typical match has ~22 players on field at any time
+        let mut player_positions: Vec<StandardPlayerPosition> = Vec::with_capacity(24);
 
         for player_str in players_str.split(';') {
             if player_str.is_empty() {
@@ -887,6 +890,230 @@ fn parse_tracking_dat(
     })
 }
 
+/// Parallel version of parse_tracking_dat using rayon
+fn parse_tracking_dat_parallel(
+    data: &[u8],
+    periods: &[(u8, u32, u32)],
+    home_team_id: &str,
+    away_team_id: &str,
+    fps: f32,
+    pitch_length: f32,
+    pitch_width: f32,
+    only_alive: bool,
+    pushdown: &PushdownFilters,
+) -> Result<TrackingParseResult, KloppyError> {
+    use rayon::prelude::*;
+
+    // Build BTreeMap for O(log n) period lookup
+    let period_map: std::collections::BTreeMap<u32, (u8, u32, u32)> = periods
+        .iter()
+        .map(|&(pid, start, end)| (start, (pid, start, end)))
+        .collect();
+
+    // Collect all lines first (needed for parallel processing)
+    let content = std::str::from_utf8(data)
+        .map_err(|e| KloppyError::InvalidInput(format!("Invalid UTF-8: {}", e)))?;
+
+    let lines: Vec<&str> = content.lines().collect();
+
+    // Process lines in parallel
+    let frames: Vec<Option<StandardFrame>> = lines
+        .par_iter()
+        .map(|line| {
+            if line.is_empty() {
+                return None;
+            }
+
+            // Quick check for alive/dead before full parse
+            if only_alive && !line.contains(",Alive") {
+                return None;
+            }
+
+            // Parse line format: frame_id:players:ball:unused
+            let parts: Vec<&str> = line.split(':').collect();
+            if parts.len() < 3 {
+                return None;
+            }
+
+            let frame_id: u32 = parts[0].parse().ok()?;
+
+            // EARLY PUSHDOWN: Skip frames based on frame_id
+            if let Some(min) = pushdown.frame_id_min {
+                if frame_id < min {
+                    return None;
+                }
+            }
+            if let Some(max) = pushdown.frame_id_max {
+                if frame_id > max {
+                    return None;
+                }
+            }
+            if let Some(ref ids) = pushdown.frame_ids {
+                if !ids.contains(&frame_id) {
+                    return None;
+                }
+            }
+
+            let players_str = parts[1];
+            let ball_str = parts[2];
+
+            // Determine which period this frame belongs to using O(log n) BTreeMap lookup
+            let (period_id, period_start_frame) = match period_map.range(..=frame_id).next_back() {
+                Some((&_start, &(pid, start, end))) if frame_id <= end => (pid, start),
+                _ => return None, // Frame not in any period
+            };
+
+            // EARLY PUSHDOWN: Skip frames based on period_id
+            if let Some(ref period_filter) = pushdown.period_ids {
+                if !period_filter.contains(&(period_id as i32)) {
+                    return None;
+                }
+            }
+
+            // Calculate period-relative timestamp
+            let relative_frame = frame_id - period_start_frame;
+            let timestamp_ms = ((relative_frame as f64 / fps as f64) * 1000.0) as i64;
+
+            // EARLY PUSHDOWN: Skip frames based on timestamp
+            if let Some(min) = pushdown.timestamp_min_ms {
+                if timestamp_ms < min {
+                    return None;
+                }
+            }
+            if let Some(max) = pushdown.timestamp_max_ms {
+                if timestamp_ms > max {
+                    return None;
+                }
+            }
+
+            // Parse ball data
+            let ball_parts: Vec<&str> = ball_str.split(';').next()?.split(',').collect();
+            if ball_parts.len() < 6 {
+                return None;
+            }
+
+            let ball_x: f32 = ball_parts[0].parse().ok()?;
+            let ball_y: f32 = ball_parts[1].parse().ok()?;
+            let ball_z: f32 = ball_parts[2].parse().ok()?;
+            let ball_owner = ball_parts[4];
+            let ball_state_str = ball_parts[5];
+
+            let ball_state = if ball_state_str == "Alive" {
+                BallState::Alive
+            } else {
+                BallState::Dead
+            };
+
+            // Convert ball coordinates from cm to meters (CDF)
+            let (cdf_ball_x, cdf_ball_y, cdf_ball_z) =
+                transform_to_cdf(ball_x, ball_y, ball_z, CoordinateSystem::Tracab, pitch_length, pitch_width);
+
+            let ball_owning_team_id = match ball_owner {
+                "H" => Some(home_team_id.to_string()),
+                "A" => Some(away_team_id.to_string()),
+                _ => None,
+            };
+
+            // Parse player data
+            let has_player_filters = pushdown.has_player_filters();
+            let mut player_positions: Vec<StandardPlayerPosition> = Vec::with_capacity(24);
+
+            for player_str in players_str.split(';') {
+                if player_str.is_empty() {
+                    continue;
+                }
+
+                let player_parts: Vec<&str> = player_str.split(',').collect();
+                if player_parts.len() < 6 {
+                    continue;
+                }
+
+                let team: i32 = player_parts[0].parse().unwrap_or(-1);
+                let jersey: i32 = player_parts[2].parse().unwrap_or(-1);
+                let x: f32 = player_parts[3].parse().unwrap_or(0.0);
+                let y: f32 = player_parts[4].parse().unwrap_or(0.0);
+                let speed: f32 = player_parts[5].parse().unwrap_or(0.0);
+
+                // Skip non-player entries (team == -1, 3, 4)
+                if team != 0 && team != 1 {
+                    continue;
+                }
+
+                // Compute player_id directly (no HashMap caching needed in parallel)
+                let (team_id, player_id) = if team == 1 {
+                    (home_team_id.to_string(), format!("home_{}", jersey))
+                } else {
+                    (away_team_id.to_string(), format!("away_{}", jersey))
+                };
+
+                // EARLY PUSHDOWN: Skip players that don't match team_id/player_id filters
+                if has_player_filters && !pushdown.should_include_player(&team_id, &player_id) {
+                    continue;
+                }
+
+                // Convert coordinates from cm to meters (CDF)
+                let (cdf_x, cdf_y, cdf_z) =
+                    transform_to_cdf(x, y, 0.0, CoordinateSystem::Tracab, pitch_length, pitch_width);
+
+                player_positions.push(StandardPlayerPosition {
+                    team_id,
+                    player_id,
+                    x: cdf_x,
+                    y: cdf_y,
+                    z: cdf_z,
+                    speed: Some(speed),
+                });
+            }
+
+            Some(StandardFrame {
+                frame_id,
+                period_id,
+                timestamp_ms,
+                ball_state,
+                ball_owning_team_id,
+                ball: StandardBall {
+                    x: cdf_ball_x,
+                    y: cdf_ball_y,
+                    z: cdf_ball_z,
+                    speed: None,
+                },
+                players: player_positions,
+            })
+        })
+        .collect();
+
+    // Filter out None values and collect
+    let frames: Vec<StandardFrame> = frames.into_iter().flatten().collect();
+
+    // Build jersey maps from parsed frames (for player list generation)
+    let mut home_jersey_map: HashMap<i32, String> = HashMap::with_capacity(14);
+    let mut away_jersey_map: HashMap<i32, String> = HashMap::with_capacity(14);
+
+    for frame in &frames {
+        for player in &frame.players {
+            if player.team_id == home_team_id {
+                if let Some(jersey_str) = player.player_id.strip_prefix("home_") {
+                    if let Ok(jersey) = jersey_str.parse::<i32>() {
+                        home_jersey_map.entry(jersey).or_insert_with(|| player.player_id.clone());
+                    }
+                }
+            } else if player.team_id == away_team_id {
+                if let Some(jersey_str) = player.player_id.strip_prefix("away_") {
+                    if let Ok(jersey) = jersey_str.parse::<i32>() {
+                        away_jersey_map.entry(jersey).or_insert_with(|| player.player_id.clone());
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(TrackingParseResult {
+        frames,
+        home_jersey_map,
+        away_jersey_map,
+    })
+}
+
 fn parse_tracking_json(
     data: &[u8],
     periods: &[(u8, u32, u32)],
@@ -901,9 +1128,17 @@ fn parse_tracking_json(
     let raw: JsonTrackingData = serde_json::from_slice(data)
         .map_err(|e| KloppyError::InvalidInput(format!("Failed to parse JSON tracking: {}", e)))?;
 
-    let mut frames = Vec::new();
-    let mut home_jersey_map: HashMap<i32, String> = HashMap::new();
-    let mut away_jersey_map: HashMap<i32, String> = HashMap::new();
+    // Pre-allocate with known size from parsed JSON
+    let mut frames = Vec::with_capacity(raw.frame_data.len());
+    // Typical match has ~22 players (11 per team)
+    let mut home_jersey_map: HashMap<i32, String> = HashMap::with_capacity(14);
+    let mut away_jersey_map: HashMap<i32, String> = HashMap::with_capacity(14);
+
+    // Build BTreeMap for O(log n) period lookup instead of O(n) linear search
+    let period_map: std::collections::BTreeMap<u32, (u8, u32, u32)> = periods
+        .iter()
+        .map(|&(pid, start, end)| (start, (pid, start, end)))
+        .collect();
 
     for frame_data in raw.frame_data {
         // Get ball status for only_alive filter
@@ -933,20 +1168,11 @@ fn parse_tracking_json(
             }
         }
 
-        // Determine which period this frame belongs to
-        let mut period_id: u8 = 0;
-        let mut period_start_frame: u32 = 0;
-        for &(pid, start, end) in periods {
-            if frame_id >= start && frame_id <= end {
-                period_id = pid;
-                period_start_frame = start;
-                break;
-            }
-        }
-
-        if period_id == 0 {
-            continue;
-        }
+        // Determine which period this frame belongs to using O(log n) BTreeMap lookup
+        let (period_id, period_start_frame) = match period_map.range(..=frame_id).next_back() {
+            Some((&_start, &(pid, start, end))) if frame_id <= end => (pid, start),
+            _ => continue, // Frame not in any period
+        };
 
         // EARLY PUSHDOWN: Skip frames based on period_id
         if let Some(ref period_filter) = pushdown.period_ids {
@@ -1013,7 +1239,8 @@ fn parse_tracking_json(
 
         // Parse players
         let has_player_filters = pushdown.has_player_filters();
-        let mut player_positions: Vec<StandardPlayerPosition> = Vec::new();
+        // Typical match has ~22 players on field at any time
+        let mut player_positions: Vec<StandardPlayerPosition> = Vec::with_capacity(24);
 
         for pp in &frame_data.player_positions {
             // Skip non-player entries (team == -1, 3, 4)
@@ -1081,11 +1308,23 @@ fn parse_tracking(
     pitch_width: f32,
     only_alive: bool,
     pushdown: &PushdownFilters,
+    parallel: bool,
 ) -> Result<TrackingParseResult, KloppyError> {
     // Auto-detect format
     let first_byte = data.iter().find(|&&b| !b.is_ascii_whitespace());
     match first_byte {
         Some(b'{') => parse_tracking_json(
+            data,
+            periods,
+            home_team_id,
+            away_team_id,
+            fps,
+            pitch_length,
+            pitch_width,
+            only_alive,
+            pushdown,
+        ),
+        _ if parallel => parse_tracking_dat_parallel(
             data,
             periods,
             home_team_id,
@@ -1153,7 +1392,8 @@ fn resolve_game_id(
     orientation = "static_home_away",
     only_alive = true,
     include_game_id = None,
-    predicate = None
+    predicate = None,
+    parallel = true
 ))]
 pub fn load_tracking(
     py: Python<'_>,
@@ -1165,6 +1405,7 @@ pub fn load_tracking(
     only_alive: bool,
     include_game_id: Option<Bound<'_, PyAny>>,
     predicate: Option<PyExpr>,
+    parallel: bool,
 ) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
     // 1. Parse layout enum
     let layout_enum = Layout::from_str(layout)
@@ -1195,6 +1436,7 @@ pub fn load_tracking(
         parsed_meta.pitch_width,
         only_alive,
         &pushdown,
+        parallel,
     )
     .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
 

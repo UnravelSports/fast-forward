@@ -137,7 +137,7 @@ fn parse_metadata(
     data: &[u8],
     coordinate_system: &str,
     orientation: &str,
-) -> Result<(StandardMetadata, String, String, Vec<StandardPeriod>), KloppyError> {
+) -> Result<(StandardMetadata, String, String, Vec<StandardPeriod>, HashMap<String, String>), KloppyError> {
     let cursor = Cursor::new(data);
     let reader = BufReader::new(cursor);
     let raw: RawMetadata = serde_json::from_reader(reader)?;
@@ -227,6 +227,12 @@ fn parse_metadata(
         })
         .collect();
 
+    // Build player_id -> team_id mapping from metadata
+    let mut player_team_map: HashMap<String, String> = HashMap::with_capacity(players.len());
+    for p in &players {
+        player_team_map.insert(p.player_id.clone(), p.team_id.clone());
+    }
+
     let metadata = StandardMetadata {
         provider: "secondspectrum".to_string(),
         game_id: raw.ssi_id,
@@ -245,7 +251,7 @@ fn parse_metadata(
         orientation: orientation.to_string(),
     };
 
-    Ok((metadata, home_team_id, away_team_id, periods))
+    Ok((metadata, home_team_id, away_team_id, periods, player_team_map))
 }
 
 fn parse_tracking_frames(
@@ -255,14 +261,14 @@ fn parse_tracking_frames(
     _coordinate_system: CoordinateSystem,
     only_alive: bool,
     pushdown: &PushdownFilters,
+    player_team_map: &HashMap<String, String>,
 ) -> Result<Vec<StandardFrame>, KloppyError> {
     let cursor = Cursor::new(data);
     let reader = BufReader::new(cursor);
 
-    // Build a map from player_id to team_id for quick lookup
-    let mut player_team_map: HashMap<String, String> = HashMap::new();
-
-    let mut frames = Vec::new();
+    // Estimate capacity: ~220 bytes per line average for SecondSpectrum JSONL
+    let estimated_frames = data.len() / 220;
+    let mut frames = Vec::with_capacity(estimated_frames);
     let mut is_first_line = true;
 
     for line in reader.lines() {
@@ -303,16 +309,6 @@ fn parse_tracking_frames(
         // Skip dead ball frames if only_alive is true
         if only_alive && !raw.live {
             continue;
-        }
-
-        // Build player team map on first frame (or we could parse metadata first)
-        if player_team_map.is_empty() {
-            for p in &raw.home_players {
-                player_team_map.insert(p.player_id.clone(), home_team_id.to_string());
-            }
-            for p in &raw.away_players {
-                player_team_map.insert(p.player_id.clone(), away_team_id.to_string());
-            }
         }
 
         let ball_state = if raw.live {
@@ -385,6 +381,134 @@ fn parse_tracking_frames(
     Ok(frames)
 }
 
+/// Parallel version of parse_tracking_frames using rayon
+fn parse_tracking_frames_parallel(
+    data: &[u8],
+    home_team_id: &str,
+    away_team_id: &str,
+    _coordinate_system: CoordinateSystem,
+    only_alive: bool,
+    pushdown: &PushdownFilters,
+    _player_team_map: &HashMap<String, String>,
+) -> Result<Vec<StandardFrame>, KloppyError> {
+    use rayon::prelude::*;
+
+    // Collect all lines first (needed for parallel processing)
+    let content = std::str::from_utf8(data)
+        .map_err(|e| KloppyError::InvalidInput(format!("Invalid UTF-8: {}", e)))?;
+
+    let lines: Vec<&str> = content.lines().collect();
+
+    // Process lines in parallel
+    let frames: Vec<Option<StandardFrame>> = lines
+        .par_iter()
+        .map(|line| {
+            // Strip UTF-8 BOM if present
+            let line = line.trim_start_matches('\u{feff}');
+
+            let raw: RawTrackingFrame = serde_json::from_str(line).ok()?;
+
+            // EARLY PUSHDOWN: Skip frames based on frame_id
+            if let Some(min) = pushdown.frame_id_min {
+                if raw.frame_idx < min {
+                    return None;
+                }
+            }
+            if let Some(max) = pushdown.frame_id_max {
+                if raw.frame_idx > max {
+                    return None;
+                }
+            }
+            if let Some(ref ids) = pushdown.frame_ids {
+                if !ids.contains(&raw.frame_idx) {
+                    return None;
+                }
+            }
+
+            // EARLY PUSHDOWN: Skip frames based on period_id
+            if let Some(ref periods) = pushdown.period_ids {
+                if !periods.contains(&(raw.period as i32)) {
+                    return None;
+                }
+            }
+
+            // Skip dead ball frames if only_alive is true
+            if only_alive && !raw.live {
+                return None;
+            }
+
+            let ball_state = if raw.live {
+                BallState::Alive
+            } else {
+                BallState::Dead
+            };
+
+            // Determine ball owning team
+            let ball_owning_team_id = match raw.last_touch.as_str() {
+                "home" => Some(home_team_id.to_string()),
+                "away" => Some(away_team_id.to_string()),
+                _ => None,
+            };
+
+            let ball = StandardBall {
+                x: raw.ball.xyz[0],
+                y: raw.ball.xyz[1],
+                z: raw.ball.xyz[2],
+                speed: Some(raw.ball.speed),
+            };
+
+            let has_player_filters = pushdown.has_player_filters();
+            let mut players = Vec::with_capacity(24);
+
+            for p in raw.home_players {
+                if has_player_filters && !pushdown.should_include_player(home_team_id, &p.player_id) {
+                    continue;
+                }
+                players.push(StandardPlayerPosition {
+                    team_id: home_team_id.to_string(),
+                    player_id: p.player_id,
+                    x: p.xyz[0],
+                    y: p.xyz[1],
+                    z: p.xyz[2],
+                    speed: Some(p.speed),
+                });
+            }
+
+            for p in raw.away_players {
+                if has_player_filters && !pushdown.should_include_player(away_team_id, &p.player_id) {
+                    continue;
+                }
+                players.push(StandardPlayerPosition {
+                    team_id: away_team_id.to_string(),
+                    player_id: p.player_id,
+                    x: p.xyz[0],
+                    y: p.xyz[1],
+                    z: p.xyz[2],
+                    speed: Some(p.speed),
+                });
+            }
+
+            // Convert game_clock (seconds) to milliseconds
+            let timestamp_ms = (raw.game_clock * 1000.0) as i64;
+
+            Some(StandardFrame {
+                frame_id: raw.frame_idx,
+                period_id: raw.period,
+                timestamp_ms,
+                ball_state,
+                ball_owning_team_id,
+                ball,
+                players,
+            })
+        })
+        .collect();
+
+    // Filter out None values and collect
+    let frames: Vec<StandardFrame> = frames.into_iter().flatten().collect();
+
+    Ok(frames)
+}
+
 // ============================================================================
 // Python Interface
 // ============================================================================
@@ -425,7 +549,7 @@ fn resolve_game_id(
 }
 
 #[pyfunction]
-#[pyo3(signature = (raw_data, meta_data, layout="long", coordinates="cdf", orientation="static_home_away", only_alive=true, include_game_id=None, predicate=None))]
+#[pyo3(signature = (raw_data, meta_data, layout="long", coordinates="cdf", orientation="static_home_away", only_alive=true, include_game_id=None, predicate=None, parallel=true))]
 fn load_tracking(
     py: Python<'_>,
     raw_data: &[u8],
@@ -436,6 +560,7 @@ fn load_tracking(
     only_alive: bool,
     include_game_id: Option<Bound<'_, PyAny>>,
     predicate: Option<PyExpr>,
+    parallel: bool,
 ) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
     let coordinate_system = CoordinateSystem::from_str(coordinates)?;
     let layout_enum = Layout::from_str(layout)?;
@@ -451,21 +576,34 @@ fn load_tracking(
     pushdown.emit_warnings();
 
     // Parse metadata first to get team IDs and periods
-    let (metadata_struct, home_team_id, away_team_id, periods) =
+    let (metadata_struct, home_team_id, away_team_id, periods, player_team_map) =
         parse_metadata(meta_data, coordinates, orientation)?;
 
     // Determine game_id based on include_game_id parameter
     let game_id: Option<String> = resolve_game_id(py, include_game_id, &metadata_struct.game_id)?;
 
     // Parse tracking frames with pushdown filtering
-    let mut frames = parse_tracking_frames(
-        raw_data,
-        &home_team_id,
-        &away_team_id,
-        coordinate_system,
-        only_alive,
-        &pushdown,
-    )?;
+    let mut frames = if parallel {
+        parse_tracking_frames_parallel(
+            raw_data,
+            &home_team_id,
+            &away_team_id,
+            coordinate_system,
+            only_alive,
+            &pushdown,
+            &player_team_map,
+        )?
+    } else {
+        parse_tracking_frames(
+            raw_data,
+            &home_team_id,
+            &away_team_id,
+            coordinate_system,
+            only_alive,
+            &pushdown,
+            &player_team_map,
+        )?
+    };
 
     // Apply orientation transformation
     transform_frames(&mut frames, &periods, &home_team_id, orientation_enum);
@@ -537,7 +675,7 @@ fn load_metadata_only(
     orientation: &str,
     include_game_id: Option<Bound<'_, PyAny>>,
 ) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
-    let (metadata_struct, _, _, _) = parse_metadata(meta_data, coordinates, orientation)?;
+    let (metadata_struct, _, _, _, _) = parse_metadata(meta_data, coordinates, orientation)?;
 
     // Determine game_id based on include_game_id parameter
     let game_id: Option<String> = resolve_game_id(py, include_game_id, &metadata_struct.game_id)?;

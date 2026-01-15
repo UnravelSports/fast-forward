@@ -58,6 +58,7 @@ def load_tracking(
     *,
     lazy: bool = True,
     from_cache: bool = False,
+    parallel: bool = True,
 ) -> TrackingDataset:
     """
     Load HawkEye tracking data.
@@ -257,6 +258,7 @@ def load_tracking(
             pitch_width=pitch_width,
             object_id=object_id,
             include_game_id=include_game_id,
+            parallel=parallel,
         )
 
         return TrackingDataset(
@@ -324,6 +326,7 @@ def load_tracking(
         pitch_width=pitch_width,
         object_id=object_id,
         include_game_id=include_game_id,
+        parallel=parallel,
     )
 
     # Compute cache key for eager loading too

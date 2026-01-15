@@ -1,0 +1,16 @@
+======================================================================
+kloppy-light Benchmark
+======================================================================
+Memory measurement: memory_profiler (accurate)
+Providers: hawkeye
+Layouts: long, long_ball, wide
+Features: kloppy
+
+Data directory: /Users/jbekkers/PycharmProjects/kloppy-light/data
+
+Operation                     Memory         Time          Rows
+----------------------------------------------------------------------
+
+Hawkeye tracking file: 2632.3 MiB
+
+## Hawkeye (kloppy-light) - long layout

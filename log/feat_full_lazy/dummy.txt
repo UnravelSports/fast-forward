@@ -1,0 +1,21 @@
+SkillCorner tracking file: 85.1 MiB
+
+## SkillCorner (kloppy-light) 
+Eager loading                  24.14 MiB     0.463s        31,522
+Lazy (no collect)               0.00 MiB     0.184s           N/A
+Lazy (with collect)            20.92 MiB     0.464s        31,522
+
+## SkillCorner (kloppy)
+Load (default)                646.86 MiB     9.270s        31,522
+Load (native coords)          239.48 MiB     2.543s        31,522
+
+Sportec tracking file: 355.9 MiB
+
+## Sportec (kloppy-light) 
+Eager loading                 230.16 MiB     5.624s        85,718
+Lazy (no collect)               0.00 MiB     0.193s           N/A
+Lazy (with collect)           195.06 MiB     5.585s        85,718
+
+## Sportec (kloppy)
+Load (default)               2113.20 MiB    37.778s        85,718
+Load (native coords)         1962.03 MiB    19.601s        85,718

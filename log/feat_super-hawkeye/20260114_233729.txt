@@ -1,0 +1,28 @@
+======================================================================
+kloppy-light Benchmark
+======================================================================
+Memory measurement: memory_profiler (accurate)
+Providers: secondspectrum
+Layouts: long
+
+Data directory: /Users/jbekkers/PycharmProjects/kloppy-light/data
+
+Operation                     Memory         Time          Rows
+----------------------------------------------------------------------
+
+Secondspectrum tracking file: 423.4 MiB
+
+## Secondspectrum (kloppy-light) - long layout
+Eager loading                1771.16 MiB     0.758s     1,909,069
+Lazy (no collect)               0.11 MiB     0.158s           N/A
+Lazy parallel (with collect)           284.69 MiB     0.597s     1,909,069
+
+## Secondspectrum (kloppy-light) - filter pushdown
+Filter: period_id==2          148.19 MiB     0.486s       962,343
+Filter: frame<=50k            144.08 MiB     0.446s       666,517
+Filter: combined              127.44 MiB     0.460s       666,517
+Filter: team                  197.20 MiB     0.545s       913,033
+Filter: player                 54.73 MiB     0.421s        83,003
+Filter: between               304.39 MiB     0.616s       464,623
+
+======================================================================

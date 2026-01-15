@@ -184,9 +184,10 @@ fn parse_metadata(
 
     // Build player_id -> (team_id, player_id_string) mapping
     // Note: In SkillCorner tracking data, 'player_id' field actually contains the player's id
-    let mut player_id_map: HashMap<i64, (String, String)> = HashMap::new();
+    // Typical squad size is ~25 players per team
+    let mut player_id_map: HashMap<i64, (String, String)> = HashMap::with_capacity(50);
 
-    let mut players = Vec::new();
+    let mut players = Vec::with_capacity(raw.players.len());
     for p in &raw.players {
         let team_id = p.team_id.to_string();
         let player_id = p.id.to_string();
@@ -298,7 +299,9 @@ fn parse_tracking_frames(
     let cursor = Cursor::new(data);
     let reader = BufReader::new(cursor);
 
-    let mut frames = Vec::new();
+    // Estimate capacity: ~120 bytes per line average for SkillCorner JSONL
+    let estimated_frames = data.len() / 120;
+    let mut frames = Vec::with_capacity(estimated_frames);
 
     for line in reader.lines() {
         let mut line = line?;
@@ -433,7 +436,8 @@ fn parse_tracking_frames(
 
         // Parse player positions
         let has_player_filters = pushdown.has_player_filters();
-        let mut players = Vec::new();
+        // Typical match has ~22 players on field at any time
+        let mut players = Vec::with_capacity(24);
         for p in raw.player_data {
             if let Some((team_id, player_id)) = player_id_map.get(&p.player_id) {
                 // EARLY PUSHDOWN: Skip players that don't match team_id/player_id filters
@@ -468,6 +472,200 @@ fn parse_tracking_frames(
             players,
         });
     }
+
+    // Normalize timestamps per period (subtract first timestamp of each period)
+    normalize_timestamps_per_period(&mut frames);
+
+    Ok(frames)
+}
+
+/// Parallel version of parse_tracking_frames using rayon
+fn parse_tracking_frames_parallel(
+    data: &[u8],
+    home_team_id: &str,
+    away_team_id: &str,
+    player_id_map: &HashMap<i64, (String, String)>,
+    only_alive: bool,
+    include_empty_frames: bool,
+    pushdown: &PushdownFilters,
+) -> Result<Vec<StandardFrame>, KloppyError> {
+    use rayon::prelude::*;
+
+    // Collect all lines first (needed for parallel processing)
+    let content = std::str::from_utf8(data)
+        .map_err(|e| KloppyError::InvalidInput(format!("Invalid UTF-8: {}", e)))?;
+
+    let lines: Vec<&str> = content.lines().collect();
+
+    // Process lines in parallel
+    let frames: Vec<Option<StandardFrame>> = lines
+        .par_iter()
+        .map(|line| {
+            // Strip UTF-8 BOM if present
+            let line = line.trim_start_matches('\u{feff}');
+
+            let raw: RawFrame = serde_json::from_str(line).ok()?;
+
+            // Skip frames without period (pre-game frames)
+            let period_id = raw.period?;
+
+            // EARLY PUSHDOWN: Skip frames based on period_id
+            if let Some(ref periods) = pushdown.period_ids {
+                if !periods.contains(&(period_id as i32)) {
+                    return None;
+                }
+            }
+
+            // EARLY PUSHDOWN: Skip frames based on frame_id range
+            if let Some(min) = pushdown.frame_id_min {
+                if raw.frame < min {
+                    return None;
+                }
+            }
+            if let Some(max) = pushdown.frame_id_max {
+                if raw.frame > max {
+                    return None;
+                }
+            }
+            if let Some(ref ids) = pushdown.frame_ids {
+                if !ids.contains(&raw.frame) {
+                    return None;
+                }
+            }
+
+            // Skip empty frames unless include_empty_frames is true
+            if !include_empty_frames && is_frame_empty(&raw) {
+                return None;
+            }
+
+            // Determine ball state from possession
+            let ball_state = if raw.possession.group.is_some() {
+                BallState::Alive
+            } else {
+                BallState::Dead
+            };
+
+            // Skip dead ball frames if only_alive is true
+            if only_alive && ball_state == BallState::Dead {
+                return None;
+            }
+
+            // EARLY PUSHDOWN: Skip frames based on ball_state
+            if let Some(ref state) = pushdown.ball_state {
+                if ball_state.as_str() != state {
+                    return None;
+                }
+            }
+
+            // Determine ball owning team from possession.group
+            let ball_owning_team_id = raw.possession.group.as_ref().and_then(|group| {
+                match group.to_lowercase().as_str() {
+                    "home team" => Some(home_team_id.to_string()),
+                    "away team" => Some(away_team_id.to_string()),
+                    _ => None,
+                }
+            });
+
+            // EARLY PUSHDOWN: Skip frames based on ball_owning_team_id
+            if let Some(is_null) = pushdown.ball_owning_team_is_null {
+                if is_null && ball_owning_team_id.is_some() {
+                    return None;
+                }
+                if !is_null && ball_owning_team_id.is_none() {
+                    return None;
+                }
+            }
+            if let Some(ref teams) = pushdown.ball_owning_team_ids {
+                match &ball_owning_team_id {
+                    Some(team) => {
+                        if !teams.contains(team) {
+                            return None;
+                        }
+                    }
+                    None => return None,
+                }
+            }
+
+            // Parse ball data
+            let ball = StandardBall {
+                x: raw.ball_data.x.unwrap_or(0.0),
+                y: raw.ball_data.y.unwrap_or(0.0),
+                z: raw.ball_data.z.unwrap_or(0.0),
+                speed: None,
+            };
+
+            // EARLY PUSHDOWN: Skip frames based on ball position
+            if let Some(min) = pushdown.ball_x_min {
+                if ball.x < min {
+                    return None;
+                }
+            }
+            if let Some(max) = pushdown.ball_x_max {
+                if ball.x > max {
+                    return None;
+                }
+            }
+            if let Some(min) = pushdown.ball_y_min {
+                if ball.y < min {
+                    return None;
+                }
+            }
+            if let Some(max) = pushdown.ball_y_max {
+                if ball.y > max {
+                    return None;
+                }
+            }
+            if let Some(min) = pushdown.ball_z_min {
+                if ball.z < min {
+                    return None;
+                }
+            }
+            if let Some(max) = pushdown.ball_z_max {
+                if ball.z > max {
+                    return None;
+                }
+            }
+
+            // Parse player positions
+            let has_player_filters = pushdown.has_player_filters();
+            let mut players = Vec::with_capacity(24);
+            for p in raw.player_data {
+                if let Some((team_id, player_id)) = player_id_map.get(&p.player_id) {
+                    if has_player_filters && !pushdown.should_include_player(team_id, player_id) {
+                        continue;
+                    }
+                    players.push(StandardPlayerPosition {
+                        team_id: team_id.clone(),
+                        player_id: player_id.clone(),
+                        x: p.x,
+                        y: p.y,
+                        z: 0.0,
+                        speed: None,
+                    });
+                }
+            }
+
+            // Parse timestamp (will be normalized per period after all frames are parsed)
+            let timestamp_ms = raw
+                .timestamp
+                .as_ref()
+                .map(|t| parse_timestamp_ms(t))
+                .unwrap_or(0);
+
+            Some(StandardFrame {
+                frame_id: raw.frame,
+                period_id,
+                timestamp_ms,
+                ball_state,
+                ball_owning_team_id,
+                ball,
+                players,
+            })
+        })
+        .collect();
+
+    // Filter out None values and collect
+    let mut frames: Vec<StandardFrame> = frames.into_iter().flatten().collect();
 
     // Normalize timestamps per period (subtract first timestamp of each period)
     normalize_timestamps_per_period(&mut frames);
@@ -535,7 +733,7 @@ fn resolve_game_id(
 }
 
 #[pyfunction]
-#[pyo3(signature = (raw_data, meta_data, layout="long", coordinates="cdf", orientation="static_home_away", only_alive=true, include_empty_frames=false, include_game_id=None, predicate=None))]
+#[pyo3(signature = (raw_data, meta_data, layout="long", coordinates="cdf", orientation="static_home_away", only_alive=true, include_empty_frames=false, include_game_id=None, predicate=None, parallel=true))]
 fn load_tracking(
     py: Python<'_>,
     raw_data: &[u8],
@@ -547,6 +745,7 @@ fn load_tracking(
     include_empty_frames: bool,
     include_game_id: Option<Bound<'_, PyAny>>,
     predicate: Option<PyExpr>,
+    parallel: bool,
 ) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
     let coordinate_system = CoordinateSystem::from_str(coordinates)?;
     let layout_enum = Layout::from_str(layout)?;
@@ -566,15 +765,27 @@ fn load_tracking(
         .unwrap_or_default();
 
     // Parse tracking frames with pushdown filtering
-    let mut frames = parse_tracking_frames(
-        raw_data,
-        &home_team_id,
-        &away_team_id,
-        &player_id_map,
-        only_alive,
-        include_empty_frames,
-        &pushdown,
-    )?;
+    let mut frames = if parallel {
+        parse_tracking_frames_parallel(
+            raw_data,
+            &home_team_id,
+            &away_team_id,
+            &player_id_map,
+            only_alive,
+            include_empty_frames,
+            &pushdown,
+        )?
+    } else {
+        parse_tracking_frames(
+            raw_data,
+            &home_team_id,
+            &away_team_id,
+            &player_id_map,
+            only_alive,
+            include_empty_frames,
+            &pushdown,
+        )?
+    };
 
     // Apply orientation transformation
     transform_frames(&mut frames, &periods, &home_team_id, orientation_enum);
