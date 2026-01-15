@@ -39,7 +39,7 @@ class TestFilePathInputs:
         team_df = dataset.teams
         player_df = dataset.players
         assert isinstance(tracking_df, pl.DataFrame)
-        assert len(tracking_df) > 0
+        assert len(tracking_df) == 4554
 
     def test_pathlib_path_input(self):
         """Verify pathlib.Path objects work."""
@@ -52,14 +52,14 @@ class TestFilePathInputs:
         team_df = dataset.teams
         player_df = dataset.players
         assert isinstance(tracking_df, pl.DataFrame)
-        assert len(tracking_df) > 0
+        assert len(tracking_df) == 4554
 
-    @pytest.mark.parametrize("provider_name,raw_file,meta_file", [
-        ("secondspectrum", "secondspectrum_tracking.jsonl", "secondspectrum_meta.json"),
-        ("skillcorner", "skillcorner_tracking.jsonl", "skillcorner_meta.json"),
-        ("sportec", "sportec_positional.xml", "sportec_meta.xml"),
+    @pytest.mark.parametrize("provider_name,raw_file,meta_file,expected_tracking,expected_players", [
+        ("secondspectrum", "secondspectrum_tracking.jsonl", "secondspectrum_meta.json", 4554, 40),
+        ("skillcorner", "skillcorner_tracking.jsonl", "skillcorner_meta.json", 3404, 36),
+        ("sportec", "sportec_positional.xml", "sportec_meta.xml", 481, 40),
     ])
-    def test_all_providers_string_paths(self, provider_name, raw_file, meta_file):
+    def test_all_providers_string_paths(self, provider_name, raw_file, meta_file, expected_tracking, expected_players):
         """Test all three providers with string paths."""
         # Get the provider module
         provider = {"secondspectrum": secondspectrum, "skillcorner": skillcorner, "sportec": sportec}[provider_name]
@@ -73,9 +73,9 @@ class TestFilePathInputs:
         team_df = dataset.teams
         player_df = dataset.players
         assert isinstance(tracking_df, pl.DataFrame)
-        assert len(tracking_df) > 0
+        assert len(tracking_df) == expected_tracking
         assert len(team_df) == 2
-        assert len(player_df) > 0
+        assert len(player_df) == expected_players
 
 
 class TestBytesInputs:
@@ -99,14 +99,14 @@ class TestBytesInputs:
         team_df = dataset.teams
         player_df = dataset.players
         assert isinstance(tracking_df, pl.DataFrame)
-        assert len(tracking_df) > 0
+        assert len(tracking_df) == 4554
 
-    @pytest.mark.parametrize("provider_name,raw_file,meta_file", [
-        ("secondspectrum", "secondspectrum_tracking.jsonl", "secondspectrum_meta.json"),
-        ("skillcorner", "skillcorner_tracking.jsonl", "skillcorner_meta.json"),
-        ("sportec", "sportec_positional.xml", "sportec_meta.xml"),
+    @pytest.mark.parametrize("provider_name,raw_file,meta_file,expected_tracking", [
+        ("secondspectrum", "secondspectrum_tracking.jsonl", "secondspectrum_meta.json", 4554),
+        ("skillcorner", "skillcorner_tracking.jsonl", "skillcorner_meta.json", 3404),
+        ("sportec", "sportec_positional.xml", "sportec_meta.xml", 481),
     ])
-    def test_bytes_with_all_providers(self, provider_name, raw_file, meta_file):
+    def test_bytes_with_all_providers(self, provider_name, raw_file, meta_file, expected_tracking):
         """Test all three providers accept bytes."""
         provider = {"secondspectrum": secondspectrum, "skillcorner": skillcorner, "sportec": sportec}[provider_name]
 
@@ -125,7 +125,7 @@ class TestBytesInputs:
         metadata_df = dataset.metadata
         team_df = dataset.teams
         player_df = dataset.players
-        assert len(tracking_df) > 0
+        assert len(tracking_df) == expected_tracking
 
     def test_bytes_produces_same_result_as_paths(self):
         """Verify bytes input produces identical results to path input."""
@@ -166,7 +166,7 @@ class TestFileHandleInputs:
         team_df = dataset.teams
         player_df = dataset.players
         assert isinstance(tracking_df, pl.DataFrame)
-        assert len(tracking_df) > 0
+        assert len(tracking_df) == 4554
 
     def test_file_handle_with_context_manager(self):
         """Use with statement for file handles."""
@@ -181,15 +181,15 @@ class TestFileHandleInputs:
         player_df = dataset.players
 
         assert isinstance(tracking_df, pl.DataFrame)
-        assert len(tracking_df) > 0
+        assert len(tracking_df) == 4554
         assert len(team_df) == 2
 
-    @pytest.mark.parametrize("provider_name,raw_file,meta_file", [
-        ("secondspectrum", "secondspectrum_tracking.jsonl", "secondspectrum_meta.json"),
-        ("skillcorner", "skillcorner_tracking.jsonl", "skillcorner_meta.json"),
-        ("sportec", "sportec_positional.xml", "sportec_meta.xml"),
+    @pytest.mark.parametrize("provider_name,raw_file,meta_file,expected_tracking", [
+        ("secondspectrum", "secondspectrum_tracking.jsonl", "secondspectrum_meta.json", 4554),
+        ("skillcorner", "skillcorner_tracking.jsonl", "skillcorner_meta.json", 3404),
+        ("sportec", "sportec_positional.xml", "sportec_meta.xml", 481),
     ])
-    def test_all_providers_file_handles(self, provider_name, raw_file, meta_file):
+    def test_all_providers_file_handles(self, provider_name, raw_file, meta_file, expected_tracking):
         """Test all providers with file handles."""
         provider = {"secondspectrum": secondspectrum, "skillcorner": skillcorner, "sportec": sportec}[provider_name]
 
@@ -199,7 +199,7 @@ class TestFileHandleInputs:
         with open(raw_path, "rb") as raw, open(meta_path, "rb") as meta:
             dataset = provider.load_tracking(raw, meta, lazy=False)
 
-        assert len(dataset.tracking) > 0
+        assert len(dataset.tracking) == expected_tracking
         assert len(dataset.teams) == 2
 
 
@@ -218,7 +218,7 @@ class TestLazyLoadingWithFileLike:
         assert hasattr(dataset.tracking, 'collect')
         tracking_df = dataset.tracking.collect()
         assert isinstance(tracking_df, pl.DataFrame)
-        assert len(tracking_df) > 0
+        assert len(tracking_df) == 4554
 
     def test_lazy_with_path_objects(self):
         """Lazy loading with Path objects."""
@@ -231,7 +231,7 @@ class TestLazyLoadingWithFileLike:
 
         tracking_df = dataset.tracking.collect()
         assert isinstance(tracking_df, pl.DataFrame)
-        assert len(tracking_df) > 0
+        assert len(tracking_df) == 4554
 
     def test_lazy_with_bytes(self):
         """Lazy loading with bytes (note: bytes are read twice - once for metadata, once at collect)."""
@@ -249,7 +249,7 @@ class TestLazyLoadingWithFileLike:
 
         tracking_df = dataset.tracking.collect()
         assert isinstance(tracking_df, pl.DataFrame)
-        assert len(tracking_df) > 0
+        assert len(tracking_df) == 4554
 
     def test_lazy_collect_produces_same_result(self):
         """Verify lazy and eager loading produce same data."""
@@ -472,9 +472,9 @@ class TestS3Adapter:
         team_df = dataset.teams
         player_df = dataset.players
         assert isinstance(tracking_df, pl.DataFrame)
-        assert len(tracking_df) > 0
+        assert len(tracking_df) == 4554
         assert len(team_df) == 2
-        assert len(player_df) > 0
+        assert len(player_df) == 40
 
     def test_lazy_load_from_s3(self):
         """Test lazy loading from S3 paths."""
@@ -487,9 +487,9 @@ class TestS3Adapter:
 
         assert isinstance(dataset.tracking, pl.LazyFrame)
         assert len(dataset.teams) == 2
-        assert len(dataset.players) > 0
+        assert len(dataset.players) == 40
 
         # Collect the data
         tracking_df = dataset.tracking.collect()
         assert isinstance(tracking_df, pl.DataFrame)
-        assert len(tracking_df) > 0
+        assert len(tracking_df) == 4554

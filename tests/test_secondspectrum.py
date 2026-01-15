@@ -210,7 +210,7 @@ class TestTrackingDataFrameLong:
     def test_has_ball_rows(self, tracking_df):
         """Test that long format includes ball as separate rows."""
         ball_rows = tracking_df.filter(pl.col("team_id") == "ball")
-        assert ball_rows.height > 0
+        assert ball_rows.height == 198
 
         # Check ball rows have player_id = "ball"
         assert ball_rows["player_id"].to_list()[:10] == ["ball"] * 10
@@ -303,7 +303,7 @@ class TestTrackingDataFrameWide:
         y_columns = [c for c in columns if c.endswith("_y") and c != "ball_y"]
         z_columns = [c for c in columns if c.endswith("_z") and c != "ball_z"]
 
-        assert len(x_columns) > 0
+        assert len(x_columns) == 23
         assert len(x_columns) == len(y_columns) == len(z_columns)
 
     def test_one_row_per_frame(self, tracking_df):
@@ -320,7 +320,7 @@ class TestCoordinateSystem:
         dataset = secondspectrum.load_tracking(
             RAW_DATA_PATH, META_DATA_PATH, coordinates="cdf", lazy=False
         )
-        assert dataset.tracking.height > 0
+        assert dataset.tracking.height == 4554
         assert dataset.metadata["coordinate_system"][0] == "cdf"
 
     def test_invalid_coordinate_system(self):
@@ -366,11 +366,9 @@ class TestOnlyAliveParameter:
             RAW_DATA_PATH, META_DATA_PATH, only_alive=True, lazy=False
         )
 
-        # Check if there are dead frames in the test data
-        dead_rows_all = dataset_all.tracking.filter(pl.col("ball_state") == "dead")
-        if dead_rows_all.height > 0:
-            # Alive should have fewer rows if there are dead frames
-            assert dataset_alive.tracking.height < dataset_all.tracking.height
+        # alive should have fewer rows (or equal if no dead frames)
+        assert dataset_all.tracking.height == 4600
+        assert dataset_alive.tracking.height == 4554
 
     def test_only_alive_no_dead_frames(self):
         """Test that only_alive=True results in no dead ball frames."""

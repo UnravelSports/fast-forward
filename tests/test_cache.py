@@ -594,7 +594,7 @@ class TestCacheIntegration:
             .collect()
         )
 
-        assert len(result) > 0
+        assert len(result) == 2166
         assert list(result.columns) == ["frame_id", "x", "y"]
         # period_id not in result columns since we only selected frame_id, x, y
         assert "period_id" not in result.columns

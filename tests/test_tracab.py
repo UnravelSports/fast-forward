@@ -38,22 +38,22 @@ class TestLoadTracking:
     def test_dat_with_xml_metadata(self):
         """Test DAT raw data with XML metadata."""
         dataset = tracab.load_tracking(RAW_DAT_PATH, META_XML_PATH, lazy=False)
-        assert dataset.tracking.height > 0
+        assert dataset.tracking.height == 46
 
     def test_dat_with_json_metadata(self):
         """Test DAT raw data with JSON metadata."""
         dataset = tracab.load_tracking(RAW_DAT_PATH, META_JSON_PATH, lazy=False)
-        assert dataset.tracking.height > 0
+        assert dataset.tracking.height == 46
 
     def test_json_with_xml_metadata(self):
         """Test JSON raw data with XML metadata."""
         dataset = tracab.load_tracking(RAW_JSON_PATH, META_XML_PATH, lazy=False)
-        assert dataset.tracking.height > 0
+        assert dataset.tracking.height == 46
 
     def test_json_with_json_metadata(self):
         """Test JSON raw data with JSON metadata."""
         dataset = tracab.load_tracking(RAW_JSON_PATH, META_JSON_PATH, lazy=False)
-        assert dataset.tracking.height > 0
+        assert dataset.tracking.height == 46
 
 
 class TestMetadataDataFrame:
@@ -242,12 +242,12 @@ class TestTrackingDataFrameLong:
     def test_has_ball_rows(self, tracking_df):
         """Test that ball data is in rows with team_id='ball'."""
         ball_rows = tracking_df.filter(pl.col("team_id") == "ball")
-        assert ball_rows.height > 0
+        assert ball_rows.height == 2
 
     def test_has_player_rows(self, tracking_df):
         """Test that player rows exist."""
         player_rows = tracking_df.filter(pl.col("team_id") != "ball")
-        assert player_rows.height > 0
+        assert player_rows.height == 44
 
 
 class TestTrackingDataFrameLongBall:
@@ -302,7 +302,8 @@ class TestOnlyAliveParameter:
         # With only_alive=True should have fewer or equal rows
         alive_frames = alive_dataset.tracking.select("frame_id").unique()
         all_frames = not_alive_dataset.tracking.select("frame_id").unique()
-        assert alive_frames.height <= all_frames.height
+        assert alive_frames.height == 2
+        assert all_frames.height == 7
 
     def test_only_alive_true_no_dead_state(self):
         """Test that only_alive=True removes dead ball states."""
@@ -339,9 +340,9 @@ class TestCoordinateParameter:
 
         # Tracab uses centimeters, values should be in range (-5250 to 5250 for x)
         x_values = tracking_df["x"].drop_nulls()
-        if len(x_values) > 0:
-            # Tracab values are in centimeters (100x larger than CDF)
-            assert x_values.max() > 100 or x_values.min() < -100
+        # Tracab values are in centimeters (100x larger than CDF)
+        assert x_values.max() == pytest.approx(4722.0, rel=0.01)
+        assert x_values.min() == pytest.approx(-5270.0, rel=0.01)
 
 
 class TestOrientationParameter:
@@ -380,7 +381,7 @@ class TestLazyParameter:
         dataset = tracab.load_tracking(RAW_DAT_PATH, META_XML_PATH, lazy=True)
         tracking_df = dataset.tracking.collect()
         assert isinstance(tracking_df, pl.DataFrame)
-        assert tracking_df.height > 0
+        assert tracking_df.height == 46
 
 
 class TestIncludeGameIdParameter:
@@ -464,12 +465,12 @@ class TestRawDataFormats:
     def test_dat_format(self):
         """Test DAT raw data format."""
         dataset = tracab.load_tracking(RAW_DAT_PATH, META_XML_PATH, lazy=False)
-        assert dataset.tracking.height > 0
+        assert dataset.tracking.height == 46
 
     def test_json_format(self):
         """Test JSON raw data format."""
         dataset = tracab.load_tracking(RAW_JSON_PATH, META_XML_PATH, lazy=False)
-        assert dataset.tracking.height > 0
+        assert dataset.tracking.height == 46
 
     def test_formats_produce_similar_results(self):
         """Test that DAT and JSON produce similar frame counts."""
