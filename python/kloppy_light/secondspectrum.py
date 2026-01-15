@@ -1,11 +1,14 @@
 """SecondSpectrum provider wrapper with lazy loading support."""
 
-from typing import Literal, Optional, Union
+from typing import TYPE_CHECKING, Literal, Optional, Union
 
 from kloppy.io import FileLike
 
 from kloppy_light._base import load_tracking_impl
 from kloppy_light._dataset import TrackingDataset
+
+if TYPE_CHECKING:
+    from pyspark.sql import SparkSession
 
 
 def load_tracking(
@@ -38,6 +41,8 @@ def load_tracking(
     *,
     lazy: bool = False,
     from_cache: bool = False,
+    engine: Literal["polars", "pyspark"] = "polars",
+    spark_session: Optional["SparkSession"] = None,
 ) -> TrackingDataset:
     """
     Load SecondSpectrum tracking data.
@@ -78,13 +83,21 @@ def load_tracking(
     from_cache : bool, default False
         If True, load from cache if available.
         Warns if no cache exists. Use dataset.write_cache() to create cache.
+    engine : {"polars", "pyspark"}, default "polars"
+        DataFrame engine to use:
+        - "polars": Return Polars DataFrames (default)
+        - "pyspark": Return PySpark DataFrames
+    spark_session : SparkSession, optional
+        PySpark SparkSession to use. If None and engine="pyspark",
+        will get or create a session automatically.
 
     Returns
     -------
     TrackingDataset
         Object with .tracking, .metadata, .teams, .players, .periods properties.
-        If lazy=True, .tracking returns pl.LazyFrame (call .collect() to get DataFrame).
-        If lazy=False, .tracking returns pl.DataFrame directly.
+        If engine="polars" and lazy=True, .tracking returns pl.LazyFrame.
+        If engine="polars" and lazy=False, .tracking returns pl.DataFrame.
+        If engine="pyspark", all DataFrames are PySpark DataFrames.
     """
     return load_tracking_impl(
         provider_name="secondspectrum",
@@ -97,4 +110,6 @@ def load_tracking(
         include_game_id=include_game_id,
         lazy=lazy,
         from_cache=from_cache,
+        engine=engine,
+        spark_session=spark_session,
     )

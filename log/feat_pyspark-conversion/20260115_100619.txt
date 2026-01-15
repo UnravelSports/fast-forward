@@ -1,0 +1,41 @@
+======================================================================
+kloppy-light Benchmark
+======================================================================
+Memory measurement: memory_profiler (accurate)
+Providers: secondspectrum
+Layouts: long, long_ball, wide
+Engines: polars, pyspark
+Features: no-pushdown
+
+Data directory: /Users/jbekkers/PycharmProjects/kloppy-light/data
+
+Operation                     Memory         Time          Rows
+----------------------------------------------------------------------
+
+Secondspectrum tracking file: 423.4 MiB
+
+## Secondspectrum  - long layout
+Eager loading                1772.47 MiB     0.907s     1,909,069
+Lazy (no collect)               9.88 MiB     0.242s           N/A
+Lazy (with collect)           342.08 MiB     0.688s     1,909,069
+
+## Secondspectrum  - long_ball layout
+Eager loading                 368.06 MiB     0.814s     1,826,066
+Lazy (no collect)               0.00 MiB     0.223s           N/A
+Lazy (with collect)           258.70 MiB     0.696s     1,826,066
+
+## Secondspectrum  - wide layout
+Eager loading                 266.48 MiB     0.902s        83,003
+Lazy (no collect)               4.91 MiB     0.237s           N/A
+Lazy (with collect)           275.95 MiB     0.773s        83,003
+
+## Secondspectrum [pyspark] - long layout
+Eager loading                2073.70 MiB    49.915s     1,909,069
+
+## Secondspectrum [pyspark] - long_ball layout
+Eager loading                1837.27 MiB    55.640s     1,826,066
+
+## Secondspectrum [pyspark] - wide layout
+Eager loading                 854.94 MiB    16.798s        83,003
+
+======================================================================

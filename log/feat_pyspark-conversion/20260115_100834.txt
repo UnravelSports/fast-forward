@@ -1,0 +1,95 @@
+======================================================================
+kloppy-light Benchmark
+======================================================================
+Memory measurement: memory_profiler (accurate)
+Providers: secondspectrum, skillcorner, sportec, hawkeye, tracab
+Layouts: long, long_ball, wide
+Engines: polars, pyspark
+Features: no-pushdown
+
+Data directory: /Users/jbekkers/PycharmProjects/kloppy-light/data
+
+Operation                     Memory         Time          Rows
+----------------------------------------------------------------------
+
+Secondspectrum tracking file: 423.4 MiB
+
+## Secondspectrum  - long layout
+Eager loading                1756.61 MiB     0.884s     1,909,069
+Lazy (no collect)               0.12 MiB     0.240s           N/A
+Lazy (with collect)           289.08 MiB     0.662s     1,909,069
+
+## Secondspectrum  - long_ball layout
+Eager loading                 362.25 MiB     0.830s     1,826,066
+Lazy (no collect)               0.00 MiB     0.230s           N/A
+Lazy (with collect)           344.06 MiB     0.670s     1,826,066
+
+## Secondspectrum  - wide layout
+Eager loading                 212.75 MiB     0.871s        83,003
+Lazy (no collect)               3.88 MiB     0.223s           N/A
+Lazy (with collect)           296.34 MiB     0.720s        83,003
+
+## Secondspectrum [pyspark] - long layout
+Eager loading                2113.56 MiB    48.776s     1,909,069
+
+## Secondspectrum [pyspark] - long_ball layout
+Eager loading                1943.78 MiB    53.730s     1,826,066
+
+## Secondspectrum [pyspark] - wide layout
+Eager loading                 411.78 MiB    16.540s        83,003
+
+Skillcorner tracking file: 85.1 MiB
+
+## Skillcorner  - long layout
+Eager loading                  10.59 MiB     0.474s       725,006
+Lazy (no collect)               0.02 MiB     0.228s           N/A
+Lazy (with collect)             5.31 MiB     0.333s       725,006
+
+## Skillcorner  - long_ball layout
+Eager loading                   3.09 MiB     0.372s       693,484
+Lazy (no collect)               0.00 MiB     0.222s           N/A
+Lazy (with collect)             1.89 MiB     0.339s       693,484
+
+## Skillcorner  - wide layout
+Eager loading                   1.61 MiB     0.401s        31,522
+Lazy (no collect)               0.03 MiB     0.239s           N/A
+Lazy (with collect)             1.83 MiB     0.362s        31,522
+
+## Skillcorner [pyspark] - long layout
+Eager loading                 398.72 MiB    17.607s       725,006
+
+## Skillcorner [pyspark] - long_ball layout
+Eager loading                 424.20 MiB    20.605s       693,484
+
+## Skillcorner [pyspark] - wide layout
+Eager loading                 110.88 MiB     6.178s        31,522
+
+Sportec tracking file: 355.9 MiB
+
+## Sportec  - long layout
+Eager loading                 443.56 MiB     1.584s     1,971,514
+Lazy (no collect)               0.00 MiB     0.227s           N/A
+Lazy (with collect)           513.03 MiB     1.460s     1,971,514
+
+## Sportec  - long_ball layout
+Eager loading                 633.20 MiB     1.592s     1,885,796
+Lazy (no collect)               8.00 MiB     0.254s           N/A
+Lazy (with collect)           529.30 MiB     1.439s     1,885,796
+
+## Sportec  - wide layout
+Eager loading                 532.58 MiB     1.606s        85,718
+Lazy (no collect)               0.02 MiB     0.253s           N/A
+Lazy (with collect)           534.11 MiB     1.599s        85,718
+
+## Sportec [pyspark] - long layout
+Eager loading                1398.20 MiB    48.582s     1,971,514
+
+## Sportec [pyspark] - long_ball layout
+Eager loading                2421.03 MiB    56.157s     1,885,796
+
+## Sportec [pyspark] - wide layout
+Eager loading                 874.73 MiB    18.257s        85,718
+
+Hawkeye tracking file: 2632.3 MiB
+
+## Hawkeye - parallel vs sequential (long layout)

@@ -9,7 +9,7 @@ Supports both eager and lazy loading modes.
 
 import warnings
 from pathlib import Path
-from typing import List, Literal, Optional, Tuple, Union
+from typing import TYPE_CHECKING, List, Literal, Optional, Tuple, Union
 import polars as pl
 
 from kloppy.io import FileLike, open_as_file
@@ -22,6 +22,9 @@ from kloppy_light._kloppy_light import hawkeye as _hawkeye
 from kloppy_light._lazy import create_lazy_tracking_hawkeye, _is_local_file
 from kloppy_light._schema import get_tracking_schema
 from kloppy_light._dataset import TrackingDataset
+
+if TYPE_CHECKING:
+    from pyspark.sql import SparkSession
 
 
 def load_tracking(
@@ -59,6 +62,8 @@ def load_tracking(
     lazy: bool = False,
     from_cache: bool = False,
     parallel: bool = True,
+    engine: Literal["polars", "pyspark"] = "polars",
+    spark_session: Optional["SparkSession"] = None,
 ) -> TrackingDataset:
     """
     Load HawkEye tracking data.
@@ -117,13 +122,21 @@ def load_tracking(
     from_cache : bool, default False
         If True, load from cache if available.
         Warns if no cache exists. Use dataset.write_cache() to create cache.
+    engine : {"polars", "pyspark"}, default "polars"
+        DataFrame engine to use:
+        - "polars": Return Polars DataFrames (default)
+        - "pyspark": Return PySpark DataFrames
+    spark_session : SparkSession, optional
+        PySpark SparkSession to use. If None and engine="pyspark",
+        will get or create a session automatically.
 
     Returns
     -------
     TrackingDataset
         Object with .tracking, .metadata, .teams, .players, .periods properties.
-        If lazy=True, .tracking returns pl.LazyFrame (call .collect() to get DataFrame).
-        If lazy=False, .tracking returns pl.DataFrame directly.
+        If engine="polars" and lazy=True, .tracking returns pl.LazyFrame.
+        If engine="polars" and lazy=False, .tracking returns pl.DataFrame.
+        If engine="pyspark", all DataFrames are PySpark DataFrames.
 
     Notes
     -----
@@ -149,7 +162,20 @@ def load_tracking(
     >>> dataset = load_tracking(ball_files, player_files, "hawkeye_meta.json")
     >>> dataset.write_cache()  # Write to cache
     >>> dataset = load_tracking(ball_files, player_files, "hawkeye_meta.json", from_cache=True)
+
+        >>> # PySpark engine
+        >>> dataset = load_tracking(ball_files, player_files, "hawkeye_meta.json", engine="pyspark")
+        >>> dataset.tracking.show(5)
     """
+    from kloppy_light._engine import validate_engine, polars_to_spark, get_spark_session
+
+    # Validate engine parameter
+    engine = validate_engine(engine)
+
+    # For PySpark, force eager loading (will convert after)
+    if engine == "pyspark":
+        lazy = False
+
     # Handle lazy loading
     if lazy:
         # Handle directory input for ball_data
@@ -214,6 +240,7 @@ def load_tracking(
                         teams=team_df,
                         players=player_df,
                         periods=periods_df,
+                        _engine="polars",
                         _provider="hawkeye",
                         _cache_key=cache_key,
                     )
@@ -267,6 +294,7 @@ def load_tracking(
             teams=team_df,
             players=player_df,
             periods=periods_df,
+            _engine="polars",
             _provider="hawkeye",
             _cache_key=cache_key,
         )
@@ -345,12 +373,27 @@ def load_tracking(
             all_paths, str(meta_data), config_str
         )
 
+    # Convert to PySpark if requested
+    if engine == "pyspark":
+        spark = spark_session or get_spark_session()
+        return TrackingDataset(
+            tracking=polars_to_spark(tracking_df, spark),
+            metadata=polars_to_spark(metadata_df, spark),
+            teams=polars_to_spark(team_df, spark),
+            players=polars_to_spark(player_df, spark),
+            periods=polars_to_spark(periods_df, spark),
+            _engine="pyspark",
+            _provider="hawkeye",
+            _cache_key=cache_key,
+        )
+
     return TrackingDataset(
         tracking=tracking_df,
         metadata=metadata_df,
         teams=team_df,
         players=player_df,
         periods=periods_df,
+        _engine="polars",
         _provider="hawkeye",
         _cache_key=cache_key,
     )

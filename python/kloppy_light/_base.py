@@ -2,12 +2,15 @@
 
 import warnings
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Tuple, Union
 
 import polars as pl
 from kloppy.io import FileLike, open_as_file
 
 from kloppy_light._dataset import TrackingDataset
+
+if TYPE_CHECKING:
+    from pyspark.sql import SparkSession
 
 
 # Type alias for provider configuration
@@ -154,6 +157,8 @@ def load_tracking_impl(
     include_game_id: Union[bool, str],
     lazy: bool,
     from_cache: bool = False,
+    engine: str = "polars",
+    spark_session: Optional["SparkSession"] = None,
     **provider_kwargs,
 ) -> TrackingDataset:
     """Generic implementation for standard providers.
@@ -180,17 +185,24 @@ def load_tracking_impl(
     include_game_id : bool or str
         Whether to include game_id column
     lazy : bool
-        If True, return pl.LazyFrame; if False, load eagerly
+        If True, return pl.LazyFrame; if False, load eagerly.
+        Ignored when engine="pyspark" (PySpark is inherently lazy).
     from_cache : bool
         If True, load from cache if available. Warns if no cache exists.
         Use dataset.write_cache() to create cache after loading.
+    engine : str, default "polars"
+        DataFrame engine to use: "polars" or "pyspark".
+    spark_session : SparkSession, optional
+        PySpark SparkSession to use. If None and engine="pyspark",
+        will get or create a session automatically.
     **provider_kwargs
         Provider-specific parameters
 
     Returns
     -------
     TrackingDataset
-        Dataset with tracking (pl.LazyFrame or pl.DataFrame), metadata, teams, players, periods
+        Dataset with tracking (pl.LazyFrame, pl.DataFrame, or pyspark.sql.DataFrame),
+        metadata, teams, players, periods
     """
     from kloppy_light._lazy import create_lazy_tracking, _is_local_file
     from kloppy_light._schema import get_tracking_schema
@@ -202,6 +214,14 @@ def load_tracking_impl(
         read_cache,
         CACHE_SCHEMA_VERSION,
     )
+    from kloppy_light._engine import validate_engine, polars_to_spark, get_spark_session
+
+    # Validate engine parameter
+    engine = validate_engine(engine)
+
+    # For PySpark, force eager loading (will convert after)
+    if engine == "pyspark":
+        lazy = False
 
     config = get_provider(provider_name)
     rust_module = config["rust_module"]
@@ -237,15 +257,20 @@ def load_tracking_impl(
                 result = read_cache(cache_path)
                 if isinstance(result, tuple):
                     lazy_frame, metadata_df, team_df, player_df, periods_df = result
-                    return TrackingDataset(
+                    dataset = TrackingDataset(
                         tracking=lazy_frame,
                         metadata=metadata_df,
                         teams=team_df,
                         players=player_df,
                         periods=periods_df,
+                        _engine="polars",
                         _provider=provider_name,
                         _cache_key=cache_key,
                     )
+                    # Convert to PySpark if requested
+                    if engine == "pyspark":
+                        return dataset.to_pyspark(spark_session)
+                    return dataset
                 else:
                     # Old cache format without metadata - still usable
                     lazy_frame = result
@@ -263,15 +288,20 @@ def load_tracking_impl(
                     metadata_df, team_df, player_df, periods_df = rust_module.load_metadata_only(
                         meta_bytes_for_load, **metadata_kwargs
                     )
-                    return TrackingDataset(
+                    dataset = TrackingDataset(
                         tracking=lazy_frame,
                         metadata=metadata_df,
                         teams=team_df,
                         players=player_df,
                         periods=periods_df,
+                        _engine="polars",
                         _provider=provider_name,
                         _cache_key=cache_key,
                     )
+                    # Convert to PySpark if requested
+                    if engine == "pyspark":
+                        return dataset.to_pyspark(spark_session)
+                    return dataset
             else:
                 # Cache miss with from_cache=True - warn user
                 warnings.warn(
@@ -337,6 +367,7 @@ def load_tracking_impl(
             teams=team_df,
             players=player_df,
             periods=periods_df,
+            _engine="polars",
             _provider=provider_name,
             _cache_key=cache_key,
         )
@@ -368,12 +399,27 @@ def load_tracking_impl(
         if cache_key is None:
             cache_key = compute_cache_key(raw_bytes, meta_bytes, config_str)
 
+        # Convert to PySpark if requested
+        if engine == "pyspark":
+            spark = spark_session or get_spark_session()
+            return TrackingDataset(
+                tracking=polars_to_spark(tracking_df, spark),
+                metadata=polars_to_spark(metadata_df, spark),
+                teams=polars_to_spark(team_df, spark),
+                players=polars_to_spark(player_df, spark),
+                periods=polars_to_spark(periods_df, spark),
+                _engine="pyspark",
+                _provider=provider_name,
+                _cache_key=cache_key,
+            )
+
         return TrackingDataset(
             tracking=tracking_df,
             metadata=metadata_df,
             teams=team_df,
             players=player_df,
             periods=periods_df,
+            _engine="polars",
             _provider=provider_name,
             _cache_key=cache_key,
         )

@@ -6,11 +6,14 @@ Supports multiple metadata formats (XML hierarchical, XML flat, JSON)
 and multiple raw data formats (DAT, JSON).
 """
 
-from typing import Literal, Optional, Union
+from typing import TYPE_CHECKING, Literal, Optional, Union
 
 from kloppy_light._base import load_tracking_impl
 from kloppy_light._dataset import TrackingDataset
 from kloppy.io import FileLike
+
+if TYPE_CHECKING:
+    from pyspark.sql import SparkSession
 
 
 def load_tracking(
@@ -43,6 +46,8 @@ def load_tracking(
     *,
     lazy: bool = False,
     from_cache: bool = False,
+    engine: Literal["polars", "pyspark"] = "polars",
+    spark_session: Optional["SparkSession"] = None,
 ) -> TrackingDataset:
     """
     Load Tracab tracking data.
@@ -70,9 +75,15 @@ def load_tracking(
         lazy: If True, return lazy loader. Call .collect() to load data.
         from_cache: If True, load from cache if available.
             Warns if no cache exists. Use dataset.write_cache() to create cache.
+        engine: DataFrame engine to use ("polars" or "pyspark"). Default "polars".
+        spark_session: PySpark SparkSession to use. If None and engine="pyspark",
+            will get or create a session automatically.
 
     Returns:
         TrackingDataset with .tracking, .metadata, .teams, .players, .periods
+        If engine="polars" and lazy=True, .tracking returns pl.LazyFrame.
+        If engine="polars" and lazy=False, .tracking returns pl.DataFrame.
+        If engine="pyspark", all DataFrames are PySpark DataFrames.
 
     Example:
         >>> from kloppy_light import tracab
@@ -89,6 +100,10 @@ def load_tracking(
         >>> dataset = tracab.load_tracking("tracking.dat", "meta.xml")
         >>> dataset.write_cache()  # Write to cache
         >>> dataset = tracab.load_tracking("tracking.dat", "meta.xml", from_cache=True)  # Load from cache
+
+        >>> # PySpark engine
+        >>> dataset = tracab.load_tracking("tracking.dat", "meta.xml", engine="pyspark")
+        >>> dataset.tracking.show(5)
     """
     return load_tracking_impl(
         provider_name="tracab",
@@ -101,4 +116,6 @@ def load_tracking(
         include_game_id=include_game_id,
         lazy=lazy,
         from_cache=from_cache,
+        engine=engine,
+        spark_session=spark_session,
     )

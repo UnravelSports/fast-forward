@@ -1,7 +1,10 @@
 """TrackingDataset class for structured access to tracking data components."""
 
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 import polars as pl
+
+if TYPE_CHECKING:
+    from pyspark.sql import DataFrame as SparkDataFrame, SparkSession
 
 
 def extract_players_from_tracking(
@@ -112,21 +115,26 @@ def extract_players_from_tracking(
 class TrackingDataset:
     """Container for tracking data and associated metadata.
 
+    Supports multiple DataFrame backends:
+    - Polars (default): pl.DataFrame or pl.LazyFrame
+    - PySpark: pyspark.sql.DataFrame
+
     Attributes
     ----------
-    tracking : pl.DataFrame or pl.LazyFrame
-        Tracking data. DataFrame if loaded eagerly (lazy=False), LazyFrame if lazy=True.
-        For lazy loading, call .collect() to get DataFrame.
-        LazyFrame provides full Polars functionality including schema introspection,
-        filter pushdown, and all LazyFrame methods (join, group_by, with_columns, etc.).
-    metadata : pl.DataFrame
+    tracking : pl.DataFrame, pl.LazyFrame, or pyspark.sql.DataFrame
+        Tracking data. DataFrame type depends on engine parameter.
+        For Polars with lazy=True, returns LazyFrame with full Polars functionality.
+        For PySpark, returns a PySpark DataFrame (inherently lazy).
+    metadata : pl.DataFrame or pyspark.sql.DataFrame
         Single-row DataFrame with match-level metadata
-    teams : pl.DataFrame
+    teams : pl.DataFrame or pyspark.sql.DataFrame
         Team information (2 rows: home and away)
-    players : pl.DataFrame
+    players : pl.DataFrame or pyspark.sql.DataFrame
         Player information with team associations
-    periods : pl.DataFrame
+    periods : pl.DataFrame or pyspark.sql.DataFrame
         Period information with period_id, start_frame_id, end_frame_id
+    engine : str
+        The DataFrame engine being used ('polars' or 'pyspark')
 
     Examples
     --------
@@ -159,12 +167,13 @@ class TrackingDataset:
 
     def __init__(
         self,
-        tracking: Union[pl.DataFrame, pl.LazyFrame],
-        metadata: pl.DataFrame,
-        teams: pl.DataFrame,
-        players: pl.DataFrame,
-        periods: pl.DataFrame,
+        tracking: Union[pl.DataFrame, pl.LazyFrame, "SparkDataFrame"],
+        metadata: Union[pl.DataFrame, "SparkDataFrame"],
+        teams: Union[pl.DataFrame, "SparkDataFrame"],
+        players: Union[pl.DataFrame, "SparkDataFrame"],
+        periods: Union[pl.DataFrame, "SparkDataFrame"],
         *,
+        _engine: str = "polars",
         _original_tracking: Optional[pl.LazyFrame] = None,
         _provider: Optional[str] = None,
         _cache_key: Optional[str] = None,
@@ -173,16 +182,18 @@ class TrackingDataset:
 
         Parameters
         ----------
-        tracking : pl.DataFrame or pl.LazyFrame
-            Tracking data. DataFrame when lazy=False (default), LazyFrame when lazy=True.
-        metadata : pl.DataFrame
+        tracking : pl.DataFrame, pl.LazyFrame, or pyspark.sql.DataFrame
+            Tracking data. Type depends on engine parameter.
+        metadata : pl.DataFrame or pyspark.sql.DataFrame
             Metadata (single row)
-        teams : pl.DataFrame
+        teams : pl.DataFrame or pyspark.sql.DataFrame
             Teams data
-        players : pl.DataFrame
+        players : pl.DataFrame or pyspark.sql.DataFrame
             Players data
-        periods : pl.DataFrame
+        periods : pl.DataFrame or pyspark.sql.DataFrame
             Periods data with period_id, start_frame_id, end_frame_id
+        _engine : str, default "polars"
+            Internal: DataFrame engine ('polars' or 'pyspark').
         _original_tracking : pl.LazyFrame, optional
             Internal: Original unmodified LazyFrame for cache writes.
         _provider : str, optional
@@ -195,6 +206,7 @@ class TrackingDataset:
         self._teams = teams
         self._players = players
         self._periods = periods
+        self._engine = _engine
 
         # Internal state for caching
         self._original_tracking = _original_tracking if _original_tracking is not None else tracking
@@ -203,7 +215,12 @@ class TrackingDataset:
         self._collected_df: Optional[pl.DataFrame] = None
 
     @property
-    def tracking(self) -> Union[pl.DataFrame, pl.LazyFrame]:
+    def engine(self) -> str:
+        """Get the DataFrame engine ('polars' or 'pyspark')."""
+        return self._engine
+
+    @property
+    def tracking(self) -> Union[pl.DataFrame, pl.LazyFrame, "SparkDataFrame"]:
         """Get tracking data (DataFrame or LazyFrame).
 
         Returns the collected DataFrame if collect() was previously called,
@@ -214,37 +231,38 @@ class TrackingDataset:
         return self._tracking
 
     @property
-    def metadata(self) -> pl.DataFrame:
+    def metadata(self) -> Union[pl.DataFrame, "SparkDataFrame"]:
         """Get metadata DataFrame (single row)."""
         return self._metadata
 
     @property
-    def teams(self) -> pl.DataFrame:
+    def teams(self) -> Union[pl.DataFrame, "SparkDataFrame"]:
         """Get teams DataFrame."""
         return self._teams
 
     @property
-    def players(self) -> pl.DataFrame:
+    def players(self) -> Union[pl.DataFrame, "SparkDataFrame"]:
         """Get players DataFrame."""
         return self._players
 
     @property
-    def periods(self) -> pl.DataFrame:
+    def periods(self) -> Union[pl.DataFrame, "SparkDataFrame"]:
         """Get periods DataFrame with period_id, start_frame_id, end_frame_id."""
         return self._periods
 
-    def collect(self) -> pl.DataFrame:
+    def collect(self) -> Union[pl.DataFrame, "SparkDataFrame"]:
         """Collect the tracking LazyFrame into a DataFrame.
 
         Convenience method that calls self.tracking.collect().
-        For lazy datasets, this triggers the actual data loading.
+        For Polars lazy datasets, this triggers the actual data loading.
+        For PySpark, returns the DataFrame as-is (PySpark is inherently lazy).
 
         After calling collect(), subsequent access to dataset.tracking
         will return the collected DataFrame instead of the LazyFrame.
 
         Returns
         -------
-        pl.DataFrame
+        pl.DataFrame or pyspark.sql.DataFrame
             The collected tracking data.
 
         Examples
@@ -253,6 +271,10 @@ class TrackingDataset:
         >>> df = dataset.collect()  # Same as dataset.tracking.collect()
         >>> dataset.tracking  # Now returns DataFrame, not LazyFrame
         """
+        # For PySpark, just return the DataFrame (it's inherently lazy)
+        if self._engine == "pyspark":
+            return self._tracking
+
         # Return cached result if already collected
         if self._collected_df is not None:
             return self._collected_df
@@ -313,6 +335,92 @@ class TrackingDataset:
             teams=self._teams,
             players=players_df,
             periods=self._periods,
+            _engine=self._engine,
+            _provider=self._provider,
+            _cache_key=self._cache_key,
+        )
+
+    def to_polars(self) -> "TrackingDataset":
+        """Convert all DataFrames to Polars.
+
+        If already using Polars engine, returns self unchanged.
+        For PySpark DataFrames, converts via Arrow/pandas interchange.
+
+        Returns
+        -------
+        TrackingDataset
+            New TrackingDataset with all Polars DataFrames,
+            or self if already Polars.
+
+        Examples
+        --------
+        >>> dataset_spark = secondspectrum.load_tracking(..., engine="pyspark")
+        >>> dataset_polars = dataset_spark.to_polars()
+        >>> dataset_polars.engine
+        'polars'
+        """
+        if self._engine == "polars":
+            return self
+
+        from kloppy_light._engine import spark_to_polars
+
+        return TrackingDataset(
+            tracking=spark_to_polars(self._tracking),
+            metadata=spark_to_polars(self._metadata),
+            teams=spark_to_polars(self._teams),
+            players=spark_to_polars(self._players),
+            periods=spark_to_polars(self._periods),
+            _engine="polars",
+            _provider=self._provider,
+            _cache_key=self._cache_key,
+        )
+
+    def to_pyspark(
+        self, spark: Optional["SparkSession"] = None
+    ) -> "TrackingDataset":
+        """Convert all DataFrames to PySpark.
+
+        If already using PySpark engine, returns self unchanged.
+        For Polars DataFrames, converts via Arrow interchange.
+
+        Parameters
+        ----------
+        spark : SparkSession, optional
+            SparkSession to use. If None, gets or creates one.
+
+        Returns
+        -------
+        TrackingDataset
+            New TrackingDataset with all PySpark DataFrames,
+            or self if already PySpark.
+
+        Examples
+        --------
+        >>> dataset_polars = secondspectrum.load_tracking(...)
+        >>> dataset_spark = dataset_polars.to_pyspark()
+        >>> dataset_spark.engine
+        'pyspark'
+        """
+        if self._engine == "pyspark":
+            return self
+
+        from kloppy_light._engine import polars_to_spark, get_spark_session
+
+        if spark is None:
+            spark = get_spark_session()
+
+        # For Polars LazyFrame, collect first
+        tracking = self._tracking
+        if isinstance(tracking, pl.LazyFrame):
+            tracking = tracking.collect()
+
+        return TrackingDataset(
+            tracking=polars_to_spark(tracking, spark),
+            metadata=polars_to_spark(self._metadata, spark),
+            teams=polars_to_spark(self._teams, spark),
+            players=polars_to_spark(self._players, spark),
+            periods=polars_to_spark(self._periods, spark),
+            _engine="pyspark",
             _provider=self._provider,
             _cache_key=self._cache_key,
         )
@@ -382,12 +490,24 @@ class TrackingDataset:
     def __repr__(self) -> str:
         """String representation."""
         tracking_type = type(self._tracking).__name__
-        game_id = self._metadata["game_id"][0] if "game_id" in self._metadata.columns else "unknown"
-        n_periods = len(self._periods)
-        n_players = len(self._players)
+
+        # Handle game_id extraction for both Polars and PySpark
+        if self._engine == "pyspark":
+            try:
+                row = self._metadata.first()
+                game_id = row["game_id"] if row and "game_id" in self._metadata.columns else "unknown"
+            except Exception:
+                game_id = "unknown"
+            n_periods = self._periods.count()
+            n_players = self._players.count()
+        else:
+            game_id = self._metadata["game_id"][0] if "game_id" in self._metadata.columns else "unknown"
+            n_periods = len(self._periods)
+            n_players = len(self._players)
 
         return (
             f"TrackingDataset(\n"
+            f"  engine={self._engine!r},\n"
             f"  game_id={game_id!r},\n"
             f"  tracking={tracking_type},\n"
             f"  periods={n_periods},\n"
