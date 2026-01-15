@@ -130,17 +130,17 @@ class TrackingDataset:
 
     Examples
     --------
-    Eager loading:
+    Eager loading (default):
 
     >>> from kloppy_light import secondspectrum
-    >>> dataset = secondspectrum.load_tracking("tracking.jsonl", "meta.json", lazy=False)
+    >>> dataset = secondspectrum.load_tracking("tracking.jsonl", "meta.json")
     >>> dataset.tracking  # pl.DataFrame
     >>> dataset.metadata  # pl.DataFrame (1 row)
     >>> dataset.periods   # pl.DataFrame (2+ rows)
 
-    Lazy loading (default):
+    Lazy loading:
 
-    >>> dataset = secondspectrum.load_tracking("tracking.jsonl", "meta.json")
+    >>> dataset = secondspectrum.load_tracking("tracking.jsonl", "meta.json", lazy=True)
     >>> dataset.tracking  # pl.LazyFrame
     >>> dataset.tracking.schema  # Access schema before collect
     >>> period1 = dataset.tracking.filter(pl.col("period_id") == 1).collect()
@@ -174,7 +174,7 @@ class TrackingDataset:
         Parameters
         ----------
         tracking : pl.DataFrame or pl.LazyFrame
-            Tracking data. LazyFrame when lazy=True (default), DataFrame when lazy=False.
+            Tracking data. DataFrame when lazy=False (default), LazyFrame when lazy=True.
         metadata : pl.DataFrame
             Metadata (single row)
         teams : pl.DataFrame

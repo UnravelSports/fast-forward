@@ -37,7 +37,7 @@ def load_tracking(
     include_empty_frames: bool = False,
     include_game_id: Union[bool, str] = True,
     *,
-    lazy: bool = True,
+    lazy: bool = False,
     from_cache: bool = False,
 ) -> TrackingDataset:
     """

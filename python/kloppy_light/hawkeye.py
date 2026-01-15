@@ -56,7 +56,7 @@ def load_tracking(
     object_id: Literal["fifa", "uefa", "he", "auto"] = "auto",
     include_game_id: Union[bool, str] = True,
     *,
-    lazy: bool = True,
+    lazy: bool = False,
     from_cache: bool = False,
     parallel: bool = True,
 ) -> TrackingDataset:

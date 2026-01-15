@@ -36,7 +36,7 @@ def load_tracking(
     only_alive: bool = True,
     include_game_id: Union[bool, str] = True,
     *,
-    lazy: bool = True,
+    lazy: bool = False,
     from_cache: bool = False,
 ) -> TrackingDataset:
     """
