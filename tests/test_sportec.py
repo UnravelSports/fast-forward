@@ -240,7 +240,7 @@ class TestTrackingDataFrameLong:
     def test_has_ball_rows(self, tracking_df):
         """Test that long format includes ball as separate rows."""
         ball_rows = tracking_df.filter(pl.col("team_id") == "ball")
-        assert ball_rows.height > 0
+        assert ball_rows.height == 199
 
         # Check ball rows have player_id = "ball"
         assert ball_rows["player_id"].to_list()[:10] == ["ball"] * min(
@@ -253,8 +253,8 @@ class TestTrackingDataFrameLong:
 
     def test_has_multiple_periods(self, tracking_df):
         """Test that data includes multiple periods."""
-        periods = tracking_df["period_id"].unique().to_list()
-        assert len(periods) >= 1  # Test data may only have first half
+        periods = sorted(tracking_df["period_id"].unique().to_list())
+        assert periods == [1, 2]
 
 
 class TestTrackingDataFrameLongBall:
@@ -335,7 +335,7 @@ class TestTrackingDataFrameWide:
         y_columns = [c for c in columns if c.endswith("_y") and c != "ball_y"]
         z_columns = [c for c in columns if c.endswith("_z") and c != "ball_z"]
 
-        assert len(x_columns) > 0
+        assert len(x_columns) == 3
         assert len(x_columns) == len(y_columns) == len(z_columns)
 
     def test_one_row_per_frame(self, tracking_df):
@@ -358,11 +358,9 @@ class TestOnlyAliveParameter:
         )
         df_alive = dataset.tracking
 
-        # Check if there are dead frames in the test data
-        dead_rows_all = df_all.filter(pl.col("ball_state") == "dead")
-        if dead_rows_all.height > 0:
-            # Alive should have fewer rows if there are dead frames
-            assert df_alive.height <= df_all.height
+        # alive should have fewer rows than all (some dead frames removed)
+        assert df_all.height == 493
+        assert df_alive.height == 481
 
     def test_only_alive_no_dead_frames(self):
         """Test that only_alive=True results in no dead ball frames."""
@@ -639,7 +637,7 @@ class TestSpecificValues:
         ).sort("frame_id")
 
         # Player should appear starting at frame 10026 (27th frame, 0-indexed is frame 26)
-        assert player_frames.height > 0
+        assert player_frames.height == 67
         # The 27th frame in period 1 would be frame 10026
         assert player_frames["frame_id"][0] == 10026
 

@@ -59,7 +59,7 @@ class TestTrackingDatasetEager:
         """Test that eager tracking is a DataFrame."""
         dataset = secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
         assert isinstance(dataset.tracking, pl.DataFrame)
-        assert len(dataset.tracking) > 0
+        assert len(dataset.tracking) == 4554
 
     def test_eager_metadata_loaded(self):
         """Test that eager metadata is loaded."""
@@ -74,7 +74,7 @@ class TestTrackingDatasetEager:
     def test_eager_players_loaded(self):
         """Test that eager players are loaded."""
         dataset = secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
-        assert dataset.players.height > 0
+        assert dataset.players.height == 40
 
 
 class TestTrackingDatasetLazy:
@@ -101,14 +101,14 @@ class TestTrackingDatasetLazy:
         """Test that players are always eager."""
         dataset = secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=True)
         assert isinstance(dataset.players, pl.DataFrame)
-        assert dataset.players.height > 0
+        assert dataset.players.height == 40
 
     def test_lazy_can_collect(self):
         """Test that lazy tracking can be collected."""
         dataset = secondspectrum.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=True)
         result = dataset.tracking.collect()
         assert isinstance(result, pl.DataFrame)
-        assert len(result) > 0
+        assert len(result) == 4554
 
     def test_lazy_collect_equals_eager(self):
         """Test that lazy collect equals eager loading."""
@@ -138,7 +138,7 @@ class TestPeriodsDataFrame:
 
     def test_periods_has_rows(self, dataset):
         """Test that periods DataFrame has rows."""
-        assert dataset.periods.height >= 2  # At least 2 periods
+        assert dataset.periods.height == 2
 
     def test_periods_period_ids(self, dataset):
         """Test that period IDs are sequential starting from 1."""
@@ -398,6 +398,7 @@ class TestLazyFrameFunctionality:
         )
 
         # All rows should match filters
+        assert len(result) == 770
         assert all(p == 1 for p in result["period_id"].to_list())
         assert "ball" not in result["team_id"].to_list()
         assert all(x > 0 for x in result["x"].to_list())
