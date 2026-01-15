@@ -1,3 +1,4 @@
+pub mod cdf;
 pub mod hawkeye;
 pub mod secondspectrum;
 pub mod skillcorner;

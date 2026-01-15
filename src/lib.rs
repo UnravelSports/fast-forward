@@ -15,6 +15,11 @@ mod transforms;
 fn _kloppy_light(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
 
+    // Register cdf submodule
+    let cdf = PyModule::new(m.py(), "cdf")?;
+    providers::cdf::register_module(&cdf)?;
+    m.add_submodule(&cdf)?;
+
     // Register secondspectrum submodule
     let secondspectrum = PyModule::new(m.py(), "secondspectrum")?;
     providers::secondspectrum::register_module(&secondspectrum)?;

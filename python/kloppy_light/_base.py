@@ -437,10 +437,18 @@ def load_tracking_impl(
 
 def _register_standard_providers() -> None:
     """Register the standard providers at module load time."""
+    from kloppy_light._kloppy_light import cdf as _cdf
     from kloppy_light._kloppy_light import secondspectrum as _ss
     from kloppy_light._kloppy_light import skillcorner as _sc
     from kloppy_light._kloppy_light import sportec as _sp
     from kloppy_light._kloppy_light import tracab as _tr
+
+    register_provider(
+        name="cdf",
+        rust_module=_cdf,
+        metadata_params=[],
+        tracking_params=[],
+    )
 
     register_provider(
         name="secondspectrum",
