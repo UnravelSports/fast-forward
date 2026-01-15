@@ -546,11 +546,14 @@ Create `python/kloppy_light/{provider}.py`:
 This module provides functions to load {Provider} tracking data.
 """
 
-from typing import Literal, Union
+from typing import TYPE_CHECKING, Literal, Optional, Union
 
 from kloppy_light._base import load_tracking_impl
 from kloppy_light._dataset import TrackingDataset
 from kloppy.io import FileLike
+
+if TYPE_CHECKING:
+    from pyspark.sql import SparkSession
 
 
 def load_tracking(
@@ -582,7 +585,10 @@ def load_tracking(
     include_game_id: Union[bool, str] = True,
     # provider_specific_param: bool = False,  # Add your params here
     *,
-    lazy: bool = True,
+    lazy: bool = False,
+    from_cache: bool = False,
+    engine: Literal["polars", "pyspark"] = "polars",
+    spark_session: Optional["SparkSession"] = None,
 ) -> TrackingDataset:
     """
     Load {Provider} tracking data.
@@ -599,7 +605,10 @@ def load_tracking(
         only_alive: If True, only include frames where ball is in play.
         include_game_id: Include game_id column. True uses metadata value,
             False omits column, string uses custom value.
-        lazy: If True, return lazy loader. Call .collect() to load data.
+        lazy: If True, return TrackingDataset with pl.LazyFrame for tracking.
+        from_cache: If True, load from cache if available.
+        engine: DataFrame engine ("polars" or "pyspark").
+        spark_session: PySpark SparkSession (only needed if engine="pyspark").
 
     Returns:
         TrackingDataset with .tracking, .metadata, .teams, .players, .periods
@@ -607,7 +616,7 @@ def load_tracking(
     Example:
         >>> from kloppy_light import {provider}
         >>> dataset = {provider}.load_tracking("tracking.jsonl", "meta.json")
-        >>> tracking_df = dataset.tracking.collect()  # if lazy=True
+        >>> tracking_df = dataset.tracking  # pl.DataFrame (eager)
     """
     return load_tracking_impl(
         provider_name="{provider}",
@@ -619,6 +628,9 @@ def load_tracking(
         only_alive=only_alive,
         include_game_id=include_game_id,
         lazy=lazy,
+        from_cache=from_cache,
+        engine=engine,
+        spark_session=spark_session,
         # provider_specific_param=provider_specific_param,  # Pass your params
     )
 ```
@@ -653,9 +665,10 @@ def _register_standard_providers():
 Create `python/kloppy_light/{provider}.pyi`:
 
 ```python
-from typing import Literal, Union
+from typing import Literal, Optional, Union
 from kloppy_light._dataset import TrackingDataset
 from kloppy.io import FileLike
+from pyspark.sql import SparkSession
 
 def load_tracking(
     raw_data: FileLike,
@@ -673,7 +686,10 @@ def load_tracking(
     include_game_id: Union[bool, str] = True,
     # provider_specific_param: bool = False,
     *,
-    lazy: bool = True,
+    lazy: bool = False,
+    from_cache: bool = False,
+    engine: Literal["polars", "pyspark"] = "polars",
+    spark_session: Optional[SparkSession] = None,
 ) -> TrackingDataset:
     """Load {Provider} tracking data."""
     ...

@@ -6,7 +6,7 @@
 
 ## Provider
 
-- [ ] [HIGH] SecondSpectrum is missing frame_id=0
+- [X] [HIGH] SecondSpectrum is missing frame_id=0
 
 ## Collect
 
