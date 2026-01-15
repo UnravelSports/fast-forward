@@ -58,6 +58,7 @@ def load_tracking(
     pitch_width: float = 68.0,
     object_id: Literal["fifa", "uefa", "he", "auto"] = "auto",
     include_game_id: Union[bool, str] = True,
+    include_officials: bool = False,
     *,
     lazy: bool = False,
     from_cache: bool = False,
@@ -115,6 +116,9 @@ def load_tracking(
         If True, add game_id column to tracking_df, team_df, and player_df from metadata.
         If False, no game_id column is added.
         If str, use the provided string as the game_id value.
+    include_officials : bool, default False
+        If True, include officials in player_df and tracking data with team_id="officials"
+        and position codes: REF (Main Referee), AREF (Assistant Referee).
     lazy : bool, default True
         If True, return a TrackingDataset with LazyFrame for tracking.
         If False, return a TrackingDataset with eager DataFrame for tracking.
@@ -140,7 +144,7 @@ def load_tracking(
 
     Notes
     -----
-    - Officials are automatically included in player_df if present in tracking data
+    - Officials are excluded by default; set include_officials=True to include them
     - Period and minute are extracted from filename patterns like hawkeye_1_1.ball
     - Lazy loading only parses tracking data when .collect() is called
 
@@ -204,7 +208,7 @@ def load_tracking(
         # Build config string for cache key
         config_str = (
             f"{layout}|{coordinates}|{orientation}|{only_alive}|"
-            f"{pitch_length}|{pitch_width}|{object_id}|{include_game_id}"
+            f"{pitch_length}|{pitch_width}|{object_id}|{include_game_id}|{include_officials}"
         )
 
         # Compute cache key
@@ -243,6 +247,8 @@ def load_tracking(
                         _engine="polars",
                         _provider="hawkeye",
                         _cache_key=cache_key,
+                        _coordinate_system=coordinates,
+                        _orientation=orientation,
                     )
             else:
                 # Cache miss with from_cache=True - warn user
@@ -262,6 +268,7 @@ def load_tracking(
             pitch_width=pitch_width,
             object_id=object_id,
             include_game_id=include_game_id,
+            include_officials=include_officials,
         )
 
         # Generate schema for the tracking DataFrame
@@ -285,6 +292,7 @@ def load_tracking(
             pitch_width=pitch_width,
             object_id=object_id,
             include_game_id=include_game_id,
+            include_officials=include_officials,
             parallel=parallel,
         )
 
@@ -297,6 +305,8 @@ def load_tracking(
             _engine="polars",
             _provider="hawkeye",
             _cache_key=cache_key,
+            _coordinate_system=coordinates,
+            _orientation=orientation,
         )
 
     # Eager loading (existing logic)
@@ -354,6 +364,7 @@ def load_tracking(
         pitch_width=pitch_width,
         object_id=object_id,
         include_game_id=include_game_id,
+        include_officials=include_officials,
         parallel=parallel,
     )
 
@@ -366,7 +377,7 @@ def load_tracking(
 
         config_str = (
             f"{layout}|{coordinates}|{orientation}|{only_alive}|"
-            f"{pitch_length}|{pitch_width}|{object_id}|{include_game_id}"
+            f"{pitch_length}|{pitch_width}|{object_id}|{include_game_id}|{include_officials}"
         )
         all_paths = [str(f) for f in ball_data_list] + [str(f) for f in player_data_list]
         cache_key = compute_cache_key_fast_multi(
@@ -385,6 +396,8 @@ def load_tracking(
             _engine="pyspark",
             _provider="hawkeye",
             _cache_key=cache_key,
+            _coordinate_system=coordinates,
+            _orientation=orientation,
         )
 
     return TrackingDataset(
@@ -396,6 +409,8 @@ def load_tracking(
         _engine="polars",
         _provider="hawkeye",
         _cache_key=cache_key,
+        _coordinate_system=coordinates,
+        _orientation=orientation,
     )
 
 
@@ -427,6 +442,7 @@ def load_metadata_only(
     pitch_width: float = 68.0,
     object_id: Literal["auto", "heId", "fifaId"] = "auto",
     include_game_id: Union[bool, str] = True,
+    include_officials: bool = False,
 ) -> Tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame]:
     """
     Load only HawkEye metadata without tracking data.
@@ -453,6 +469,8 @@ def load_metadata_only(
         If True, add game_id column from metadata.
         If False, no game_id column is added.
         If str, use the provided string as the game_id value.
+    include_officials : bool, default False
+        If True, include officials in player_df with team_id="officials".
 
     Returns
     -------
@@ -495,4 +513,5 @@ def load_metadata_only(
         pitch_width=pitch_width,
         object_id=object_id,
         include_game_id=include_game_id,
+        include_officials=include_officials,
     )

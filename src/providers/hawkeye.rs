@@ -577,6 +577,7 @@ fn parse_player_file(
     fps: f32,
     object_id: &str,
     metadata_only: bool,
+    include_officials: bool,
 ) -> Result<PlayerFileData, KloppyError> {
     if data.is_empty() {
         return Ok(PlayerFileData {
@@ -595,16 +596,22 @@ fn parse_player_file(
     for player in feed.details.players {
         let player_id = get_object_id(&player.id, object_id)?;
         let team_id_raw = get_object_id(&player.team_id, object_id)?;
+        let is_official = player.role.name.to_lowercase().contains("referee");
 
-        // Check if this is an official/referee
-        let (team_id, position) = if player.role.name.to_lowercase().contains("referee") {
-            ("official".to_string(), map_role_to_position(&player.role.name))
+        // Skip officials if not included
+        if is_official && !include_officials {
+            continue;
+        }
+
+        // Check if this is an official
+        let (team_id, position) = if is_official {
+            ("officials".to_string(), map_role_to_position(&player.role.name))
         } else {
             (team_id_raw.clone(), map_role_to_position(&player.role.name))
         };
 
         // Track non-official team IDs for building teams list
-        if !player.role.name.to_lowercase().contains("referee") {
+        if !is_official {
             team_ids_seen.insert(team_id_raw);
         }
 
@@ -624,7 +631,7 @@ fn parse_player_file(
 
     // Build teams list from unique team IDs
     // Since player files don't have team names, we create minimal team records with placeholder names
-    let teams: Vec<StandardTeam> = team_ids_seen
+    let mut teams: Vec<StandardTeam> = team_ids_seen
         .iter()
         .enumerate()
         .map(|(idx, team_id)| StandardTeam {
@@ -635,28 +642,95 @@ fn parse_player_file(
         .collect();
 
     // Parse tracking samples (skip if metadata_only)
+    // Also extract officials from samples.people since they're not in details.players
     let samples = if metadata_only {
+        // Even for metadata_only, we need to extract officials from samples.people
+        if include_officials {
+            let mut officials_seen = std::collections::HashSet::new();
+            for person in &feed.samples.people {
+                let role_lower = person.role.name.to_lowercase();
+                let is_official = role_lower.contains("referee");
+                if is_official {
+                    if let Ok(player_id) = get_object_id(&person.person_id, object_id) {
+                        if officials_seen.insert(player_id.clone()) {
+                            // Map role to position code
+                            let position = if role_lower == "referee" {
+                                Position::REF
+                            } else if role_lower.contains("assistant") {
+                                Position::AREF
+                            } else {
+                                Position::REF
+                            };
+                            players.push(StandardPlayer {
+                                team_id: "officials".to_string(),
+                                player_id,
+                                name: None,
+                                first_name: None,
+                                last_name: None,
+                                jersey_number: 0,
+                                position,
+                                is_starter: None,
+                            });
+                        }
+                    }
+                }
+            }
+        }
         HashMap::new()  // Return empty samples to save parsing time
     } else {
-        // Build player_id -> team_id lookup for O(1) access
-        let player_to_team: HashMap<&str, &str> = players
+        // Build player_id -> team_id lookup for O(1) access (owned strings to avoid borrow issues)
+        let player_to_team: HashMap<String, String> = players
             .iter()
-            .map(|p| (p.player_id.as_str(), p.team_id.as_str()))
+            .map(|p| (p.player_id.clone(), p.team_id.clone()))
             .collect();
 
         // Calculate base frame offset for this minute
         let minute_offset = (period_id as f32 - 1.0) * 45.0 + minute as f32;
 
         let mut samples: HashMap<u32, Vec<(String, String, [f32; 2])>> = HashMap::new();
+        let mut officials_seen = std::collections::HashSet::new();
 
         for person in feed.samples.people {
             let person_player_id = get_object_id(&person.person_id, object_id)?;
 
+            // Check if this person is an official (by role in samples)
+            let role_lower = person.role.name.to_lowercase();
+            let is_official = role_lower.contains("referee");
+
             // Find the team_id for this player using O(1) HashMap lookup
-            let team_id = player_to_team
-                .get(person_player_id.as_str())
-                .map(|s| s.to_string())
-                .unwrap_or_else(|| "unknown".to_string());
+            let team_id = if let Some(tid) = player_to_team.get(&person_player_id) {
+                tid.clone()
+            } else if is_official {
+                // Person not in details.players but is an official
+                if include_officials {
+                    // Add to players list if not already added
+                    if officials_seen.insert(person_player_id.clone()) {
+                        let position = if role_lower == "referee" {
+                            Position::REF
+                        } else if role_lower.contains("assistant") {
+                            Position::AREF
+                        } else {
+                            Position::REF
+                        };
+                        players.push(StandardPlayer {
+                            team_id: "officials".to_string(),
+                            player_id: person_player_id.clone(),
+                            name: None,
+                            first_name: None,
+                            last_name: None,
+                            jersey_number: 0,
+                            position,
+                            is_starter: None,
+                        });
+                    }
+                    "officials".to_string()
+                } else {
+                    continue; // Skip officials not in player list
+                }
+            } else {
+                // Unknown non-official - skip
+                continue;
+            };
 
             for centroid in person.centroid {
                 let frame_id = ((minute_offset * 60.0 + centroid.time as f32) * fps) as u32;
@@ -670,6 +744,18 @@ fn parse_player_file(
         samples
     };
 
+    // Add officials team if we have officials (must be done AFTER extracting officials from samples)
+    if include_officials {
+        let has_officials = players.iter().any(|p| p.team_id == "officials");
+        if has_officials {
+            teams.push(StandardTeam {
+                team_id: "officials".to_string(),
+                name: "Officials".to_string(),
+                ground: Ground::Home,  // Placeholder ground for officials
+            });
+        }
+    }
+
     Ok(PlayerFileData { players, teams, samples })
 }
 
@@ -682,9 +768,10 @@ fn extract_metadata_from_player_file(
     minute: u8,
     fps: f32,
     object_id: &str,
+    include_officials: bool,
 ) -> Result<(Vec<StandardTeam>, Vec<StandardPlayer>), KloppyError> {
     // Parse with metadata_only=true to skip samples (fast!)
-    let player_data = parse_player_file(data, period_id, minute, fps, object_id, true)?;
+    let player_data = parse_player_file(data, period_id, minute, fps, object_id, true, include_officials)?;
     Ok((player_data.teams, player_data.players))
 }
 
@@ -904,7 +991,8 @@ fn parse_player_file_for_merge(
     pushdown: &PushdownFilters,
     player_lookup: &HashMap<String, (u32, u32)>,  // Maps player_id -> (team_id_idx, player_id_idx)
     interner: &StringInterner,  // For filter checking only (read-only)
-    unknown_idx: u32,  // Pre-interned "unknown" index
+    officials_idx: u32,  // Pre-interned "officials" index (only valid when include_officials=true)
+    include_officials: bool,
 ) -> Result<PlayerFileResult, KloppyError> {
     if data.is_empty() {
         return Ok(PlayerFileResult { samples: Vec::new() });
@@ -921,11 +1009,24 @@ fn parse_player_file_for_merge(
     for person in feed.samples.people {
         let person_player_id = get_object_id(&person.person_id, object_id)?;
 
-        // Get both team_id_idx and player_id_idx from pre-built lookup (no locking!)
-        let (team_id_idx, player_id_idx) = player_lookup
-            .get(&person_player_id)
-            .copied()
-            .unwrap_or((unknown_idx, unknown_idx));
+        // Check if this person is an official (by role in samples)
+        let is_official = person.role.name.to_lowercase().contains("referee");
+
+        // Get team_id_idx and player_id_idx from pre-built lookup (no locking!)
+        let (team_id_idx, player_id_idx) = if let Some(&(tid, pid)) = player_lookup.get(&person_player_id) {
+            (tid, pid)
+        } else if is_official {
+            // Person not in lookup but is an official
+            if include_officials {
+                // Intern the player_id dynamically (this is rare, so acceptable cost)
+                (officials_idx, officials_idx) // Use officials_idx for both
+            } else {
+                continue; // Skip officials not in player list
+            }
+        } else {
+            // Unknown non-official - skip
+            continue;
+        };
 
         // EARLY PUSHDOWN: Skip players that don't match team_id/player_id filters
         if has_player_filters {
@@ -1024,21 +1125,37 @@ fn merge_parallel_results(
 fn build_player_lookup_with_interner(
     player_files: &[(u8, u8, Vec<u8>)],
     object_id: &str,
+    include_officials: bool,
 ) -> Result<(HashMap<String, (u32, u32)>, StringInterner), KloppyError> {
     let mut interner = StringInterner::new();
     let mut lookup = HashMap::with_capacity(50);
+
+    // Intern "officials" team_id upfront if needed
+    let officials_team_idx = if include_officials {
+        Some(interner.intern("officials".to_string()))
+    } else {
+        None
+    };
 
     // Just use first file - it contains all players
     if let Some((_period_id, _minute, data)) = player_files.first() {
         if !data.is_empty() {
             let feed: RawPlayerFeed = serde_json::from_slice(data)?;
-            for player in feed.details.players {
+
+            // Process players from details.players
+            for player in &feed.details.players {
                 let player_id = get_object_id(&player.id, object_id)?;
                 let team_id_raw = get_object_id(&player.team_id, object_id)?;
+                let is_official = player.role.name.to_lowercase().contains("referee");
 
-                // Check if this is an official/referee
-                let team_id = if player.role.name.to_lowercase().contains("referee") {
-                    "official".to_string()
+                // Skip officials if not included
+                if is_official && !include_officials {
+                    continue;
+                }
+
+                // Check if this is an official
+                let team_id = if is_official {
+                    "officials".to_string()
                 } else {
                     team_id_raw
                 };
@@ -1048,11 +1165,23 @@ fn build_player_lookup_with_interner(
                 let player_id_idx = interner.intern(player_id.clone());
                 lookup.insert(player_id, (team_id_idx, player_id_idx));
             }
+
+            // Also scan samples.people for officials (they may not be in details.players)
+            if include_officials {
+                let officials_team_idx = officials_team_idx.unwrap();
+                for person in &feed.samples.people {
+                    let person_player_id = get_object_id(&person.person_id, object_id)?;
+                    let is_official = person.role.name.to_lowercase().contains("referee");
+
+                    // Only add officials that aren't already in the lookup
+                    if is_official && !lookup.contains_key(&person_player_id) {
+                        let player_id_idx = interner.intern(person_player_id.clone());
+                        lookup.insert(person_player_id, (officials_team_idx, player_id_idx));
+                    }
+                }
+            }
         }
     }
-
-    // Also intern "unknown" for any players not found in the lookup
-    interner.intern("unknown".to_string());
 
     Ok((lookup, interner))
 }
@@ -1069,14 +1198,15 @@ fn build_tracking_df_from_files_parallel(
     game_id_value: Option<&str>,
     object_id: &str,
     pushdown: &PushdownFilters,
+    include_officials: bool,
 ) -> Result<DataFrame, KloppyError> {
     use rayon::prelude::*;
 
     // Build complete player lookup with all strings pre-interned (no locking during parallel!)
-    let (player_lookup, interner) = build_player_lookup_with_interner(&player_files, object_id)?;
+    let (player_lookup, interner) = build_player_lookup_with_interner(&player_files, object_id, include_officials)?;
 
-    // Get the "unknown" index for players not in the lookup
-    let unknown_idx = interner.lookup.get("unknown").copied().unwrap_or(0);
+    // Get the "officials" index for officials not in the lookup (only used when include_officials=true)
+    let officials_idx = interner.lookup.get("officials").copied().unwrap_or(0);
 
     // PHASE 1: Parallel ball file parsing with file-level pushdown
     let ball_results: Result<Vec<BallFileResult>, KloppyError> = ball_files
@@ -1127,7 +1257,8 @@ fn build_tracking_df_from_files_parallel(
                 pushdown,
                 &player_lookup,
                 &interner,
-                unknown_idx,
+                officials_idx,
+                include_officials,
             )
         })
         .collect();
@@ -1196,6 +1327,7 @@ fn build_tracking_df_from_files(
     game_id_value: Option<&str>,
     object_id: &str,
     pushdown: &PushdownFilters,
+    include_officials: bool,
 ) -> Result<DataFrame, KloppyError> {
     // Build StandardFrames using HashMap for incremental construction
     // Pre-allocate capacity: ~2500 frames per minute file
@@ -1334,7 +1466,7 @@ fn build_tracking_df_from_files(
             }
         }
 
-        let player_data = parse_player_file(data, period_id, minute, metadata.fps, object_id, false)?;
+        let player_data = parse_player_file(data, period_id, minute, metadata.fps, object_id, false, include_officials)?;
 
         let has_player_filters = pushdown.has_player_filters();
         for (frame_id, positions) in player_data.samples {
@@ -1435,6 +1567,7 @@ fn build_tracking_df_from_files(
     pitch_width=68.0,
     object_id="auto",
     include_game_id=None,
+    include_officials=false,
     predicate=None,
     parallel=true
 ))]
@@ -1451,6 +1584,7 @@ fn load_tracking(
     pitch_width: f32,
     object_id: &str,
     include_game_id: Option<Bound<'_, PyAny>>,
+    include_officials: bool,
     predicate: Option<PyExpr>,
     parallel: bool,
 ) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
@@ -1615,13 +1749,20 @@ fn load_tracking(
     }
 
     // Parse first player file to get players (first file contains all players)
-    let all_players = if let Some((period_id, minute, data)) = player_files_with_metadata.first() {
-        extract_metadata_from_player_file(data, *period_id, *minute, fps, object_id)
-            .map(|(_, players)| players)
+    // Also get teams from player file to include officials team when needed
+    let (player_teams, all_players) = if let Some((period_id, minute, data)) = player_files_with_metadata.first() {
+        extract_metadata_from_player_file(data, *period_id, *minute, fps, object_id, include_officials)
             .unwrap_or_default()
     } else {
-        Vec::new()
+        (Vec::new(), Vec::new())
     };
+
+    // Add officials team from player file if it exists (when include_officials=true)
+    if include_officials {
+        if let Some(officials_team) = player_teams.iter().find(|t| t.team_id == "officials") {
+            teams.push(officials_team.clone());
+        }
+    }
 
     // Build tracking DataFrame with pushdown filtering (parallel or sequential)
     let tracking_df = if parallel {
@@ -1636,6 +1777,7 @@ fn load_tracking(
             game_id_value.as_deref(),
             object_id,
             &pushdown,
+            include_officials,
         )
     } else {
         // Sequential version - convert owned Vec<u8> to slices
@@ -1658,6 +1800,7 @@ fn load_tracking(
             game_id_value.as_deref(),
             object_id,
             &pushdown,
+            include_officials,
         )
     }
     .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))?;
@@ -1696,7 +1839,8 @@ fn load_tracking(
     pitch_length=105.0,
     pitch_width=68.0,
     object_id="auto",
-    include_game_id=None
+    include_game_id=None,
+    include_officials=false
 ))]
 fn load_metadata_only(
     py: Python<'_>,
@@ -1708,6 +1852,7 @@ fn load_metadata_only(
     pitch_width: f32,
     object_id: &str,
     include_game_id: Option<Bound<'_, PyAny>>,
+    include_officials: bool,
 ) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
     // Parse metadata
     let (game_id, _kickoff_time, pitch_length_final, pitch_width_final) =
@@ -1735,7 +1880,7 @@ fn load_metadata_only(
     let (teams, players) = if let Some(player_bytes) = player_data {
         // Use period 1, minute 1 as defaults (doesn't affect metadata extraction)
         // Uses metadata_only=true internally for fast parsing
-        extract_metadata_from_player_file(player_bytes, 1, 1, 50.0, object_id)
+        extract_metadata_from_player_file(player_bytes, 1, 1, 50.0, object_id, include_officials)
             .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))?
     } else {
         (Vec::new(), Vec::new())

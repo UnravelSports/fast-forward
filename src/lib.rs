@@ -8,6 +8,7 @@ mod filter_pushdown;
 mod models;
 mod orientation;
 mod providers;
+mod transforms;
 
 /// kloppy-light: Fast tracking data loader
 #[pymodule]
@@ -38,6 +39,11 @@ fn _kloppy_light(m: &Bound<'_, PyModule>) -> PyResult<()> {
     let tracab = PyModule::new(m.py(), "tracab")?;
     providers::tracab::register_module(&tracab)?;
     m.add_submodule(&tracab)?;
+
+    // Register transforms submodule
+    let transforms_mod = PyModule::new(m.py(), "transforms")?;
+    transforms::register_module(&transforms_mod)?;
+    m.add_submodule(&transforms_mod)?;
 
     Ok(())
 }

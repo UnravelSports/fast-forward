@@ -13,18 +13,17 @@
 
 ## HawkEye Enhancements
 
-- [ ] [HIGH] Parallelize Hawkeye file loading (might need sort at the end)
+- [X] [HIGH] Parallelize Hawkeye file loading (might need sort at the end)
+- [ ] [HIGH] Futhter parallelize parsing jsons within the files similar to other parsers
 - [ ] [MEDIUM] Skeletal transformations - reduce granularity, bone-based long format
 - [ ] [MEDIUM] Additional long format with joint column
 
 ## Core Features
 
-- [ ] [HIGH] collect(engine="gpu") - GPU acceleration
-- [ ] [MEDIUM] engine parameter in load_tracking - support Pandas, Polars, PySpark
-- [ ] [LOW] Pitch dimensions as function on dataset.df
-- [ ] [LOW] dataset.df.transform_orientation() method
-- [ ] [LOW] dataset.transform_coordinates() method
-- [ ] [MEDIUM] Concat functionality for multiple lazy TrackingDatasets (requires game_id)
+- [X] [MEDIUM] engine parameter in load_tracking - support Pandas, Polars, PySpark
+- [ ] [LOW] Pitch dimensions as function on dataset.df [feat/pitch-dimensions]
+- [ ] [LOW] dataset.df.transform_orientation() method [feat/pitch-dimensions]
+- [ ] [LOW] dataset.transform_coordinates() method [feat/pitch-dimensions]
 
 ## Documentation
 

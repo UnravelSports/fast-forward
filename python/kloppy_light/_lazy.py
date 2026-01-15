@@ -153,6 +153,7 @@ def create_lazy_tracking_hawkeye(
     pitch_width: float,
     object_id: str,
     include_game_id: Union[bool, str],
+    include_officials: bool = False,
     parallel: bool = True,
 ) -> pl.LazyFrame:
     """Create a lazy tracking DataFrame for HawkEye's dual-input format.
@@ -235,6 +236,7 @@ def create_lazy_tracking_hawkeye(
                 pitch_width=pitch_width,
                 object_id=object_id,
                 include_game_id=include_game_id,
+                include_officials=include_officials,
                 predicate=predicate,
                 parallel=parallel,
             )
@@ -253,6 +255,7 @@ def create_lazy_tracking_hawkeye(
                     pitch_width=pitch_width,
                     object_id=object_id,
                     include_game_id=include_game_id,
+                    include_officials=include_officials,
                     parallel=parallel,
                 )
             else:

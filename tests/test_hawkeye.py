@@ -33,7 +33,8 @@ class TestHawkEyeBasic:
         assert isinstance(dataset.teams, pl.DataFrame)
         assert isinstance(dataset.players, pl.DataFrame)
 
-        assert len(dataset.tracking) == 147280
+        # With include_officials=False (default), officials are excluded
+        assert len(dataset.tracking) == 130285
         assert len(dataset.metadata) == 1
         assert len(dataset.teams) == 2  # Home and away
         assert len(dataset.players) == 42
@@ -44,7 +45,8 @@ class TestHawkEyeBasic:
             BALL_FILES[0], PLAYER_FILES[0], META_JSON, lazy=False
         )
 
-        assert len(dataset.tracking) == 77036
+        # With include_officials=False (default), officials are excluded
+        assert len(dataset.tracking) == 68147
         assert len(dataset.metadata) == 1
         assert len(dataset.teams) == 2
         assert len(dataset.players) == 42
@@ -178,7 +180,7 @@ class TestHawkEyeParameters:
             BALL_FILES, PLAYER_FILES, META_JSON, object_id="auto", lazy=False
         )
         tracking_df = dataset.tracking
-        assert len(tracking_df) == 147280
+        assert len(tracking_df) == 130285
 
     def test_pitch_dimensions(self):
         """Test pitch dimension parameters."""
@@ -217,7 +219,7 @@ class TestHawkEyeData:
         tracking_df = dataset.tracking
 
         player_rows = tracking_df.filter(pl.col('team_id') != 'ball')
-        assert len(player_rows) == 141625
+        assert len(player_rows) == 124630
 
     def test_periods(self):
         """Test that period information is present."""
@@ -305,7 +307,7 @@ class TestHawkEyeEdgeCases:
             META_JSON, lazy=False
         )
         tracking_df = dataset.tracking
-        assert len(tracking_df) == 77036
+        assert len(tracking_df) == 68147
 
     def test_coordinate_system_validation(self):
         """Test that invalid coordinate systems are rejected."""
@@ -328,7 +330,7 @@ class TestHawkEyeEdgeCases:
             BALL_FILES, PLAYER_FILES, META_JSON, layout="long", lazy=False
         )
         tracking_df = dataset.tracking
-        assert len(tracking_df) == 147280
+        assert len(tracking_df) == 130285
 
         # Test invalid layout
         with pytest.raises(Exception):
@@ -370,7 +372,7 @@ class TestHawkEyeLayouts:
         assert 'ball_z' in tracking_df.columns
 
         # Should have player rows
-        assert len(tracking_df) == 141625
+        assert len(tracking_df) == 124630
 
     def test_wide_layout(self):
         """Test wide layout."""
@@ -385,6 +387,30 @@ class TestHawkEyeLayouts:
         assert len(tracking_df) == frame_count
 
         # Player positions in column names (like "player_123_x")
+        # With include_officials=False (default), officials are excluded
+        # so we have 23 players instead of 26 (26 - 3 officials = 23)
+        columns = tracking_df.columns
+        player_x_cols = [c for c in columns if c.endswith('_x') and c != 'ball_x']
+        assert len(player_x_cols) == 23
+
+        # Ball columns should exist
+        assert 'ball_x' in tracking_df.columns
+        assert 'ball_y' in tracking_df.columns
+        assert 'ball_z' in tracking_df.columns
+
+    def test_wide_layout_with_officials(self):
+        """Test wide layout with officials included."""
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, layout="wide", lazy=False,
+            include_officials=True
+        )
+        tracking_df = dataset.tracking
+
+        # One row per frame (5655 unique frames)
+        assert len(tracking_df) == 5655
+
+        # Player positions in column names
+        # With include_officials=True, all 26 people are included
         columns = tracking_df.columns
         player_x_cols = [c for c in columns if c.endswith('_x') and c != 'ball_x']
         assert len(player_x_cols) == 26
@@ -459,7 +485,7 @@ class TestHawkEyeOrientations:
         tracking_df1 = dataset.tracking
 
         # Home team attacks right (+x) entire match
-        assert len(tracking_df1) == 147280
+        assert len(tracking_df1) == 130285
 
     def test_static_away_home(self):
         """Test static_away_home orientation."""
@@ -473,8 +499,8 @@ class TestHawkEyeOrientations:
         tracking_df2 = dataset.tracking
 
         # Both should load successfully (coordinates may or may not be flipped depending on detected direction)
-        assert len(tracking_df1) == 147280
-        assert len(tracking_df2) == 147280
+        assert len(tracking_df1) == 130285
+        assert len(tracking_df2) == 130285
 
         # If the data already has home team attacking right, static_away_home will flip
         # Check that at least one coordinate differs
@@ -492,7 +518,7 @@ class TestHawkEyeOrientations:
         tracking_df = dataset.tracking
 
         # Should work (alternates by period)
-        assert len(tracking_df) == 147280
+        assert len(tracking_df) == 130285
 
 
 class TestHawkEyeFilenameExtraction:
@@ -536,8 +562,8 @@ class TestHawkEyeFilenameExtraction:
         # Check that period 1 and period 2 both have data
         period_1_rows = tracking_df.filter(pl.col("period_id") == 1).height
         period_2_rows = tracking_df.filter(pl.col("period_id") == 2).height
-        assert period_1_rows == 77036
-        assert period_2_rows == 70244
+        assert period_1_rows == 68147
+        assert period_2_rows == 62138
 
     def test_filename_parsing_with_path(self):
         """Test that filename extraction works with full paths."""
@@ -571,8 +597,8 @@ class TestHawkEyeFilenameExtraction:
         # Verify each period has the expected amount of data
         period_1_data = tracking_df.filter(pl.col("period_id") == 1)
         period_2_data = tracking_df.filter(pl.col("period_id") == 2)
-        assert len(period_1_data) == 77036
-        assert len(period_2_data) == 70244
+        assert len(period_1_data) == 68147
+        assert len(period_2_data) == 62138
 
     def test_filename_order_independence(self):
         """Test that files can be loaded in any order and periods are still correct."""
@@ -618,7 +644,7 @@ class TestHawkEyeLazyLoading:
         tracking_df = dataset.tracking.collect()
 
         # Should have tracking data
-        assert len(tracking_df) == 147280
+        assert len(tracking_df) == 130285
         assert "period_id" in tracking_df.columns
         assert "x" in tracking_df.columns
         assert "y" in tracking_df.columns
@@ -635,7 +661,7 @@ class TestHawkEyeLazyLoading:
         # Should only have period 1 data
         periods = result["period_id"].unique().to_list()
         assert periods == [1]
-        assert len(result) == 77036
+        assert len(result) == 68147
 
     def test_lazy_loading_select(self):
         """Test that select operations work correctly."""
@@ -648,7 +674,7 @@ class TestHawkEyeLazyLoading:
 
         # Should only have selected columns
         assert set(result.columns) == {"frame_id", "x", "y"}
-        assert len(result) == 147280
+        assert len(result) == 130285
 
     def test_lazy_loading_filter_select(self):
         """Test combined filter and select operations."""
@@ -678,7 +704,7 @@ class TestHawkEyeLazyLoading:
         result = dataset.tracking.collect()
 
         # Long layout includes ball as rows
-        assert len(result) == 147280
+        assert len(result) == 130285
         assert "team_id" in result.columns
 
     def test_lazy_wide_layout(self):
@@ -702,8 +728,8 @@ class TestHawkEyeLazyLoading:
 
         result = dataset.tracking.collect()
 
-        # Long_ball layout separates ball and players
-        assert len(result) == 141625
+        # Long_ball layout separates ball and players (no officials by default)
+        assert len(result) == 124630
         # Long_ball layout just separates ball rows
         assert "team_id" in result.columns
 
@@ -720,7 +746,7 @@ class TestHawkEyeLazyLoading:
         result = dataset.tracking.collect()
 
         # Should successfully load with custom parameters
-        assert len(result) == 147280
+        assert len(result) == 130285
 
     def test_lazy_single_file(self):
         """Test lazy loading with single file (not list)."""
@@ -731,7 +757,7 @@ class TestHawkEyeLazyLoading:
         result = dataset.tracking.collect()
 
         # Should load single file correctly
-        assert len(result) == 77036
+        assert len(result) == 68147
         periods = result["period_id"].unique().to_list()
         assert periods == [1]  # Only loaded first file
 
@@ -759,7 +785,7 @@ class TestHawkEyeDirectoryLoading:
                 lazy=False
             )
 
-            assert len(dataset.tracking) == 147280
+            assert len(dataset.tracking) == 130285
             # Should have loaded both files
             periods = dataset.tracking["period_id"].unique().sort().to_list()
             assert periods == [1, 2]
@@ -784,7 +810,7 @@ class TestHawkEyeDirectoryLoading:
                 lazy=False
             )
 
-            assert len(dataset.tracking) == 147280
+            assert len(dataset.tracking) == 130285
 
     def test_directory_auto_sorts_files(self):
         """Test that files are sorted correctly by period/minute."""
@@ -810,7 +836,7 @@ class TestHawkEyeDirectoryLoading:
 
             # Should have loaded files from both periods
             assert periods == [1, 2]
-            assert len(dataset.tracking) == 147280
+            assert len(dataset.tracking) == 130285
 
     def test_directory_nonexistent(self):
         """Test error on nonexistent file."""
@@ -908,4 +934,107 @@ class TestHawkEyeDirectoryLoading:
             result = dataset.tracking.collect()
 
             # Now data should be loaded
-            assert len(result) == 147280
+            assert len(result) == 130285
+
+
+class TestHawkEyeOfficials:
+    """Tests for include_officials parameter."""
+
+    def test_officials_excluded_by_default(self):
+        """Test that officials are excluded by default."""
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, lazy=False
+        )
+
+        # Officials should not be in player_df
+        team_ids = dataset.players['team_id'].unique().to_list()
+        assert 'officials' not in team_ids
+
+        # Officials should not be in tracking_df
+        tracking_team_ids = dataset.tracking['team_id'].unique().to_list()
+        assert 'officials' not in tracking_team_ids
+
+        # Should have 42 players (21 per team, no officials)
+        assert len(dataset.players) == 42
+
+    def test_officials_included_when_enabled(self):
+        """Test that officials appear when include_officials=True."""
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, include_officials=True, lazy=False
+        )
+
+        # Officials should be in player_df with team_id="officials"
+        officials = dataset.players.filter(pl.col('team_id') == 'officials')
+        assert len(officials) > 0
+
+        # Should have 3 officials (based on the test data with 26 total people - 23 players)
+        assert len(officials) == 3
+
+        # Total players should be 45 (42 players + 3 officials)
+        assert len(dataset.players) == 45
+
+        # With officials included, tracking row count should match original (before officials exclusion)
+        assert len(dataset.tracking) == 147280
+
+    def test_officials_team_in_teams_df(self):
+        """Test that officials team appears in teams_df when enabled."""
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, include_officials=True, lazy=False
+        )
+
+        # Should have 3 teams: home, away, officials
+        team_ids = dataset.teams['team_id'].unique().to_list()
+        assert len(dataset.teams) == 3
+        assert 'officials' in team_ids
+
+    def test_officials_in_tracking_data(self):
+        """Test that officials appear in tracking data when enabled."""
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, include_officials=True, lazy=False
+        )
+
+        # Officials should be in tracking_df with team_id="officials"
+        officials_tracking = dataset.tracking.filter(pl.col('team_id') == 'officials')
+        assert len(officials_tracking) > 0
+
+    def test_officials_positions(self):
+        """Test that officials have valid position codes."""
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, include_officials=True, lazy=False
+        )
+
+        officials = dataset.players.filter(pl.col('team_id') == 'officials')
+        positions = officials['position'].to_list()
+
+        # Officials should have position codes like REF, AREF
+        # At minimum, positions should not be null
+        assert all(pos is not None for pos in positions)
+
+    def test_officials_long_ball_layout(self):
+        """Test officials with long_ball layout."""
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, layout="long_ball",
+            include_officials=True, lazy=False
+        )
+
+        # Officials should be included in tracking data
+        officials_tracking = dataset.tracking.filter(pl.col('team_id') == 'officials')
+        assert len(officials_tracking) > 0
+
+        # With officials included, should match original player row count (141625)
+        assert len(dataset.tracking) == 141625
+
+    def test_officials_lazy_loading(self):
+        """Test officials with lazy loading."""
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, include_officials=True, lazy=True
+        )
+
+        # Officials should be in player_df even with lazy loading
+        officials = dataset.players.filter(pl.col('team_id') == 'officials')
+        assert len(officials) == 3
+
+        # After collect, officials should be in tracking
+        tracking_df = dataset.tracking.collect()
+        officials_tracking = tracking_df.filter(pl.col('team_id') == 'officials')
+        assert len(officials_tracking) > 0

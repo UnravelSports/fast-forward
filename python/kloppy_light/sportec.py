@@ -38,7 +38,7 @@ def load_tracking(
     ] = "static_home_away",
     only_alive: bool = True,
     include_game_id: Union[bool, str] = True,
-    include_referees: bool = False,
+    include_officials: bool = False,
     *,
     lazy: bool = False,
     from_cache: bool = False,
@@ -78,8 +78,8 @@ def load_tracking(
         If True, add game_id column to tracking_df, team_df, and player_df from metadata.
         If False, no game_id column is added.
         If str, use the provided string as the game_id value.
-    include_referees : bool, default False
-        If True, include referees in player_df with position codes:
+    include_officials : bool, default False
+        If True, include officials in player_df with team_id="officials" and position codes:
         REF (Main Referee), AREF (Assistant Referee), VAR (Video Assistant Referee),
         AVAR (Assistant VAR), 4TH (Fourth Official)
     lazy : bool, default True
@@ -117,5 +117,5 @@ def load_tracking(
         from_cache=from_cache,
         engine=engine,
         spark_session=spark_session,
-        include_referees=include_referees,
+        include_officials=include_officials,
     )

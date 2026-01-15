@@ -266,6 +266,8 @@ def load_tracking_impl(
                         _engine="polars",
                         _provider=provider_name,
                         _cache_key=cache_key,
+                        _coordinate_system=coordinates,
+                        _orientation=orientation,
                     )
                     # Convert to PySpark if requested
                     if engine == "pyspark":
@@ -297,6 +299,8 @@ def load_tracking_impl(
                         _engine="polars",
                         _provider=provider_name,
                         _cache_key=cache_key,
+                        _coordinate_system=coordinates,
+                        _orientation=orientation,
                     )
                     # Convert to PySpark if requested
                     if engine == "pyspark":
@@ -370,6 +374,8 @@ def load_tracking_impl(
             _engine="polars",
             _provider=provider_name,
             _cache_key=cache_key,
+            _coordinate_system=coordinates,
+            _orientation=orientation,
         )
     else:
         # Eager loading
@@ -411,6 +417,8 @@ def load_tracking_impl(
                 _engine="pyspark",
                 _provider=provider_name,
                 _cache_key=cache_key,
+                _coordinate_system=coordinates,
+                _orientation=orientation,
             )
 
         return TrackingDataset(
@@ -422,6 +430,8 @@ def load_tracking_impl(
             _engine="polars",
             _provider=provider_name,
             _cache_key=cache_key,
+            _coordinate_system=coordinates,
+            _orientation=orientation,
         )
 
 
@@ -449,8 +459,8 @@ def _register_standard_providers() -> None:
     register_provider(
         name="sportec",
         rust_module=_sp,
-        metadata_params=["include_referees"],
-        tracking_params=["include_referees"],
+        metadata_params=["include_officials"],
+        tracking_params=["include_officials"],
     )
 
     register_provider(

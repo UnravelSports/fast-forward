@@ -458,59 +458,59 @@ class TestLazyParameter:
         assert t_lazy.collect().equals(t_eager)
 
 
-class TestIncludeReferees:
-    """Tests for include_referees parameter (Sportec-specific)."""
+class TestIncludeOfficials:
+    """Tests for include_officials parameter (Sportec-specific)."""
 
-    def test_referees_excluded_by_default(self):
-        """Test that referees are excluded by default."""
+    def test_officials_excluded_by_default(self):
+        """Test that officials are excluded by default."""
         dataset = sportec.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
         player_df = dataset.players
 
-        # Should have 40 players (20 per team, no referees)
+        # Should have 40 players (20 per team, no officials)
         assert player_df.height == 40
 
-        # No referee team_id
-        referee_rows = player_df.filter(pl.col("team_id") == "referee")
-        assert referee_rows.height == 0
+        # No officials team_id
+        officials_rows = player_df.filter(pl.col("team_id") == "officials")
+        assert officials_rows.height == 0
 
-    def test_referees_included_when_enabled(self):
-        """Test that referees are included when include_referees=True."""
+    def test_officials_included_when_enabled(self):
+        """Test that officials are included when include_officials=True."""
         dataset = sportec.load_tracking(
-            RAW_DATA_W_REF_PATH, META_DATA_PATH, include_referees=True, lazy=False
+            RAW_DATA_W_REF_PATH, META_DATA_PATH, include_officials=True, lazy=False
         )
         player_df = dataset.players
 
-        # Should have 44 rows: 40 players + 4 referees
+        # Should have 44 rows: 40 players + 4 officials
         assert player_df.height == 44
 
-        # Should have referee rows
-        referee_rows = player_df.filter(pl.col("team_id") == "referee")
-        assert referee_rows.height == 4
+        # Should have officials rows
+        officials_rows = player_df.filter(pl.col("team_id") == "officials")
+        assert officials_rows.height == 4
 
-    def test_referee_team_id_is_referee(self):
-        """Test that referees have team_id = 'referee'."""
+    def test_officials_team_id_is_officials(self):
+        """Test that officials have team_id = 'officials'."""
         dataset = sportec.load_tracking(
-            RAW_DATA_W_REF_PATH, META_DATA_PATH, include_referees=True, lazy=False
+            RAW_DATA_W_REF_PATH, META_DATA_PATH, include_officials=True, lazy=False
         )
         player_df = dataset.players
 
-        referee_rows = player_df.filter(pl.col("team_id") == "referee")
-        assert all(t == "referee" for t in referee_rows["team_id"].to_list())
+        officials_rows = player_df.filter(pl.col("team_id") == "officials")
+        assert all(t == "officials" for t in officials_rows["team_id"].to_list())
 
-    def test_referee_positions(self):
-        """Test that referees have correct position codes."""
+    def test_officials_positions(self):
+        """Test that officials have correct position codes."""
         dataset = sportec.load_tracking(
-            RAW_DATA_W_REF_PATH, META_DATA_PATH, include_referees=True, lazy=False
+            RAW_DATA_W_REF_PATH, META_DATA_PATH, include_officials=True, lazy=False
         )
         player_df = dataset.players
 
-        referee_rows = player_df.filter(pl.col("team_id") == "referee")
-        positions = set(referee_rows["position"].to_list())
+        officials_rows = player_df.filter(pl.col("team_id") == "officials")
+        positions = set(officials_rows["position"].to_list())
 
         # Should have REF, AREF (2x), and 4TH
         expected_positions = {"REF", "AREF", "4TH"}
         assert positions.issubset(expected_positions | {"UNK"})
-        assert "REF" in positions  # Main referee must be present
+        assert "REF" in positions  # Main official must be present
 
 
 class TestSpecificValues:

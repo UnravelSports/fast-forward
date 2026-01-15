@@ -1,6 +1,6 @@
 """TrackingDataset class for structured access to tracking data components."""
 
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Optional, Tuple, Union
 import polars as pl
 
 if TYPE_CHECKING:
@@ -177,6 +177,10 @@ class TrackingDataset:
         _original_tracking: Optional[pl.LazyFrame] = None,
         _provider: Optional[str] = None,
         _cache_key: Optional[str] = None,
+        _coordinate_system: str = "cdf",
+        _orientation: str = "static_home_away",
+        _pitch_length: Optional[float] = None,
+        _pitch_width: Optional[float] = None,
     ):
         """Initialize TrackingDataset.
 
@@ -200,6 +204,14 @@ class TrackingDataset:
             Internal: Provider name for cache path.
         _cache_key : str, optional
             Internal: Cache key for cache path.
+        _coordinate_system : str, default "cdf"
+            Internal: Current coordinate system.
+        _orientation : str, default "static_home_away"
+            Internal: Current orientation.
+        _pitch_length : float, optional
+            Internal: Current pitch length in meters.
+        _pitch_width : float, optional
+            Internal: Current pitch width in meters.
         """
         self._tracking = tracking
         self._metadata = metadata
@@ -213,6 +225,22 @@ class TrackingDataset:
         self._provider = _provider
         self._cache_key = _cache_key
         self._collected_df: Optional[pl.DataFrame] = None
+
+        # Transformation state
+        self._coordinate_system = _coordinate_system
+        self._orientation = _orientation
+
+        # Get pitch dimensions from metadata if not provided
+        if _pitch_length is not None and _pitch_width is not None:
+            self._pitch_length = _pitch_length
+            self._pitch_width = _pitch_width
+        elif self._engine == "polars" and "pitch_length" in metadata.columns:
+            self._pitch_length = float(metadata["pitch_length"][0])
+            self._pitch_width = float(metadata["pitch_width"][0])
+        else:
+            # Default IFAB dimensions
+            self._pitch_length = 105.0
+            self._pitch_width = 68.0
 
     @property
     def engine(self) -> str:
@@ -485,6 +513,181 @@ class TrackingDataset:
             teams_df=self._teams,
             players_df=players_df,
             periods_df=self._periods,
+        )
+
+    # =========================================================================
+    # Transformation state properties (read from private attributes)
+    # =========================================================================
+
+    @property
+    def coordinate_system(self) -> str:
+        """Get the current coordinate system."""
+        return self._coordinate_system
+
+    @property
+    def orientation(self) -> str:
+        """Get the current orientation."""
+        return self._orientation
+
+    @property
+    def pitch_dimensions(self) -> Tuple[float, float]:
+        """Get current pitch dimensions (length, width) in meters."""
+        return (self._pitch_length, self._pitch_width)
+
+    # =========================================================================
+    # Transform method
+    # =========================================================================
+
+    def transform(
+        self,
+        to_orientation: Optional[str] = None,
+        to_dimensions: Optional[Tuple[float, float]] = None,
+        to_coordinates: Optional[str] = None,
+    ) -> "TrackingDataset":
+        """Transform tracking data to different orientation, dimensions, and/or coordinates.
+
+        Transformations are applied in the correct order internally:
+        1. Orientation (flip) - while in CDF/meters
+        2. Dimensions (zone-based scaling) - while in CDF/meters
+        3. Coordinates (unit/origin conversion) - last step
+
+        Parameters
+        ----------
+        to_orientation : str, optional
+            Target orientation. Options include:
+            - "static_home_away": Home team attacks left-to-right in both halves
+            - "static_away_home": Away team attacks left-to-right in both halves
+            Note: Orientation transforms flip x and y around the center.
+        to_dimensions : tuple of (float, float), optional
+            Target pitch dimensions (length, width) in meters.
+            Uses zone-based scaling to preserve IFAB pitch feature proportions.
+        to_coordinates : str, optional
+            Target coordinate system. Options include:
+            - "cdf": Center origin, meters (default)
+            - "tracab": Center origin, centimeters
+            - "opta": Bottom-left origin, 0-100 scale
+            - "kloppy": Top-left origin, 0-1 scale
+            - "sportvu": Top-left origin, meters
+
+        Returns
+        -------
+        TrackingDataset
+            New dataset with transformed data, or self if no changes needed.
+
+        Examples
+        --------
+        >>> dataset = secondspectrum.load_tracking("tracking.jsonl", "meta.json")
+        >>> # Single transformation
+        >>> tracab = dataset.transform(to_coordinates="tracab")
+        >>> # Multiple transformations (order handled internally)
+        >>> result = dataset.transform(
+        ...     to_orientation="static_away_home",
+        ...     to_dimensions=(105.0, 68.0),
+        ...     to_coordinates="tracab",
+        ... )
+        """
+        if self._engine != "polars":
+            raise NotImplementedError(
+                "transform() is currently only supported for Polars DataFrames"
+            )
+
+        from kloppy_light._transforms import (
+            transform_coordinates as _coord,
+            transform_dimensions as _dim,
+            transform_orientation as _orient,
+        )
+
+        # Get current state from properties (which read from metadata)
+        current_orientation = self.orientation
+        current_coord_system = self.coordinate_system
+        current_length, current_width = self.pitch_dimensions
+
+        # Check if any transformation is needed
+        needs_orientation = (
+            to_orientation is not None and to_orientation != current_orientation
+        )
+        needs_dimensions = (
+            to_dimensions is not None
+            and not (
+                abs(current_length - to_dimensions[0]) < 0.001
+                and abs(current_width - to_dimensions[1]) < 0.001
+            )
+        )
+        needs_coordinates = (
+            to_coordinates is not None and to_coordinates != current_coord_system
+        )
+
+        if not (needs_orientation or needs_dimensions or needs_coordinates):
+            return self  # No changes needed
+
+        # Collect if lazy
+        tracking = self._tracking
+        if isinstance(tracking, pl.LazyFrame):
+            tracking = tracking.collect()
+
+        # Track new state
+        new_orientation = to_orientation if needs_orientation else current_orientation
+        new_length = to_dimensions[0] if needs_dimensions else current_length
+        new_width = to_dimensions[1] if needs_dimensions else current_width
+        new_coord_system = to_coordinates if needs_coordinates else current_coord_system
+
+        # Current state for transformations
+        curr_coord_system = current_coord_system
+        curr_length = current_length
+        curr_width = current_width
+
+        # Step 0: If not in CDF and we need orientation or dimension changes, convert to CDF first
+        if curr_coord_system != "cdf" and (needs_orientation or needs_dimensions):
+            tracking = _coord(tracking, curr_coord_system, "cdf", curr_length, curr_width)
+            curr_coord_system = "cdf"
+
+        # Step 1: Apply orientation transformation (in CDF)
+        # Determine if we need to flip based on orientation change
+        if needs_orientation:
+            # Static orientations: flip if switching between home_away and away_home
+            current_is_home_away = "home_away" in current_orientation
+            target_is_home_away = "home_away" in to_orientation
+            flip = current_is_home_away != target_is_home_away
+            tracking = _orient(tracking, flip)
+
+        # Step 2: Apply dimension transformation (in CDF)
+        if needs_dimensions:
+            tracking = _dim(
+                tracking,
+                curr_length,
+                curr_width,
+                to_dimensions[0],
+                to_dimensions[1],
+            )
+            curr_length, curr_width = to_dimensions
+
+        # Step 3: Apply coordinate system transformation (last)
+        if curr_coord_system != new_coord_system:
+            tracking = _coord(
+                tracking, curr_coord_system, new_coord_system, curr_length, curr_width
+            )
+
+        # Update metadata DataFrame with new transformation state
+        new_metadata = self._metadata.with_columns([
+            pl.lit(new_coord_system).alias("coordinate_system"),
+            pl.lit(new_orientation).alias("orientation"),
+            pl.lit(new_length).cast(pl.Float32).alias("pitch_length"),
+            pl.lit(new_width).cast(pl.Float32).alias("pitch_width"),
+        ])
+
+        return TrackingDataset(
+            tracking=tracking,
+            metadata=new_metadata,
+            teams=self._teams,
+            players=self._players,
+            periods=self._periods,
+            _engine=self._engine,
+            _provider=self._provider,
+            _cache_key=self._cache_key,
+            _coordinate_system=new_coord_system,
+            _orientation=new_orientation,
+            _pitch_length=new_length,
+            _pitch_width=new_width,
         )
 
     def __repr__(self) -> str:

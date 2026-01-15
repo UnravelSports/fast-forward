@@ -482,7 +482,7 @@ fn parse_metadata(
     meta_data: &[u8],
     coordinate_system: &str,
     orientation: &str,
-    include_referees: bool,
+    include_officials: bool,
 ) -> Result<
     (
         StandardMetadata,
@@ -682,12 +682,12 @@ fn parse_metadata(
         });
     }
 
-    // Add referees if requested
-    if include_referees {
+    // Add officials if requested
+    if include_officials {
         for r in &referees {
             let full_name = format!("{} {}", r.first_name, r.last_name);
             standard_players.push(StandardPlayer {
-                team_id: "referee".to_string(),
+                team_id: "officials".to_string(),
                 player_id: r.person_id.clone(),
                 name: Some(full_name),
                 first_name: Some(r.first_name.clone()),
@@ -1071,7 +1071,7 @@ fn resolve_game_id(
 }
 
 #[pyfunction]
-#[pyo3(signature = (raw_data, meta_data, layout="long", coordinates="cdf", orientation="static_home_away", only_alive=true, include_game_id=None, include_referees=false, predicate=None))]
+#[pyo3(signature = (raw_data, meta_data, layout="long", coordinates="cdf", orientation="static_home_away", only_alive=true, include_game_id=None, include_officials=false, predicate=None))]
 fn load_tracking(
     py: Python<'_>,
     raw_data: &[u8],
@@ -1081,7 +1081,7 @@ fn load_tracking(
     orientation: &str,
     only_alive: bool,
     include_game_id: Option<Bound<'_, PyAny>>,
-    include_referees: bool,
+    include_officials: bool,
     predicate: Option<PyExpr>,
 ) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
     let coordinate_system = CoordinateSystem::from_str(coordinates)?;
@@ -1099,7 +1099,7 @@ fn load_tracking(
 
     // Parse metadata
     let (mut metadata_struct, home_team_id, away_team_id, _, player_id_map, _) =
-        parse_metadata(meta_data, coordinates, orientation, include_referees)?;
+        parse_metadata(meta_data, coordinates, orientation, include_officials)?;
 
     // Determine game_id
     let game_id: Option<String> = resolve_game_id(py, include_game_id, &metadata_struct.game_id)?;
@@ -1171,16 +1171,16 @@ fn load_tracking(
 }
 
 #[pyfunction]
-#[pyo3(signature = (meta_data, coordinates="cdf", orientation="static_home_away", include_game_id=None, include_referees=false))]
+#[pyo3(signature = (meta_data, coordinates="cdf", orientation="static_home_away", include_game_id=None, include_officials=false))]
 fn load_metadata_only(
     py: Python<'_>,
     meta_data: &[u8],
     coordinates: &str,
     orientation: &str,
     include_game_id: Option<Bound<'_, PyAny>>,
-    include_referees: bool,
+    include_officials: bool,
 ) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
-    let (metadata_struct, _, _, _, _, _) = parse_metadata(meta_data, coordinates, orientation, include_referees)?;
+    let (metadata_struct, _, _, _, _, _) = parse_metadata(meta_data, coordinates, orientation, include_officials)?;
 
     let game_id: Option<String> = resolve_game_id(py, include_game_id, &metadata_struct.game_id)?;
 
