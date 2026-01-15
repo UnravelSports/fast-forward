@@ -442,6 +442,83 @@ class TestPySparkRepr:
         assert "TrackingDataset" in repr_str
 
 
+class TestPySparkSchemaComparison:
+    """Tests verifying schema compatibility between Polars and PySpark."""
+
+    @pytest.fixture
+    def datasets(self, spark):
+        """Load same data with both engines."""
+        polars_ds = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, engine="polars"
+        )
+        pyspark_ds = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH, engine="pyspark", spark_session=spark
+        )
+        return polars_ds, pyspark_ds
+
+    def test_tracking_columns_match(self, datasets):
+        """Test that tracking DataFrames have identical columns."""
+        polars_ds, pyspark_ds = datasets
+        assert set(polars_ds.tracking.columns) == set(pyspark_ds.tracking.columns)
+
+    def test_metadata_columns_match(self, datasets):
+        """Test that metadata DataFrames have identical columns."""
+        polars_ds, pyspark_ds = datasets
+        assert set(polars_ds.metadata.columns) == set(pyspark_ds.metadata.columns)
+
+    def test_teams_columns_match(self, datasets):
+        """Test that teams DataFrames have identical columns."""
+        polars_ds, pyspark_ds = datasets
+        assert set(polars_ds.teams.columns) == set(pyspark_ds.teams.columns)
+
+    def test_players_columns_match(self, datasets):
+        """Test that players DataFrames have identical columns."""
+        polars_ds, pyspark_ds = datasets
+        assert set(polars_ds.players.columns) == set(pyspark_ds.players.columns)
+
+    def test_periods_columns_match(self, datasets):
+        """Test that periods DataFrames have identical columns."""
+        polars_ds, pyspark_ds = datasets
+        assert set(polars_ds.periods.columns) == set(pyspark_ds.periods.columns)
+
+    def test_uint_to_signed_int_mapping(self, datasets):
+        """Test that unsigned ints are correctly mapped to signed for Arrow optimization.
+
+        PySpark's Arrow path doesn't support unsigned integers, so we cast:
+        - UInt8 -> Int16 (SmallIntType)
+        - UInt16 -> Int32 (IntegerType)
+        - UInt32 -> Int64 (LongType)
+        - UInt64 -> Int64 (LongType)
+
+        This enables 11-34x speedup by allowing Arrow optimization.
+        """
+        from pyspark.sql.types import LongType, IntegerType, ShortType
+        import polars as pl
+
+        polars_ds, pyspark_ds = datasets
+
+        # Build expected type mapping
+        polars_to_spark_type = {
+            pl.UInt8: ShortType,      # Int16
+            pl.UInt16: IntegerType,   # Int32
+            pl.UInt32: LongType,      # Int64
+            pl.UInt64: LongType,      # Int64
+        }
+
+        # Check tracking DataFrame for any unsigned int columns
+        polars_schema = dict(zip(polars_ds.tracking.columns, polars_ds.tracking.dtypes))
+        spark_schema = {f.name: type(f.dataType) for f in pyspark_ds.tracking.schema.fields}
+
+        for col_name, polars_dtype in polars_schema.items():
+            if polars_dtype in polars_to_spark_type:
+                expected_spark_type = polars_to_spark_type[polars_dtype]
+                actual_spark_type = spark_schema[col_name]
+                assert actual_spark_type == expected_spark_type, (
+                    f"Column {col_name}: expected {expected_spark_type.__name__}, "
+                    f"got {actual_spark_type.__name__}"
+                )
+
+
 class TestPySparkErrorHandling:
     """Tests for error handling with PySpark engine."""
 

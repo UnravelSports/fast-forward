@@ -69,6 +69,8 @@ def polars_to_spark(
     """Convert a Polars DataFrame to a PySpark DataFrame.
 
     Uses Apache Arrow as the interchange format for efficient conversion.
+    Automatically casts uint32 columns to int64 to enable Arrow optimization
+    in PySpark (which doesn't support unsigned integers).
 
     Parameters
     ----------
@@ -84,6 +86,26 @@ def polars_to_spark(
     """
     if spark is None:
         spark = get_spark_session()
+
+    # Cast unsigned integer types to signed to enable Arrow optimization
+    # PySpark's Arrow path doesn't support uint8/uint16/uint32/uint64
+    cast_exprs = []
+    for col_name in df.columns:
+        dtype = df[col_name].dtype
+        if dtype == pl.UInt8:
+            cast_exprs.append(pl.col(col_name).cast(pl.Int16))
+        elif dtype == pl.UInt16:
+            cast_exprs.append(pl.col(col_name).cast(pl.Int32))
+        elif dtype == pl.UInt32:
+            cast_exprs.append(pl.col(col_name).cast(pl.Int64))
+        elif dtype == pl.UInt64:
+            # UInt64 max > Int64 max, but for our data this is safe
+            cast_exprs.append(pl.col(col_name).cast(pl.Int64))
+        else:
+            cast_exprs.append(pl.col(col_name))
+
+    if cast_exprs:
+        df = df.select(cast_exprs)
 
     # Convert via Arrow -> pandas -> Spark
     # This path is optimized when spark.sql.execution.arrow.pyspark.enabled=true
