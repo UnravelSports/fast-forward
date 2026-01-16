@@ -122,6 +122,14 @@ def load_tracking(
 
     The MA1 metadata format is auto-detected (JSON or XML) based on content.
     """
+    # Wide format doesn't support lazy loading - column names are game-specific
+    if lazy and layout == "wide":
+        raise ValueError(
+            "lazy=True is not supported for layout='wide'. "
+            "Wide format has game-specific column names (player IDs), "
+            "making lazy frame operations like concatenation incompatible."
+        )
+
     if lazy:
         # Load metadata only
         with open_as_file(ma1_data) as ma1_file:

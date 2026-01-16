@@ -219,6 +219,14 @@ def load_tracking_impl(
     # Validate engine parameter
     engine = validate_engine(engine)
 
+    # Wide format doesn't support lazy loading - column names are game-specific
+    if lazy and layout == "wide":
+        raise ValueError(
+            "lazy=True is not supported for layout='wide'. "
+            "Wide format has game-specific column names (player IDs), "
+            "making lazy frame operations like concatenation incompatible."
+        )
+
     # For PySpark, force eager loading (will convert after)
     if engine == "pyspark":
         lazy = False

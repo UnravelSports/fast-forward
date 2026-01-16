@@ -40,20 +40,24 @@ impl Layout {
 pub fn build_tracking_df(frames: &[StandardFrame], layout: Layout, game_id: Option<&str>) -> Result<DataFrame, KloppyError> {
     // Use default (empty) pushdown filters
     let pushdown = PushdownFilters::default();
-    build_tracking_df_with_pushdown(frames, layout, game_id, &pushdown)
+    build_tracking_df_with_pushdown(frames, layout, game_id, &pushdown, None)
 }
 
 /// Build tracking DataFrame based on layout with row-level pushdown filtering
+///
+/// For wide layout, `roster_player_ids` ensures schema consistency by including
+/// all players from the roster, not just those appearing in frames.
 pub fn build_tracking_df_with_pushdown(
     frames: &[StandardFrame],
     layout: Layout,
     game_id: Option<&str>,
     pushdown: &PushdownFilters,
+    roster_player_ids: Option<&[String]>,
 ) -> Result<DataFrame, KloppyError> {
     match layout {
         Layout::Long => tracking_long::build_with_pushdown(frames, game_id, pushdown),
         Layout::LongBall => tracking_long_ball::build_with_pushdown(frames, game_id, pushdown),
-        Layout::Wide => tracking_wide::build(frames, game_id), // Wide has no row-level pushdown
+        Layout::Wide => tracking_wide::build(frames, game_id, roster_player_ids),
     }
 }
 

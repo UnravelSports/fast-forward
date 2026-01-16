@@ -707,18 +707,14 @@ class TestHawkEyeLazyLoading:
         assert len(result) == 130285
         assert "team_id" in result.columns
 
-    def test_lazy_wide_layout(self):
-        """Test lazy loading with wide layout."""
-        dataset = hawkeye.load_tracking(
-            BALL_FILES, PLAYER_FILES, META_JSON, lazy=True, layout="wide"
-        )
+    def test_lazy_wide_layout_raises_error(self):
+        """Test that lazy loading with wide layout raises an error."""
+        import pytest
 
-        result = dataset.tracking.collect()
-
-        # Wide layout should have ball_x, ball_y columns
-        assert len(result) == 5655
-        assert "ball_x" in result.columns
-        assert "ball_y" in result.columns
+        with pytest.raises(ValueError, match="lazy=True is not supported for layout='wide'"):
+            hawkeye.load_tracking(
+                BALL_FILES, PLAYER_FILES, META_JSON, lazy=True, layout="wide"
+            )
 
     def test_lazy_long_ball_layout(self):
         """Test lazy loading with long_ball layout."""

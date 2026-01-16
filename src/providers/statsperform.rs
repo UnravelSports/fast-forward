@@ -1066,8 +1066,9 @@ fn load_tracking(
         .filter(|id| *id != &metadata.game_id)
         .map(|s| s.as_str());
 
+    // Pass None for roster_player_ids - wide format will extract active players from frames
     let tracking_df =
-        build_tracking_df_with_pushdown(&frames, layout_enum, game_id.as_deref(), &pushdown)
+        build_tracking_df_with_pushdown(&frames, layout_enum, game_id.as_deref(), &pushdown, None)
             .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
     let metadata_df = build_metadata_df(&metadata, game_id_override)
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;

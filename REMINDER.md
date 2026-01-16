@@ -5,7 +5,7 @@
 - Rust-based Python library for fast tracking data loading
 - Returns `TrackingDataset` object with 5 properties: `.tracking`, `.metadata`, `.teams`, `.players`, `.periods`
 - Supports 3 layouts: `long`, `long_ball`, `wide`
-- Providers implemented: SecondSpectrum, SkillCorner, Sportec, Tracab, HawkEye
+- Providers implemented: SecondSpectrum, SkillCorner, Sportec, Tracab, HawkEye, CDF, GradientSports, Signality, StatsPerform
 - True lazy loading with `pl.LazyFrame` (full Polars API)
 - Caching support for faster subsequent loads
 - PySpark engine support for distributed processing
@@ -13,7 +13,7 @@
 ## API
 
 ```python
-from kloppy_light import secondspectrum, skillcorner, sportec, tracab, hawkeye
+from kloppy_light import secondspectrum, skillcorner, sportec, tracab, hawkeye, cdf, gradientsports, signality, statsperform
 
 # SecondSpectrum
 dataset = secondspectrum.load_tracking(
@@ -65,7 +65,67 @@ dataset = hawkeye.load_tracking(
     pitch_length=105.0,      # HawkEye-specific fallback
     pitch_width=68.0,        # HawkEye-specific fallback
     object_id="auto",        # HawkEye-specific: "auto", "jersey", "player_id"
+    include_officials=False, # Add referees to tracking data
     # ... same parameters as above
+)
+
+# CDF (Common Data Format)
+dataset = cdf.load_tracking(
+    raw_data="path/to/tracking.jsonl",
+    meta_data="path/to/metadata.json",
+    layout="long",
+    coordinates="cdf",
+    orientation="static_home_away",
+    only_alive=True,
+    include_game_id=False,
+    lazy=False,
+    from_cache=False,
+    engine="polars",
+)
+
+# GradientSports (PFF)
+dataset = gradientsports.load_tracking(
+    raw_data="path/to/tracking.jsonl",
+    meta_data="path/to/metadata.json",
+    roster_data="path/to/roster.json",
+    layout="long",
+    coordinates="gradientsports",
+    orientation="static_home_away",
+    only_alive=True,
+    include_game_id=False,
+    lazy=False,
+)
+
+# Signality
+dataset = signality.load_tracking(
+    meta_data="path/to/metadata.json",
+    raw_data_feeds="path/to/tracking.jsonl",  # Can be list of files
+    venue_information="path/to/venue.json",
+    layout="long",
+    coordinates="signality",
+    orientation="static_home_away",
+    only_alive=True,
+    include_game_id=False,
+    include_officials=False,  # Add referees to tracking data
+    lazy=False,
+    from_cache=False,
+    parallel=False,           # Multi-file parallel processing
+    engine="polars",
+)
+
+# StatsPerform (Opta)
+dataset = statsperform.load_tracking(
+    ma25_data="path/to/tracking.txt",
+    ma1_data="path/to/metadata.json",  # or .xml (auto-detected)
+    pitch_length=105.0,       # Required - not in metadata
+    pitch_width=68.0,         # Required - not in metadata
+    layout="long",
+    coordinates="statsperform",
+    orientation="static_home_away",
+    only_alive=True,
+    include_game_id=False,
+    include_officials=False,  # Add referees to tracking data
+    lazy=False,
 )
 ```
 
@@ -235,10 +295,22 @@ tests/
     ├── skillcorner_meta.json
     ├── skillcorner_tracking.jsonl
     ├── sportec_meta.xml
-    ├── sportec_tracking.xml
+    ├── sportec_positional.xml
+    ├── sportec_positional_w_referee.xml
     ├── tracab_meta.xml
-    ├── tracab_tracking.dat
-    └── hawkeye_*/
+    ├── tracab_raw.dat
+    ├── hawkeye_*.football.samples.*
+    ├── hawkeye_meta.json
+    ├── cdf_metadata.json
+    ├── cdf_tracking.jsonl
+    ├── pff_*.jsonl                      # GradientSports tracking
+    ├── pff_metadata_*.json              # GradientSports metadata
+    ├── pff_rosters_*.json               # GradientSports rosters
+    ├── signality_meta_data.json
+    ├── signality_venue_information.json
+    ├── signality_p*_raw_data_subset.json
+    ├── statsperform_tracking_ma1.json   # or .xml
+    └── statsperform_tracking_ma25.txt
 ```
 
 ## Provider Implementation Checklist
@@ -351,6 +423,11 @@ Standardized position codes across all providers:
 | ST, LF, RF, CF | Strikers/Forwards   |
 | SUB            | Substitute          |
 | UNK            | Unknown             |
+| REF            | Main Referee        |
+| AREF           | Assistant Referee   |
+| VAR            | VAR Official        |
+| AVAR           | Assistant VAR       |
+| FOURTH         | Fourth Official     |
 
 ## Orientation Options
 
@@ -362,6 +439,20 @@ Standardized position codes across all providers:
 | `away_home`        | Away attacks right 1st half, left 2nd half |
 | `attack_right`     | Attacking team always attacks right        |
 | `attack_left`      | Attacking team always attacks left         |
+
+## Parallel Processing Support
+
+| Provider       | Python `parallel` param | Rust behavior                              |
+| -------------- | ----------------------- | ------------------------------------------ |
+| HawkEye        | ✅ Yes (multi-file)     | `parallel=true` default, user-controllable |
+| Signality      | ✅ Yes (multi-file)     | `parallel=true` default, user-controllable |
+| SecondSpectrum | ❌ No                   | `parallel=true` default internally         |
+| SkillCorner    | ❌ No                   | `parallel=true` default internally         |
+| Sportec        | ❌ No                   | Always parallel (rayon internally)         |
+| Tracab         | ❌ No                   | `parallel=true` default internally         |
+| CDF            | ❌ No                   | `parallel=true` default internally         |
+| GradientSports | ❌ No                   | Always parallel (rayon internally)         |
+| StatsPerform   | ❌ No                   | Always parallel (rayon internally)         |
 
 ## Build Commands
 

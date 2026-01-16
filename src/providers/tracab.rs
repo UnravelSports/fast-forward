@@ -1637,7 +1637,8 @@ pub fn load_tracking(
     let game_id = resolve_game_id(py, include_game_id, &metadata.game_id)?;
 
     // 11. Build DataFrames with row-level pushdown filtering
-    let tracking_df = build_tracking_df_with_pushdown(&frames, layout_enum, game_id.as_deref(), &pushdown)
+    // Pass None for roster_player_ids - wide format will extract active players from frames
+    let tracking_df = build_tracking_df_with_pushdown(&frames, layout_enum, game_id.as_deref(), &pushdown, None)
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
 
     let metadata_df = build_metadata_df(&metadata, game_id.as_deref())

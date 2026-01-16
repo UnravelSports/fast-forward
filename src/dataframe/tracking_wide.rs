@@ -5,20 +5,36 @@ use std::collections::{HashMap, HashSet};
 
 /// Build wide format tracking DataFrame
 /// One row per frame, player_id in column names
-pub fn build(frames: &[StandardFrame], game_id: Option<&str>) -> Result<DataFrame, KloppyError> {
+///
+/// If `roster_player_ids` is provided, those IDs are used for player columns.
+/// Otherwise, player IDs are extracted from the frames themselves.
+pub fn build(
+    frames: &[StandardFrame],
+    game_id: Option<&str>,
+    roster_player_ids: Option<&[String]>,
+) -> Result<DataFrame, KloppyError> {
     if frames.is_empty() {
         return Err(KloppyError::InvalidInput("No frames to process".to_string()));
     }
 
-    // First pass: collect all unique player IDs
-    let mut player_ids: HashSet<String> = HashSet::new();
-    for frame in frames {
-        for player in &frame.players {
-            player_ids.insert(player.player_id.clone());
+    // Get player IDs either from roster or by scanning frames
+    let player_ids: Vec<String> = if let Some(roster_ids) = roster_player_ids {
+        // Use roster IDs directly (already sorted by caller)
+        let mut ids = roster_ids.to_vec();
+        ids.sort();
+        ids
+    } else {
+        // Fall back to extracting from frames
+        let mut ids: HashSet<String> = HashSet::new();
+        for frame in frames {
+            for player in &frame.players {
+                ids.insert(player.player_id.clone());
+            }
         }
-    }
-    let mut player_ids: Vec<String> = player_ids.into_iter().collect();
-    player_ids.sort(); // Consistent ordering
+        let mut ids: Vec<String> = ids.into_iter().collect();
+        ids.sort();
+        ids
+    };
 
     let num_frames = frames.len();
 

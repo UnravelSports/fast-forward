@@ -1313,7 +1313,8 @@ fn build_tracking_df_from_files_parallel(
 
     // PHASE 6: Build DataFrame with row-level pushdown
     let layout_enum = Layout::from_str(layout)?;
-    build_tracking_df_with_pushdown(&frames, layout_enum, game_id_value, pushdown)
+    // Pass None for roster_player_ids - wide format will extract active players from frames
+    build_tracking_df_with_pushdown(&frames, layout_enum, game_id_value, pushdown, None)
 }
 
 fn build_tracking_df_from_files(
@@ -1547,7 +1548,8 @@ fn build_tracking_df_from_files(
 
     // Apply layout transformation using existing infrastructure with row-level pushdown
     let layout_enum = Layout::from_str(layout)?;
-    build_tracking_df_with_pushdown(&frames, layout_enum, game_id_value, pushdown)
+    // Pass None for roster_player_ids - wide format will extract active players from frames
+    build_tracking_df_with_pushdown(&frames, layout_enum, game_id_value, pushdown, None)
 }
 
 // ============================================================================

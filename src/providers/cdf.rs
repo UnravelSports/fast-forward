@@ -728,8 +728,9 @@ fn load_tracking(
         .as_ref()
         .filter(|id| *id != &metadata_struct.game_id)
         .map(|s| s.as_str());
+    // Pass None for roster_player_ids - wide format will extract active players from frames
     let tracking_df =
-        build_tracking_df_with_pushdown(&frames, layout_enum, game_id.as_deref(), &pushdown)?;
+        build_tracking_df_with_pushdown(&frames, layout_enum, game_id.as_deref(), &pushdown, None)?;
     let metadata_df = build_metadata_df(&metadata_struct, game_id_override)?;
     let periods_df = build_periods_df(&metadata_struct, game_id.as_deref())?;
     let team_df = build_team_df(&metadata_struct.teams, game_id.as_deref())?;
