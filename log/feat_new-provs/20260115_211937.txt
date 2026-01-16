@@ -1,0 +1,26 @@
+======================================================================
+kloppy-light Benchmark
+======================================================================
+Memory measurement: memory_profiler (accurate)
+Providers: gradientsports
+Layouts: long
+Engines: polars
+Features: kloppy, no-pushdown
+
+Data directory: /Users/jbekkers/PycharmProjects/kloppy-light/data
+
+Operation                     Memory         Time          Rows
+----------------------------------------------------------------------
+
+Gradientsports tracking file: 38.1 MiB
+
+## Gradientsports  - long layout
+Eager loading                3036.00 MiB     9.340s     3,617,344
+Lazy (no collect)               0.70 MiB     0.241s           N/A
+Lazy (with collect)          1822.02 MiB     9.519s     3,617,344
+
+## Gradientsports (kloppy)
+Load (default)               4917.84 MiB    44.342s       101,247
+Load (native coords)         4549.83 MiB    21.705s       101,247
+
+======================================================================

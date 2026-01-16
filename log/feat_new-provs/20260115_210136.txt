@@ -1,0 +1,44 @@
+======================================================================
+kloppy-light Benchmark
+======================================================================
+Memory measurement: memory_profiler (accurate)
+Providers: cdf
+Layouts: long, long_ball, wide
+Engines: polars
+Features: kloppy
+
+Data directory: /Users/jbekkers/PycharmProjects/kloppy-light/data
+
+Operation                     Memory         Time          Rows
+----------------------------------------------------------------------
+
+Cdf tracking file: 76.9 MiB
+
+## Cdf  - long layout
+Eager loading                 389.00 MiB     0.387s       805,931
+Lazy (no collect)               0.11 MiB     0.212s           N/A
+Lazy (with collect)            20.94 MiB     0.314s       805,931
+
+## Cdf  - long_ball layout
+Eager loading                  63.38 MiB     0.342s       770,873
+Lazy (no collect)               0.02 MiB     0.214s           N/A
+Lazy (with collect)            68.97 MiB     0.319s       770,873
+
+## Cdf  - wide layout
+Eager loading                  39.91 MiB     0.382s        35,058
+Lazy (no collect)               4.81 MiB     0.216s           N/A
+Lazy (with collect)            17.25 MiB     0.352s        35,058
+
+## Cdf (kloppy-light) - filter pushdown
+Filter: period_id==2           60.97 MiB     0.283s       401,858
+Filter: frame<=25k             40.11 MiB     0.291s       334,435
+Filter: combined               42.78 MiB     0.281s       334,435
+Filter: team                   54.34 MiB     0.298s       385,434
+Filter: player                  7.48 MiB     0.261s        10,898
+Filter: between                43.09 MiB     0.318s       246,786
+
+## Cdf (kloppy) - not supported by kloppy [used kloppy branch]
+Load (default)                ?? MiB       8.4s (.gz)  / 9.6s (regular)     35,066
+Load (native coords)          ?? MiB       2.2s (.gz)  / 3.2s (regular)     35,066
+
+======================================================================

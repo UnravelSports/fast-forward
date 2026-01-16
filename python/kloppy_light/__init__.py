@@ -49,8 +49,10 @@ from kloppy_light._kloppy_light import __version__
 from kloppy_light import cdf
 from kloppy_light import gradientsports
 from kloppy_light import secondspectrum
+from kloppy_light import signality
 from kloppy_light import skillcorner
 from kloppy_light import sportec
+from kloppy_light import statsperform
 from kloppy_light import hawkeye
 from kloppy_light import tracab
 from kloppy_light._dataset import TrackingDataset
@@ -69,8 +71,10 @@ __all__ = [
     "cdf",
     "gradientsports",
     "secondspectrum",
+    "signality",
     "skillcorner",
     "sportec",
+    "statsperform",
     "hawkeye",
     "tracab",
     "TrackingDataset",

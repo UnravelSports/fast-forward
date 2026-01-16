@@ -279,3 +279,129 @@ def create_lazy_tracking_hawkeye(
         io_source=source_generator,
         schema=schema,
     )
+
+
+def create_lazy_tracking_signality(
+    raw_data_feeds: Union[FileLike, List[FileLike]],
+    meta_data: FileLike,
+    venue_information: FileLike,
+    schema: Dict[str, pl.DataType],
+    layout: str,
+    coordinates: str,
+    orientation: str,
+    only_alive: bool,
+    include_game_id: Union[bool, str],
+    include_officials: bool = False,
+    parallel: bool = True,
+) -> pl.LazyFrame:
+    """Create a lazy tracking DataFrame for Signality's multi-file format.
+
+    Signality uses per-period JSON files with metadata and venue info.
+
+    Parameters
+    ----------
+    raw_data_feeds : FileLike or List[FileLike]
+        Raw tracking file(s) (one per period)
+    meta_data : FileLike
+        Metadata file (teams, players, lineups)
+    venue_information : FileLike
+        Venue file (pitch dimensions)
+    schema : dict
+        Schema mapping column names to Polars types
+    layout : str
+        DataFrame layout
+    coordinates : str
+        Coordinate system
+    orientation : str
+        Coordinate orientation
+    only_alive : bool
+        Filter to only alive frames
+    include_game_id : bool or str
+        Whether to include game_id column
+    include_officials : bool
+        Whether to include officials
+    parallel : bool
+        Whether to process files in parallel
+
+    Returns
+    -------
+    pl.LazyFrame
+        Lazy tracking DataFrame
+    """
+    from kloppy_light._base import get_filename_from_filelike
+    from kloppy_light._kloppy_light import signality as _signality
+
+    # Only convert to lists eagerly (no file reading)
+    raw_list = raw_data_feeds if isinstance(raw_data_feeds, list) else [raw_data_feeds]
+
+    def signality_source_generator(
+        with_columns: Optional[List[str]],
+        predicate: Optional[pl.Expr],
+        n_rows: Optional[int],
+        batch_size: Optional[int],
+    ) -> Iterator[pl.DataFrame]:
+        """Generator that yields Signality tracking DataFrame."""
+        # Read files LAZILY here, at .collect() time
+        raw_bytes_list: List[Tuple[str, bytes]] = []
+        for raw_file in raw_list:
+            with open_as_file(raw_file) as f:
+                filename = get_filename_from_filelike(raw_file)
+                raw_bytes_list.append((filename, f.read() if f else b""))
+
+        with open_as_file(meta_data) as f:
+            meta_bytes = f.read() if f else b""
+
+        with open_as_file(venue_information) as f:
+            venue_bytes = f.read() if f else b""
+
+        # Call Rust to load tracking data with predicate pushdown
+        try:
+            tracking_df, _, _, _, _ = _signality.load_tracking(
+                raw_bytes_list,
+                meta_bytes,
+                venue_bytes,
+                layout=layout,
+                coordinates=coordinates,
+                orientation=orientation,
+                only_alive=only_alive,
+                include_game_id=include_game_id,
+                include_officials=include_officials,
+                predicate=predicate,
+                parallel=parallel,
+            )
+        except RuntimeError as e:
+            if "deserializing" in str(e) or "BindingsError" in str(e):
+                # Fall back to loading without predicate
+                tracking_df, _, _, _, _ = _signality.load_tracking(
+                    raw_bytes_list,
+                    meta_bytes,
+                    venue_bytes,
+                    layout=layout,
+                    coordinates=coordinates,
+                    orientation=orientation,
+                    only_alive=only_alive,
+                    include_game_id=include_game_id,
+                    include_officials=include_officials,
+                    parallel=parallel,
+                )
+            else:
+                raise
+
+        # Always apply predicate in Python to handle filters Rust couldn't push down
+        if predicate is not None:
+            tracking_df = tracking_df.filter(predicate)
+
+        # Apply column projection
+        if with_columns is not None:
+            tracking_df = tracking_df.select(with_columns)
+
+        # Apply row limit
+        if n_rows is not None:
+            tracking_df = tracking_df.head(n_rows)
+
+        yield tracking_df
+
+    return pl.io.plugins.register_io_source(
+        io_source=signality_source_generator,
+        schema=schema,
+    )

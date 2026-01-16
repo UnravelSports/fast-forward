@@ -2,6 +2,8 @@ pub mod cdf;
 pub mod gradientsports;
 pub mod hawkeye;
 pub mod secondspectrum;
+pub mod signality;
 pub mod skillcorner;
 pub mod sportec;
+pub mod statsperform;
 pub mod tracab;

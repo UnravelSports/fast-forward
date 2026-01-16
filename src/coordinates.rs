@@ -43,13 +43,13 @@ impl CoordinateSystem {
     pub fn from_str(s: &str) -> Result<Self, KloppyError> {
         match s.to_lowercase().as_str() {
             // CDF and aliases
-            "cdf" | "secondspectrum" | "skillcorner" | "pff" | "gradientsports" | "sportec:tracking" | "hawkeye" => {
+            "cdf" | "secondspectrum" | "skillcorner" | "pff" | "gradientsports" | "sportec:tracking" | "hawkeye" | "signality" => {
                 Ok(CoordinateSystem::Cdf)
             }
             // Distinct coordinate systems
             "kloppy" => Ok(CoordinateSystem::Kloppy),
             "tracab" => Ok(CoordinateSystem::Tracab),
-            "sportvu" => Ok(CoordinateSystem::SportVu),
+            "sportvu" | "statsperform" => Ok(CoordinateSystem::SportVu),
             "sportec:event" => Ok(CoordinateSystem::SportecEvent),
             "opta" => Ok(CoordinateSystem::Opta),
             _ => Err(KloppyError::UnsupportedCoordinates(s.to_string())),

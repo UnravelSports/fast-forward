@@ -262,6 +262,67 @@ impl Position {
             _ => Position::Unknown,
         }
     }
+
+    /// Parse position from StatsPerform (Opta) format
+    /// StatsPerform uses position names like "Goalkeeper", "Defender", "Midfielder", "Striker", "Substitute"
+    /// with optional position_side values like "Left", "Right", "Centre", "Left/Centre", "Centre/Right"
+    pub fn from_statsperform(position: &str, position_side: Option<&str>) -> Self {
+        match position.to_lowercase().as_str() {
+            "goalkeeper" => Position::GK,
+            "defender" => Self::statsperform_defender_position(position_side),
+            "midfielder" => Self::statsperform_midfielder_position(position_side),
+            "striker" | "attacker" => Self::statsperform_attacker_position(position_side),
+            "substitute" => Position::SUB,
+            _ => Position::Unknown,
+        }
+    }
+
+    /// Map StatsPerform defender position based on position_side
+    fn statsperform_defender_position(side: Option<&str>) -> Self {
+        match side.unwrap_or("").to_lowercase().as_str() {
+            "left" => Position::LB,
+            "right" => Position::RB,
+            "centre" | "center" => Position::CB,
+            "left/centre" | "left/center" => Position::LCB,
+            "centre/right" | "center/right" => Position::RCB,
+            _ => Position::CB,
+        }
+    }
+
+    /// Map StatsPerform midfielder position based on position_side
+    fn statsperform_midfielder_position(side: Option<&str>) -> Self {
+        match side.unwrap_or("").to_lowercase().as_str() {
+            "left" => Position::LM,
+            "right" => Position::RM,
+            "centre" | "center" => Position::CM,
+            "left/centre" | "left/center" => Position::LCM,
+            "centre/right" | "center/right" => Position::RCM,
+            _ => Position::CM,
+        }
+    }
+
+    /// Map StatsPerform attacker/striker position based on position_side
+    fn statsperform_attacker_position(side: Option<&str>) -> Self {
+        match side.unwrap_or("").to_lowercase().as_str() {
+            "left" | "left/centre" | "left/center" => Position::LW,
+            "right" | "centre/right" | "center/right" => Position::RW,
+            "centre" | "center" => Position::ST,
+            _ => Position::ST,
+        }
+    }
+
+    /// Parse official/referee role from StatsPerform format
+    /// StatsPerform uses types like "Main", "Assistant referee 1", "Fourth official", etc.
+    pub fn from_statsperform_official(official_type: &str) -> Self {
+        match official_type.to_lowercase().as_str() {
+            "main" => Position::REF,
+            "assistant referee 1" | "assistant referee 2" => Position::AREF,
+            "fourth official" => Position::FOURTH,
+            "video assistant referee" => Position::VAR,
+            "assistant video assistant referee" => Position::AVAR,
+            _ => Position::Unknown,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -320,5 +381,54 @@ mod tests {
         assert_eq!(Position::from_sportec("HLM"), Position::LCM);
         assert_eq!(Position::from_sportec("HRM"), Position::RCM);
         assert_eq!(Position::from_sportec("CF"), Position::CF);
+    }
+
+    #[test]
+    fn test_from_statsperform() {
+        // Goalkeeper
+        assert_eq!(Position::from_statsperform("Goalkeeper", Some("Centre")), Position::GK);
+        assert_eq!(Position::from_statsperform("Goalkeeper", None), Position::GK);
+
+        // Defenders
+        assert_eq!(Position::from_statsperform("Defender", Some("Left")), Position::LB);
+        assert_eq!(Position::from_statsperform("Defender", Some("Right")), Position::RB);
+        assert_eq!(Position::from_statsperform("Defender", Some("Centre")), Position::CB);
+        assert_eq!(Position::from_statsperform("Defender", Some("Left/Centre")), Position::LCB);
+        assert_eq!(Position::from_statsperform("Defender", Some("Centre/Right")), Position::RCB);
+        assert_eq!(Position::from_statsperform("Defender", None), Position::CB);
+
+        // Midfielders
+        assert_eq!(Position::from_statsperform("Midfielder", Some("Left")), Position::LM);
+        assert_eq!(Position::from_statsperform("Midfielder", Some("Right")), Position::RM);
+        assert_eq!(Position::from_statsperform("Midfielder", Some("Centre")), Position::CM);
+        assert_eq!(Position::from_statsperform("Midfielder", Some("Left/Centre")), Position::LCM);
+        assert_eq!(Position::from_statsperform("Midfielder", Some("Centre/Right")), Position::RCM);
+
+        // Strikers
+        assert_eq!(Position::from_statsperform("Striker", Some("Centre")), Position::ST);
+        assert_eq!(Position::from_statsperform("Striker", Some("Left/Centre")), Position::LW);
+        assert_eq!(Position::from_statsperform("Striker", Some("Centre/Right")), Position::RW);
+        assert_eq!(Position::from_statsperform("Attacker", None), Position::ST);
+
+        // Substitute
+        assert_eq!(Position::from_statsperform("Substitute", None), Position::SUB);
+
+        // Case insensitivity
+        assert_eq!(Position::from_statsperform("goalkeeper", Some("centre")), Position::GK);
+        assert_eq!(Position::from_statsperform("DEFENDER", Some("LEFT")), Position::LB);
+    }
+
+    #[test]
+    fn test_from_statsperform_official() {
+        assert_eq!(Position::from_statsperform_official("Main"), Position::REF);
+        assert_eq!(Position::from_statsperform_official("Assistant referee 1"), Position::AREF);
+        assert_eq!(Position::from_statsperform_official("Assistant referee 2"), Position::AREF);
+        assert_eq!(Position::from_statsperform_official("Fourth official"), Position::FOURTH);
+        assert_eq!(Position::from_statsperform_official("Video assistant referee"), Position::VAR);
+        assert_eq!(Position::from_statsperform_official("Assistant video assistant referee"), Position::AVAR);
+        assert_eq!(Position::from_statsperform_official("unknown"), Position::Unknown);
+        // Case insensitivity
+        assert_eq!(Position::from_statsperform_official("MAIN"), Position::REF);
+        assert_eq!(Position::from_statsperform_official("fourth OFFICIAL"), Position::FOURTH);
     }
 }

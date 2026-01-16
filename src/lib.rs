@@ -50,6 +50,16 @@ fn _kloppy_light(m: &Bound<'_, PyModule>) -> PyResult<()> {
     providers::tracab::register_module(&tracab)?;
     m.add_submodule(&tracab)?;
 
+    // Register statsperform submodule
+    let statsperform = PyModule::new(m.py(), "statsperform")?;
+    providers::statsperform::register_module(&statsperform)?;
+    m.add_submodule(&statsperform)?;
+
+    // Register signality submodule
+    let signality = PyModule::new(m.py(), "signality")?;
+    providers::signality::register_module(&signality)?;
+    m.add_submodule(&signality)?;
+
     // Register transforms submodule
     let transforms_mod = PyModule::new(m.py(), "transforms")?;
     transforms::register_module(&transforms_mod)?;

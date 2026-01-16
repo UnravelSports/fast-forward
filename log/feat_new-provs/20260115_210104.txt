@@ -1,0 +1,22 @@
+======================================================================
+kloppy-light Benchmark
+======================================================================
+Memory measurement: memory_profiler (accurate)
+Providers: cdf
+Layouts: long
+Engines: polars
+Features: no-pushdown
+
+Data directory: /Users/jbekkers/PycharmProjects/kloppy-light/data
+
+Operation                     Memory         Time          Rows
+----------------------------------------------------------------------
+
+Cdf tracking file: 76.9 MiB
+
+## Cdf  - long layout
+Eager loading                 388.30 MiB     0.393s       805,931
+Lazy (no collect)               0.11 MiB     0.219s           N/A
+Lazy (with collect)            69.03 MiB     0.314s       805,931
+
+======================================================================

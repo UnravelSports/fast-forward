@@ -4,12 +4,13 @@
 
 ## New Providers
 
-- [ ] [HIGH] Stats Perform
-- [ ] [MEDIUM] Gradient
-- [ ] [MEDIUM] Signality
+- [X] [HIGH] Stats Perform
+- [X] [MEDIUM] Gradient
+- [X] [MEDIUM] Signality
 - [ ] [MEDIUM] SciSports
 - [ ] [LOW] RespoVision
-- [ ] [LOW] CDF - needs support for untracked/dangling JSON objects
+- [X] [LOW] CDF - needs support for untracked/dangling JSON objects
+- [ ] HawkEye skeletal
 
 ## HawkEye Enhancements
 
@@ -28,3 +29,4 @@
 ## Documentation
 
 - [ ] [LOW] Interactive real-time filtering tool for docs/website
+- [ ] Analysis of number or rows, fps, filesize, speed, memory and different approaches, kloppy and kloppy-light, polars, pyspark
