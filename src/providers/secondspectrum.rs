@@ -1,8 +1,10 @@
 use polars::prelude::*;
 use pyo3::prelude::*;
 use pyo3_polars::{PyDataFrame, PyExpr};
+use quick_xml::events::Event;
+use quick_xml::Reader;
 use serde::Deserialize;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::io::{BufRead, BufReader, Cursor};
 
 use crate::coordinates::{transform_from_cdf, CoordinateSystem};
@@ -42,21 +44,24 @@ struct RawPlayerFrame {
     number: u8,
     xyz: [f32; 3],
     speed: f32,
+    #[serde(default)]
     #[allow(dead_code)]
-    opta_id: String,
+    opta_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 struct RawBallFrame {
     xyz: [f32; 3],
+    #[serde(deserialize_with = "deserialize_ball_speed")]
     speed: f32,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct RawMetadata {
+    #[serde(default)]
     #[allow(dead_code)]
-    venue_id: String,
+    venue_id: Option<String>,
     description: String,
     #[allow(dead_code)]
     start_time: i64,
@@ -72,20 +77,23 @@ struct RawMetadata {
     periods: Vec<RawPeriod>,
     home_players: Vec<RawPlayerMetadata>,
     away_players: Vec<RawPlayerMetadata>,
+    #[serde(default)]
     #[allow(dead_code)]
-    home_score: u8,
+    home_score: Option<u8>,
+    #[serde(default)]
     #[allow(dead_code)]
-    away_score: u8,
+    away_score: Option<u8>,
     ssi_id: String,
+    #[serde(default, deserialize_with = "deserialize_string_or_int")]
     #[allow(dead_code)]
-    opta_id: String,
+    opta_id: Option<String>,
     #[serde(default)]
     home_ssi_id: Option<String>,
     #[serde(default)]
     away_ssi_id: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 struct RawPeriod {
     number: u8,
@@ -93,11 +101,16 @@ struct RawPeriod {
     start_frame_clock: i64,
     #[allow(dead_code)]
     end_frame_clock: i64,
-    #[serde(rename = "startFrameIdx")]
-    start_frame_id: u32,
-    #[serde(rename = "endFrameIdx")]
-    end_frame_id: u32,
+    #[serde(rename = "startFrameIdx", default)]
+    start_frame_id: Option<u32>,
+    #[serde(rename = "endFrameIdx", default)]
+    end_frame_id: Option<u32>,
+    #[serde(default = "default_true")]
     home_att_positive: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Debug, Deserialize)]
@@ -117,6 +130,116 @@ struct RawPlayerMetadata {
 // Helper Functions
 // ============================================================================
 
+/// Deserialize ball speed that can be either a scalar or an array (take first element)
+fn deserialize_ball_speed<'de, D>(deserializer: D) -> Result<f32, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de::{self, SeqAccess, Visitor};
+    use std::fmt;
+
+    struct BallSpeedVisitor;
+
+    impl<'de> Visitor<'de> for BallSpeedVisitor {
+        type Value = f32;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a number or an array of numbers")
+        }
+
+        fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(v as f32)
+        }
+
+        fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(v as f32)
+        }
+
+        fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(v as f32)
+        }
+
+        fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+        where
+            A: SeqAccess<'de>,
+        {
+            // Take the first element from the array
+            if let Some(val) = seq.next_element::<f64>()? {
+                Ok(val as f32)
+            } else {
+                Ok(0.0)  // Empty array, default to 0
+            }
+        }
+    }
+
+    deserializer.deserialize_any(BallSpeedVisitor)
+}
+
+/// Deserialize a field that can be either a string or an integer into Option<String>
+fn deserialize_string_or_int<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de::{self, Visitor};
+    use std::fmt;
+
+    struct StringOrInt;
+
+    impl<'de> Visitor<'de> for StringOrInt {
+        type Value = Option<String>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a string, integer, or null")
+        }
+
+        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(Some(v.to_string()))
+        }
+
+        fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(Some(v.to_string()))
+        }
+
+        fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(Some(v.to_string()))
+        }
+
+        fn visit_none<E>(self) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(None)
+        }
+
+        fn visit_unit<E>(self) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(None)
+        }
+    }
+
+    deserializer.deserialize_any(StringOrInt)
+}
+
 /// Split a name string into first_name and last_name
 /// Examples: "N. Ake" -> (Some("N."), Some("Ake"))
 ///           "Erling Haaland" -> (Some("Erling"), Some("Haaland"))
@@ -129,6 +252,64 @@ fn split_name(name: &str) -> (Option<String>, Option<String>) {
     }
 }
 
+/// Detect if metadata is JSON (starts with '{') or XML (starts with '<')
+fn is_json_metadata(data: &[u8]) -> bool {
+    for byte in data {
+        match byte {
+            b' ' | b'\t' | b'\n' | b'\r' => continue,
+            0xEF | 0xBB | 0xBF => continue, // UTF-8 BOM
+            b'{' => return true,
+            b'<' => return false,
+            _ => return false,
+        }
+    }
+    false
+}
+
+/// Extract player information from parsed frames (used when metadata doesn't have roster)
+fn extract_players_from_frames(
+    frames: &[StandardFrame],
+    _home_team_id: &str,
+    _away_team_id: &str,
+) -> (Vec<StandardPlayer>, HashMap<String, String>) {
+    let mut players: Vec<StandardPlayer> = Vec::new();
+    let mut player_team_map: HashMap<String, String> = HashMap::new();
+    let mut seen_players: HashSet<String> = HashSet::new();
+
+    for frame in frames {
+        for player_pos in &frame.players {
+            if seen_players.insert(player_pos.player_id.clone()) {
+                player_team_map.insert(
+                    player_pos.player_id.clone(),
+                    player_pos.team_id.clone(),
+                );
+
+                // Try to parse jersey number from player_id if it looks numeric
+                let jersey_number: u8 = player_pos
+                    .player_id
+                    .chars()
+                    .filter(|c| c.is_ascii_digit())
+                    .collect::<String>()
+                    .parse()
+                    .unwrap_or(0);
+
+                players.push(StandardPlayer {
+                    team_id: player_pos.team_id.clone(),
+                    player_id: player_pos.player_id.clone(),
+                    name: None,
+                    first_name: None,
+                    last_name: None,
+                    jersey_number,
+                    position: Position::Unknown,
+                    is_starter: None,
+                });
+            }
+        }
+    }
+
+    (players, player_team_map)
+}
+
 // ============================================================================
 // Parsing Functions
 // ============================================================================
@@ -137,7 +318,7 @@ fn parse_metadata(
     data: &[u8],
     coordinate_system: &str,
     orientation: &str,
-) -> Result<(StandardMetadata, String, String, Vec<StandardPeriod>, HashMap<String, String>), KloppyError> {
+) -> Result<(StandardMetadata, String, String, Vec<RawPeriod>, HashMap<String, String>), KloppyError> {
     let cursor = Cursor::new(data);
     let reader = BufReader::new(cursor);
     let raw: RawMetadata = serde_json::from_reader(reader)?;
@@ -212,13 +393,16 @@ fn parse_metadata(
         });
     }
 
-    let periods: Vec<StandardPeriod> = raw
-        .periods
-        .into_iter()
+    // Keep raw periods for later processing (frame IDs may be derived from tracking data)
+    let raw_periods = raw.periods;
+
+    // Build StandardPeriod objects with defaults for now (will be updated after parsing tracking)
+    let standard_periods: Vec<StandardPeriod> = raw_periods
+        .iter()
         .map(|p| StandardPeriod {
             period_id: p.number,
-            start_frame_id: p.start_frame_id,
-            end_frame_id: p.end_frame_id,
+            start_frame_id: p.start_frame_id.unwrap_or(0),
+            end_frame_id: p.end_frame_id.unwrap_or(0),
             home_attacking_direction: if p.home_att_positive {
                 AttackingDirection::LeftToRight
             } else {
@@ -243,7 +427,7 @@ fn parse_metadata(
         away_team_id: away_team_id.clone(),
         teams,
         players,
-        periods: periods.clone(),
+        periods: standard_periods,
         pitch_length: raw.pitch_length,
         pitch_width: raw.pitch_width,
         fps: raw.fps,
@@ -251,7 +435,183 @@ fn parse_metadata(
         orientation: orientation.to_string(),
     };
 
-    Ok((metadata, home_team_id, away_team_id, periods, player_team_map))
+    Ok((metadata, home_team_id, away_team_id, raw_periods, player_team_map))
+}
+
+/// Parse SecondSpectrum XML metadata
+fn parse_metadata_xml(
+    data: &[u8],
+    coordinate_system: &str,
+    orientation: &str,
+) -> Result<
+    (
+        StandardMetadata,
+        String,
+        String,
+        Vec<RawPeriod>,
+        HashMap<String, String>,
+    ),
+    KloppyError,
+> {
+    let cursor = Cursor::new(data);
+    let reader = BufReader::new(cursor);
+    let mut xml_reader = Reader::from_reader(reader);
+    xml_reader.trim_text(true);
+
+    let mut buf = Vec::new();
+
+    // Default values
+    let mut pitch_length: f32 = 105.0;
+    let mut pitch_width: f32 = 68.0;
+    let mut fps: f32 = 25.0;
+    let mut game_id = String::new();
+    let mut game_date: Option<chrono::NaiveDate> = None;
+    let mut periods: Vec<RawPeriod> = Vec::new();
+
+    loop {
+        match xml_reader.read_event_into(&mut buf) {
+            Ok(Event::Start(ref e)) | Ok(Event::Empty(ref e)) => {
+                if e.name().as_ref() == b"match" {
+                    for attr in e.attributes().flatten() {
+                        match attr.key.as_ref() {
+                            b"fPitchXSizeMeters" => {
+                                pitch_length = String::from_utf8_lossy(&attr.value)
+                                    .parse()
+                                    .unwrap_or(105.0);
+                            }
+                            b"fPitchYSizeMeters" => {
+                                pitch_width = String::from_utf8_lossy(&attr.value)
+                                    .parse()
+                                    .unwrap_or(68.0);
+                            }
+                            b"iFrameRateFps" => {
+                                fps = String::from_utf8_lossy(&attr.value)
+                                    .parse()
+                                    .unwrap_or(25.0);
+                            }
+                            b"iId" => {
+                                game_id = String::from_utf8_lossy(&attr.value).to_string();
+                            }
+                            b"dtDate" => {
+                                // Parse "1900-02-01 00:00:00" format
+                                let date_str = String::from_utf8_lossy(&attr.value);
+                                if let Some(date_part) = date_str.split(' ').next() {
+                                    game_date = chrono::NaiveDate::parse_from_str(
+                                        date_part, "%Y-%m-%d",
+                                    )
+                                    .ok();
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                } else if e.name().as_ref() == b"period" {
+                    let mut period_id: u8 = 0;
+                    let mut start_frame: Option<u32> = None;
+                    let mut end_frame: Option<u32> = None;
+
+                    for attr in e.attributes().flatten() {
+                        match attr.key.as_ref() {
+                            b"iId" => {
+                                period_id = String::from_utf8_lossy(&attr.value)
+                                    .parse()
+                                    .unwrap_or(0);
+                            }
+                            b"iStartFrame" => {
+                                start_frame =
+                                    String::from_utf8_lossy(&attr.value).parse().ok();
+                            }
+                            b"iEndFrame" => {
+                                end_frame = String::from_utf8_lossy(&attr.value).parse().ok();
+                            }
+                            _ => {}
+                        }
+                    }
+
+                    // Only add periods with valid data (non-zero end frame)
+                    if period_id > 0 && end_frame.unwrap_or(0) > 0 {
+                        periods.push(RawPeriod {
+                            number: period_id,
+                            start_frame_clock: start_frame.unwrap_or(0) as i64,
+                            end_frame_clock: end_frame.unwrap_or(0) as i64,
+                            start_frame_id: start_frame,
+                            end_frame_id: end_frame,
+                            home_att_positive: true, // Default for XML
+                        });
+                    }
+                }
+            }
+            Ok(Event::Eof) => break,
+            Err(e) => return Err(KloppyError::Xml(e)),
+            _ => {}
+        }
+        buf.clear();
+    }
+
+    // Use default team names/IDs for XML (no roster info available)
+    let home_team_id = "home".to_string();
+    let away_team_id = "away".to_string();
+    let home_name = "Home".to_string();
+    let away_name = "Away".to_string();
+
+    // Create teams
+    let teams = vec![
+        StandardTeam {
+            team_id: home_team_id.clone(),
+            name: home_name.clone(),
+            ground: Ground::Home,
+        },
+        StandardTeam {
+            team_id: away_team_id.clone(),
+            name: away_name.clone(),
+            ground: Ground::Away,
+        },
+    ];
+
+    // No players in XML - empty list (will be populated from tracking data)
+    let players: Vec<StandardPlayer> = Vec::new();
+    let player_team_map: HashMap<String, String> = HashMap::new();
+
+    // Build periods
+    let standard_periods: Vec<StandardPeriod> = periods
+        .iter()
+        .map(|p| StandardPeriod {
+            period_id: p.number,
+            start_frame_id: p.start_frame_id.unwrap_or(0),
+            end_frame_id: p.end_frame_id.unwrap_or(0),
+            home_attacking_direction: AttackingDirection::LeftToRight,
+        })
+        .collect();
+
+    let metadata = StandardMetadata {
+        provider: "secondspectrum".to_string(),
+        game_id: if game_id.is_empty() {
+            "unknown".to_string()
+        } else {
+            game_id
+        },
+        game_date,
+        home_team_name: home_name,
+        home_team_id: home_team_id.clone(),
+        away_team_name: away_name,
+        away_team_id: away_team_id.clone(),
+        teams,
+        players,
+        periods: standard_periods,
+        pitch_length,
+        pitch_width,
+        fps,
+        coordinate_system: coordinate_system.to_string(),
+        orientation: orientation.to_string(),
+    };
+
+    Ok((
+        metadata,
+        home_team_id,
+        away_team_id,
+        periods,
+        player_team_map,
+    ))
 }
 
 fn parse_tracking_frames(
@@ -575,9 +935,13 @@ fn load_tracking(
     // Emit any warnings from filter extraction
     pushdown.emit_warnings();
 
-    // Parse metadata first to get team IDs and periods
-    let (metadata_struct, home_team_id, away_team_id, periods, player_team_map) =
-        parse_metadata(meta_data, coordinates, orientation)?;
+    // Parse metadata first to get team IDs and raw periods (auto-detect JSON vs XML)
+    let (mut metadata_struct, home_team_id, away_team_id, raw_periods, mut player_team_map) =
+        if is_json_metadata(meta_data) {
+            parse_metadata(meta_data, coordinates, orientation)?
+        } else {
+            parse_metadata_xml(meta_data, coordinates, orientation)?
+        };
 
     // Determine game_id based on include_game_id parameter
     let game_id: Option<String> = resolve_game_id(py, include_game_id, &metadata_struct.game_id)?;
@@ -604,6 +968,61 @@ fn load_tracking(
             &player_team_map,
         )?
     };
+
+    // Compute actual period frame ranges from tracking data
+    let mut period_frame_ranges: HashMap<u8, (u32, u32)> = HashMap::new();
+    for frame in &frames {
+        let entry = period_frame_ranges.entry(frame.period_id).or_insert((u32::MAX, 0));
+        entry.0 = entry.0.min(frame.frame_id);  // min frame_id
+        entry.1 = entry.1.max(frame.frame_id);  // max frame_id
+    }
+
+    // Build final periods with actual frame IDs (use metadata if provided, otherwise derive from data)
+    let periods: Vec<StandardPeriod> = raw_periods
+        .iter()
+        .map(|p| {
+            let (start, end) = if p.start_frame_id.is_some() && p.end_frame_id.is_some() {
+                // Use metadata-provided values
+                (p.start_frame_id.unwrap(), p.end_frame_id.unwrap())
+            } else {
+                // Derive from tracking data
+                period_frame_ranges.get(&p.number).copied().unwrap_or((0, 0))
+            };
+            StandardPeriod {
+                period_id: p.number,
+                start_frame_id: start,
+                end_frame_id: end,
+                home_attacking_direction: if p.home_att_positive {
+                    AttackingDirection::LeftToRight
+                } else {
+                    AttackingDirection::RightToLeft
+                },
+            }
+        })
+        .collect();
+
+    // Update metadata with computed periods
+    metadata_struct.periods = periods.clone();
+
+    // If XML metadata was used (no players), extract player info from tracking data
+    if metadata_struct.players.is_empty() && !frames.is_empty() {
+        let (extracted_players, extracted_map) =
+            extract_players_from_frames(&frames, &home_team_id, &away_team_id);
+        metadata_struct.players = extracted_players;
+        metadata_struct.teams = vec![
+            StandardTeam {
+                team_id: home_team_id.clone(),
+                name: metadata_struct.home_team_name.clone(),
+                ground: Ground::Home,
+            },
+            StandardTeam {
+                team_id: away_team_id.clone(),
+                name: metadata_struct.away_team_name.clone(),
+                ground: Ground::Away,
+            },
+        ];
+        player_team_map = extracted_map;
+    }
 
     // Apply orientation transformation
     transform_frames(&mut frames, &periods, &home_team_id, orientation_enum);
@@ -676,7 +1095,12 @@ fn load_metadata_only(
     orientation: &str,
     include_game_id: Option<Bound<'_, PyAny>>,
 ) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
-    let (metadata_struct, _, _, _, _) = parse_metadata(meta_data, coordinates, orientation)?;
+    // Auto-detect JSON vs XML metadata
+    let (metadata_struct, _, _, _, _) = if is_json_metadata(meta_data) {
+        parse_metadata(meta_data, coordinates, orientation)?
+    } else {
+        parse_metadata_xml(meta_data, coordinates, orientation)?
+    };
 
     // Determine game_id based on include_game_id parameter
     let game_id: Option<String> = resolve_game_id(py, include_game_id, &metadata_struct.game_id)?;
