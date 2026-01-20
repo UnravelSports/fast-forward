@@ -2,24 +2,16 @@
 
 import pytest
 import polars as pl
-from pathlib import Path
 
 from kloppy_light import secondspectrum, skillcorner, sportec
-
-# Test data paths
-DATA_DIR = Path(__file__).parent / "files"
-
-# SecondSpectrum test files
-SS_RAW = str(DATA_DIR / "secondspectrum_tracking.jsonl")
-SS_META = str(DATA_DIR / "secondspectrum_meta.json")
-
-# SkillCorner test files
-SC_RAW = str(DATA_DIR / "skillcorner_tracking.jsonl")
-SC_META = str(DATA_DIR / "skillcorner_meta.json")
-
-# Sportec test files
-SP_RAW = str(DATA_DIR / "sportec_positional.xml")
-SP_META = str(DATA_DIR / "sportec_meta.xml")
+from tests.config import (
+    SS_RAW_ANON as SS_RAW,
+    SS_META_ANON as SS_META,
+    SC_RAW,
+    SC_META,
+    SP_RAW,
+    SP_META,
+)
 
 
 class TestIncludeGameIdSecondSpectrum:

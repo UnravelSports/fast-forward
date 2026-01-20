@@ -22,7 +22,7 @@ use crate::coordinates::{transform_from_cdf, transform_to_cdf, CoordinateSystem}
 use crate::dataframe::{
     build_metadata_df, build_periods_df, build_player_df, build_team_df, build_tracking_df_with_pushdown, Layout,
 };
-use crate::error::KloppyError;
+use crate::error::{validate_not_empty, KloppyError};
 use crate::filter_pushdown::{extract_pushdown_filters, PushdownFilters};
 use crate::models::{
     BallState, Ground, Position, StandardBall, StandardFrame, StandardMetadata, StandardPeriod,
@@ -688,6 +688,27 @@ fn parse_tracking_dat(
     only_alive: bool,
     pushdown: &PushdownFilters,
 ) -> Result<TrackingParseResult, KloppyError> {
+    // Validate that at least one line has valid DAT format
+    let content = std::str::from_utf8(data)
+        .map_err(|e| KloppyError::InvalidInput(format!("Invalid UTF-8: {}", e)))?;
+
+    let has_valid_dat_line = content.lines().any(|line| {
+        if line.is_empty() {
+            return false;
+        }
+        let parts: Vec<&str> = line.split(':').collect();
+        if parts.len() < 3 {
+            return false;
+        }
+        parts[0].parse::<u32>().is_ok()
+    });
+
+    if !has_valid_dat_line && !content.lines().all(|l| l.is_empty()) {
+        return Err(KloppyError::InvalidInput(
+            "Invalid Tracab DAT format: no valid tracking lines found".to_string()
+        ));
+    }
+
     let cursor = Cursor::new(data);
     let reader = BufReader::new(cursor);
 
@@ -915,6 +936,25 @@ fn parse_tracking_dat_parallel(
         .map_err(|e| KloppyError::InvalidInput(format!("Invalid UTF-8: {}", e)))?;
 
     let lines: Vec<&str> = content.lines().collect();
+
+    // Validate that at least one line has valid DAT format (frame_id:...)
+    // DAT format requires: frame_id:players:ball:unused where frame_id is numeric
+    let has_valid_dat_line = lines.iter().any(|line| {
+        if line.is_empty() {
+            return false;
+        }
+        let parts: Vec<&str> = line.split(':').collect();
+        if parts.len() < 3 {
+            return false;
+        }
+        parts[0].parse::<u32>().is_ok()
+    });
+
+    if !has_valid_dat_line && !lines.iter().all(|l| l.is_empty()) {
+        return Err(KloppyError::InvalidInput(
+            "Invalid Tracab DAT format: no valid tracking lines found".to_string()
+        ));
+    }
 
     // Process lines in parallel
     let frames: Vec<Option<StandardFrame>> = lines
@@ -1407,6 +1447,10 @@ pub fn load_tracking(
     predicate: Option<PyExpr>,
     parallel: bool,
 ) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
+    // Validate inputs are not empty
+    validate_not_empty(raw_data, "tracking")?;
+    validate_not_empty(meta_data, "metadata")?;
+
     // 1. Parse layout enum
     let layout_enum = Layout::from_str(layout)
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;

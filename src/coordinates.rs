@@ -50,7 +50,7 @@ impl CoordinateSystem {
             "kloppy" => Ok(CoordinateSystem::Kloppy),
             "tracab" => Ok(CoordinateSystem::Tracab),
             "sportvu" | "statsperform" => Ok(CoordinateSystem::SportVu),
-            "sportec:event" => Ok(CoordinateSystem::SportecEvent),
+            "sportec:event" | "respovision" => Ok(CoordinateSystem::SportecEvent),
             "opta" => Ok(CoordinateSystem::Opta),
             _ => Err(KloppyError::UnsupportedCoordinates(s.to_string())),
         }

@@ -19,6 +19,7 @@ def _create_lazy_tracking_gradientsports(
     coordinates: str,
     orientation: str,
     only_alive: bool,
+    include_incomplete_frames: bool,
     include_game_id,
 ) -> pl.LazyFrame:
     """Create a lazy frame for GradientSports tracking data."""
@@ -40,6 +41,7 @@ def _create_lazy_tracking_gradientsports(
             coordinates=coordinates,
             orientation=orientation,
             only_alive=only_alive,
+            include_incomplete_frames=include_incomplete_frames,
             include_game_id=include_game_id,
             predicate=predicate,
         )
@@ -87,6 +89,7 @@ def load_tracking(
         "static_away_home",
     ] = "static_home_away",
     only_alive: bool = True,
+    include_incomplete_frames: bool = False,
     include_game_id: Union[bool, str] = True,
     *,
     lazy: bool = False,
@@ -113,6 +116,9 @@ def load_tracking(
         Coordinate orientation
     only_alive : bool, default True
         If True, only include frames where ball is in play
+    include_incomplete_frames : bool, default False
+        If True, include frames with null ball coordinates or null player arrays.
+        If False (default), only include frames with complete data.
     include_game_id : Union[bool, str], default True
         If True, add game_id column from metadata.
         If False, no game_id column is added.
@@ -166,6 +172,7 @@ def load_tracking(
                 coordinates=coordinates,
                 orientation=orientation,
                 only_alive=only_alive,
+                include_incomplete_frames=include_incomplete_frames,
                 include_game_id=include_game_id,
                 predicate=predicate,
             )
@@ -217,6 +224,7 @@ def load_tracking(
                 coordinates=coordinates,
                 orientation=orientation,
                 only_alive=only_alive,
+                include_incomplete_frames=include_incomplete_frames,
                 include_game_id=include_game_id,
             )
         )

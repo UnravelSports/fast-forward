@@ -5,7 +5,6 @@ Tests are skipped if PySpark is not installed.
 """
 
 import pytest
-from pathlib import Path
 
 # Skip all tests if PySpark is not installed
 pyspark = pytest.importorskip("pyspark")
@@ -14,12 +13,10 @@ from pyspark.sql import SparkSession, DataFrame as SparkDataFrame
 
 from kloppy_light import secondspectrum
 from kloppy_light._dataset import TrackingDataset
-
-
-# Test data paths (same as secondspectrum tests)
-DATA_DIR = Path(__file__).parent / "files"
-RAW_DATA_PATH = str(DATA_DIR / "secondspectrum_tracking.jsonl")
-META_DATA_PATH = str(DATA_DIR / "secondspectrum_meta.json")
+from tests.config import (
+    SS_RAW_ANON as RAW_DATA_PATH,
+    SS_META_ANON as META_DATA_PATH,
+)
 
 
 @pytest.fixture(scope="module")

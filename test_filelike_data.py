@@ -11,8 +11,8 @@ def test_with_real_data():
     from kloppy_light import secondspectrum
 
     test_dir = Path("tests/files")
-    raw_path = test_dir / "secondspectrum_tracking.jsonl"
-    meta_path = test_dir / "secondspectrum_meta.json"
+    raw_path = test_dir / "secondspectrum_tracking_anon.jsonl"
+    meta_path = test_dir / "secondspectrum_meta_anon.json"
 
     if not raw_path.exists() or not meta_path.exists():
         print("✗ Test files not found")

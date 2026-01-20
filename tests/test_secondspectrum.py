@@ -9,27 +9,17 @@ import datetime
 
 import pytest
 import polars as pl
-from pathlib import Path
 
 from kloppy_light import secondspectrum
 from kloppy_light._dataset import TrackingDataset
-
-
-# =============================================================================
-# Test Data Paths
-# =============================================================================
-
-DATA_DIR = Path(__file__).parent / "files"
-
-# Anonymized test data (floats rounded to 1 decimal)
-ANON_RAW_DATA_PATH = str(DATA_DIR / "secondspectrum_tracking_anon.jsonl")
-ANON_META_DATA_PATH = str(DATA_DIR / "secondspectrum_meta_anon.json")
-
-# Original kloppy test data
-KLOPPY_RAW_DATA_PATH = str(DATA_DIR / "second_spectrum_fake_data.jsonl")
-KLOPPY_RAW_DATA_UTF8SIG_PATH = str(DATA_DIR / "second_spectrum_fake_data_utf8sig.jsonl")
-KLOPPY_META_DATA_PATH = str(DATA_DIR / "second_spectrum_fake_metadata.json")
-KLOPPY_XML_META_DATA_PATH = str(DATA_DIR / "second_spectrum_fake_metadata.xml")
+from tests.config import (
+    SS_RAW_ANON as ANON_RAW_DATA_PATH,
+    SS_META_ANON as ANON_META_DATA_PATH,
+    SS_RAW_FAKE as KLOPPY_RAW_DATA_PATH,
+    SS_RAW_FAKE_UTF8SIG as KLOPPY_RAW_DATA_UTF8SIG_PATH,
+    SS_META_FAKE as KLOPPY_META_DATA_PATH,
+    SS_META_FAKE_XML as KLOPPY_XML_META_DATA_PATH,
+)
 
 
 # =============================================================================

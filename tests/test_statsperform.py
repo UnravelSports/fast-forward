@@ -2,16 +2,13 @@
 
 import pytest
 import polars as pl
-from pathlib import Path
 
 from kloppy_light import statsperform
-
-
-# Test data paths
-DATA_DIR = Path(__file__).parent / "files"
-MA25_DATA_PATH = str(DATA_DIR / "statsperform_tracking_ma25.txt")
-MA1_JSON_PATH = str(DATA_DIR / "statsperform_tracking_ma1.json")
-MA1_XML_PATH = str(DATA_DIR / "statsperform_tracking_ma1.xml")
+from tests.config import (
+    STP_RAW_MA25 as MA25_DATA_PATH,
+    STP_META_JSON as MA1_JSON_PATH,
+    STP_META_XML as MA1_XML_PATH,
+)
 
 
 class TestLoadTrackingWithJSON:

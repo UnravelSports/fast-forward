@@ -2,14 +2,12 @@
 
 import pytest
 import polars as pl
-from pathlib import Path
 
 from kloppy_light import secondspectrum
-
-# Test data paths
-DATA_DIR = Path(__file__).parent / "files"
-RAW_DATA_PATH = str(DATA_DIR / "secondspectrum_tracking.jsonl")
-META_DATA_PATH = str(DATA_DIR / "secondspectrum_meta.json")
+from tests.config import (
+    SS_RAW_ANON as RAW_DATA_PATH,
+    SS_META_ANON as META_DATA_PATH,
+)
 
 
 class TestStaticHomeAway:
@@ -29,7 +27,7 @@ class TestStaticHomeAway:
             (pl.col("period_id") == 1) & (pl.col("team_id") == home_team_id)
         )
         avg_x = period_data["x"].mean()
-        assert avg_x == pytest.approx(-13.010109067540617, rel=1e-6)
+        assert avg_x == pytest.approx(-13.046636340604588, rel=1e-6)
 
     def test_home_team_x_period_2(self):
         """Home team should have x mean of -8.234799 in period 2."""
@@ -45,7 +43,7 @@ class TestStaticHomeAway:
             (pl.col("period_id") == 2) & (pl.col("team_id") == home_team_id)
         )
         avg_x = period_data["x"].mean()
-        assert avg_x == pytest.approx(-8.234799977654422, rel=1e-6)
+        assert avg_x == pytest.approx(-8.25881817176938, rel=1e-6)
 
     def test_ball_x_period_1(self):
         """Ball should have x mean of 20.0939 in period 1."""
@@ -58,7 +56,7 @@ class TestStaticHomeAway:
             (pl.col("period_id") == 1) & (pl.col("team_id") == "ball")
         )
         avg_x = ball_data["x"].mean()
-        assert avg_x == pytest.approx(20.093899972736835, rel=1e-6)
+        assert avg_x == pytest.approx(20.136000013947488, rel=1e-6)
 
     def test_ball_x_period_2(self):
         """Ball should have x mean of -6.3284 in period 2."""
@@ -71,7 +69,7 @@ class TestStaticHomeAway:
             (pl.col("period_id") == 2) & (pl.col("team_id") == "ball")
         )
         avg_x = ball_data["x"].mean()
-        assert avg_x == pytest.approx(-6.3283999802544715, rel=1e-6)
+        assert avg_x == pytest.approx(-6.374999987557531, rel=1e-6)
 
 
 class TestStaticAwayHome:
@@ -91,7 +89,7 @@ class TestStaticAwayHome:
             (pl.col("period_id") == 1) & (pl.col("team_id") == home_team_id)
         )
         avg_x = period_data["x"].mean()
-        assert avg_x == pytest.approx(13.010109067540617, rel=1e-6)
+        assert avg_x == pytest.approx(13.046636340604588, rel=1e-6)
 
     def test_home_team_x_period_2(self):
         """Home team should have x mean of 8.234799 in period 2."""
@@ -107,7 +105,7 @@ class TestStaticAwayHome:
             (pl.col("period_id") == 2) & (pl.col("team_id") == home_team_id)
         )
         avg_x = period_data["x"].mean()
-        assert avg_x == pytest.approx(8.234799977654422, rel=1e-6)
+        assert avg_x == pytest.approx(8.25881817176938, rel=1e-6)
 
     def test_ball_x_period_1(self):
         """Ball should have x mean of -20.0939 in period 1."""
@@ -120,7 +118,7 @@ class TestStaticAwayHome:
             (pl.col("period_id") == 1) & (pl.col("team_id") == "ball")
         )
         avg_x = ball_data["x"].mean()
-        assert avg_x == pytest.approx(-20.093899972736835, rel=1e-6)
+        assert avg_x == pytest.approx(-20.136000013947488, rel=1e-6)
 
     def test_ball_x_period_2(self):
         """Ball should have x mean of 6.3284 in period 2."""
@@ -133,7 +131,7 @@ class TestStaticAwayHome:
             (pl.col("period_id") == 2) & (pl.col("team_id") == "ball")
         )
         avg_x = ball_data["x"].mean()
-        assert avg_x == pytest.approx(6.3283999802544715, rel=1e-6)
+        assert avg_x == pytest.approx(6.374999987557531, rel=1e-6)
 
 
 class TestHomeAway:
@@ -153,7 +151,7 @@ class TestHomeAway:
             (pl.col("period_id") == 1) & (pl.col("team_id") == home_team_id)
         )
         avg_x = period_data["x"].mean()
-        assert avg_x == pytest.approx(-13.010109067540617, rel=1e-6)
+        assert avg_x == pytest.approx(-13.046636340604588, rel=1e-6)
 
     def test_home_team_x_period_2(self):
         """Home team should have x mean of 8.234799 in period 2 (flipped)."""
@@ -169,7 +167,7 @@ class TestHomeAway:
             (pl.col("period_id") == 2) & (pl.col("team_id") == home_team_id)
         )
         avg_x = period_data["x"].mean()
-        assert avg_x == pytest.approx(8.234799977654422, rel=1e-6)
+        assert avg_x == pytest.approx(8.25881817176938, rel=1e-6)
 
     def test_ball_x_period_1(self):
         """Ball should have x mean of 20.0939 in period 1."""
@@ -182,7 +180,7 @@ class TestHomeAway:
             (pl.col("period_id") == 1) & (pl.col("team_id") == "ball")
         )
         avg_x = ball_data["x"].mean()
-        assert avg_x == pytest.approx(20.093899972736835, rel=1e-6)
+        assert avg_x == pytest.approx(20.136000013947488, rel=1e-6)
 
     def test_ball_x_period_2(self):
         """Ball should have x mean of 6.3284 in period 2 (flipped)."""
@@ -195,7 +193,7 @@ class TestHomeAway:
             (pl.col("period_id") == 2) & (pl.col("team_id") == "ball")
         )
         avg_x = ball_data["x"].mean()
-        assert avg_x == pytest.approx(6.3283999802544715, rel=1e-6)
+        assert avg_x == pytest.approx(6.374999987557531, rel=1e-6)
 
 
 class TestAwayHome:
@@ -215,7 +213,7 @@ class TestAwayHome:
             (pl.col("period_id") == 1) & (pl.col("team_id") == home_team_id)
         )
         avg_x = period_data["x"].mean()
-        assert avg_x == pytest.approx(13.010109067540617, rel=1e-6)
+        assert avg_x == pytest.approx(13.046636340604588, rel=1e-6)
 
     def test_home_team_x_period_2(self):
         """Home team should have x mean of -8.234799 in period 2."""
@@ -231,7 +229,7 @@ class TestAwayHome:
             (pl.col("period_id") == 2) & (pl.col("team_id") == home_team_id)
         )
         avg_x = period_data["x"].mean()
-        assert avg_x == pytest.approx(-8.234799977654422, rel=1e-6)
+        assert avg_x == pytest.approx(-8.25881817176938, rel=1e-6)
 
     def test_ball_x_period_1(self):
         """Ball should have x mean of -20.0939 in period 1."""
@@ -244,7 +242,7 @@ class TestAwayHome:
             (pl.col("period_id") == 1) & (pl.col("team_id") == "ball")
         )
         avg_x = ball_data["x"].mean()
-        assert avg_x == pytest.approx(-20.093899972736835, rel=1e-6)
+        assert avg_x == pytest.approx(-20.136000013947488, rel=1e-6)
 
     def test_ball_x_period_2(self):
         """Ball should have x mean of -6.3284 in period 2."""
@@ -257,7 +255,7 @@ class TestAwayHome:
             (pl.col("period_id") == 2) & (pl.col("team_id") == "ball")
         )
         avg_x = ball_data["x"].mean()
-        assert avg_x == pytest.approx(-6.3283999802544715, rel=1e-6)
+        assert avg_x == pytest.approx(-6.374999987557531, rel=1e-6)
 
 
 class TestAttackRight:
@@ -276,7 +274,7 @@ class TestAttackRight:
             (pl.col("period_id") == 1) & (pl.col("team_id") == home_team_id)
         )
         avg_x = period_data["x"].mean()
-        assert avg_x == pytest.approx(12.738454520466991, rel=1e-6)
+        assert avg_x == pytest.approx(12.774090882363645, rel=1e-6)
 
     def test_home_team_x_period_2(self):
         """Home team should have x mean of -8.234799 in period 2."""
@@ -291,7 +289,7 @@ class TestAttackRight:
             (pl.col("period_id") == 2) & (pl.col("team_id") == home_team_id)
         )
         avg_x = period_data["x"].mean()
-        assert avg_x == pytest.approx(-8.234799977654422, rel=1e-6)
+        assert avg_x == pytest.approx(-8.25881817176938, rel=1e-6)
 
     def test_ball_x_period_1(self):
         """Ball should have x mean of -20.0883 in period 1."""
@@ -304,7 +302,7 @@ class TestAttackRight:
             (pl.col("period_id") == 1) & (pl.col("team_id") == "ball")
         )
         avg_x = ball_data["x"].mean()
-        assert avg_x == pytest.approx(-20.088299972712992, rel=1e-6)
+        assert avg_x == pytest.approx(-20.13000001370907, rel=1e-6)
 
     def test_ball_x_period_2(self):
         """Ball should have x mean of -6.3284 in period 2."""
@@ -317,7 +315,7 @@ class TestAttackRight:
             (pl.col("period_id") == 2) & (pl.col("team_id") == "ball")
         )
         avg_x = ball_data["x"].mean()
-        assert avg_x == pytest.approx(-6.3283999802544715, rel=1e-6)
+        assert avg_x == pytest.approx(-6.374999987557531, rel=1e-6)
 
 
 class TestAttackLeft:
@@ -336,7 +334,7 @@ class TestAttackLeft:
             (pl.col("period_id") == 1) & (pl.col("team_id") == home_team_id)
         )
         avg_x = period_data["x"].mean()
-        assert avg_x == pytest.approx(-12.738454520466991, rel=1e-6)
+        assert avg_x == pytest.approx(-12.774090882363645, rel=1e-6)
 
     def test_home_team_x_period_2(self):
         """Home team should have x mean of 8.234799 in period 2."""
@@ -351,7 +349,7 @@ class TestAttackLeft:
             (pl.col("period_id") == 2) & (pl.col("team_id") == home_team_id)
         )
         avg_x = period_data["x"].mean()
-        assert avg_x == pytest.approx(8.234799977654422, rel=1e-6)
+        assert avg_x == pytest.approx(8.25881817176938, rel=1e-6)
 
     def test_ball_x_period_1(self):
         """Ball should have x mean of 20.0883 in period 1."""
@@ -364,7 +362,7 @@ class TestAttackLeft:
             (pl.col("period_id") == 1) & (pl.col("team_id") == "ball")
         )
         avg_x = ball_data["x"].mean()
-        assert avg_x == pytest.approx(20.088299972712992, rel=1e-6)
+        assert avg_x == pytest.approx(20.13000001370907, rel=1e-6)
 
     def test_ball_x_period_2(self):
         """Ball should have x mean of 6.3284 in period 2."""
@@ -377,7 +375,7 @@ class TestAttackLeft:
             (pl.col("period_id") == 2) & (pl.col("team_id") == "ball")
         )
         avg_x = ball_data["x"].mean()
-        assert avg_x == pytest.approx(6.3283999802544715, rel=1e-6)
+        assert avg_x == pytest.approx(6.374999987557531, rel=1e-6)
 
 
 class TestOrientationSymmetry:

@@ -2,15 +2,12 @@
 
 import pytest
 import polars as pl
-from pathlib import Path
 
 from kloppy_light import skillcorner
-
-
-# Test data paths (anonymized test data with 100 frames per period)
-DATA_DIR = Path(__file__).parent / "files"
-RAW_DATA_PATH = str(DATA_DIR / "skillcorner_tracking.jsonl")
-META_DATA_PATH = str(DATA_DIR / "skillcorner_meta.json")
+from tests.config import (
+    SC_RAW as RAW_DATA_PATH,
+    SC_META as META_DATA_PATH,
+)
 
 
 class TestLoadTracking:

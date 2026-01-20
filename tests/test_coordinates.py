@@ -5,17 +5,13 @@ import polars as pl
 from pathlib import Path
 
 from kloppy_light import skillcorner, secondspectrum
-
-# Test data paths
-DATA_DIR = Path(__file__).parent / "files"
-
-# Boundary test data with known min/max values (105m x 68m pitch)
-BOUNDARY_RAW_PATH = str(DATA_DIR / "skillcorner_boundary_tracking.jsonl")
-BOUNDARY_META_PATH = str(DATA_DIR / "skillcorner_boundary_meta.json")
-
-# Original test data for alias and other tests
-SS_RAW_PATH = str(DATA_DIR / "secondspectrum_tracking.jsonl")
-SS_META_PATH = str(DATA_DIR / "secondspectrum_meta.json")
+from tests.config import (
+    DATA_DIR,
+    SC_RAW_BOUNDARY as BOUNDARY_RAW_PATH,
+    SC_META_BOUNDARY as BOUNDARY_META_PATH,
+    SS_RAW_ANON as SS_RAW_PATH,
+    SS_META_ANON as SS_META_PATH,
+)
 
 
 class TestCdfCoordinates:

@@ -1,0 +1,25 @@
+======================================================================
+kloppy-light Benchmark
+======================================================================
+Memory measurement: memory_profiler (accurate)
+Providers: respovision
+Layouts: long, long_ball, wide
+Engines: polars
+
+Data directory: /Users/jbekkers/PycharmProjects/kloppy-light/data
+
+Operation                     Memory         Time          Rows
+----------------------------------------------------------------------
+
+Respovision tracking file: 2283.2 MiB
+
+## Respovision  - long layout
+Eager loading                4961.17 MiB     3.456s     4,498,686
+
+## Respovision  - long_ball layout
+Eager loading                4560.69 MiB     3.451s     4,303,083
+
+## Respovision  - wide layout
+Eager loading                4566.34 MiB     3.164s       195,603
+
+======================================================================

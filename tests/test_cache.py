@@ -24,12 +24,10 @@ from kloppy_light._cache import (
 )
 from kloppy_light import secondspectrum
 import kloppy_light
-
-
-# Test data paths
-DATA_DIR = Path(__file__).parent / "files"
-RAW_DATA_PATH = str(DATA_DIR / "secondspectrum_tracking.jsonl")
-META_DATA_PATH = str(DATA_DIR / "secondspectrum_meta.json")
+from tests.config import (
+    SS_RAW_ANON as RAW_DATA_PATH,
+    SS_META_ANON as META_DATA_PATH,
+)
 
 
 class TestGetDefaultCacheDir:

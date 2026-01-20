@@ -13,7 +13,7 @@ use crate::dataframe::{
     build_metadata_df, build_periods_df, build_player_df, build_team_df,
     build_tracking_df_with_pushdown, Layout,
 };
-use crate::error::KloppyError;
+use crate::error::{validate_not_empty, KloppyError};
 use crate::filter_pushdown::{extract_pushdown_filters, PushdownFilters};
 use crate::models::{
     BallState, Ground, Position, StandardBall, StandardFrame, StandardMetadata, StandardPeriod,
@@ -951,6 +951,10 @@ fn load_tracking(
     PyDataFrame,
     PyDataFrame,
 )> {
+    // Validate inputs are not empty
+    validate_not_empty(ma25_data, "tracking (MA25)")?;
+    validate_not_empty(ma1_data, "metadata (MA1)")?;
+
     let layout_enum = Layout::from_str(layout)?;
     let coordinate_system = CoordinateSystem::from_str(coordinates)?;
     let orientation_enum = Orientation::from_str(orientation)?;

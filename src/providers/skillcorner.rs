@@ -7,7 +7,7 @@ use std::io::{BufRead, BufReader, Cursor};
 
 use crate::coordinates::{transform_from_cdf, CoordinateSystem};
 use crate::dataframe::{build_metadata_df, build_periods_df, build_player_df, build_team_df, build_tracking_df_with_pushdown, Layout};
-use crate::error::KloppyError;
+use crate::error::{categorize_json_error, validate_not_empty, KloppyError};
 use crate::filter_pushdown::{extract_pushdown_filters, PushdownFilters};
 use crate::models::{
     BallState, Ground, Position, StandardBall, StandardFrame, StandardMetadata, StandardPeriod,
@@ -497,45 +497,56 @@ fn parse_tracking_frames_parallel(
 
     let lines: Vec<&str> = content.lines().collect();
 
-    // Process lines in parallel
-    let frames: Vec<Option<StandardFrame>> = lines
+    // Process lines in parallel, returning Result for each line
+    let results: Vec<Result<Option<StandardFrame>, KloppyError>> = lines
         .par_iter()
-        .map(|line| {
+        .enumerate()
+        .map(|(line_idx, line)| {
             // Strip UTF-8 BOM if present
             let line = line.trim_start_matches('\u{feff}');
 
-            let raw: RawFrame = serde_json::from_str(line).ok()?;
+            // Skip empty lines
+            if line.trim().is_empty() {
+                return Ok(None);
+            }
+
+            let raw: RawFrame = serde_json::from_str(line).map_err(|e| {
+                categorize_json_error(e, line_idx + 1, line)
+            })?;
 
             // Skip frames without period (pre-game frames)
-            let period_id = raw.period?;
+            let period_id = match raw.period {
+                Some(p) => p,
+                None => return Ok(None),
+            };
 
             // EARLY PUSHDOWN: Skip frames based on period_id
             if let Some(ref periods) = pushdown.period_ids {
                 if !periods.contains(&(period_id as i32)) {
-                    return None;
+                    return Ok(None);
                 }
             }
 
             // EARLY PUSHDOWN: Skip frames based on frame_id range
             if let Some(min) = pushdown.frame_id_min {
                 if raw.frame < min {
-                    return None;
+                    return Ok(None);
                 }
             }
             if let Some(max) = pushdown.frame_id_max {
                 if raw.frame > max {
-                    return None;
+                    return Ok(None);
                 }
             }
             if let Some(ref ids) = pushdown.frame_ids {
                 if !ids.contains(&raw.frame) {
-                    return None;
+                    return Ok(None);
                 }
             }
 
             // Skip empty frames unless include_empty_frames is true
             if !include_empty_frames && is_frame_empty(&raw) {
-                return None;
+                return Ok(None);
             }
 
             // Determine ball state from possession
@@ -547,13 +558,13 @@ fn parse_tracking_frames_parallel(
 
             // Skip dead ball frames if only_alive is true
             if only_alive && ball_state == BallState::Dead {
-                return None;
+                return Ok(None);
             }
 
             // EARLY PUSHDOWN: Skip frames based on ball_state
             if let Some(ref state) = pushdown.ball_state {
                 if ball_state.as_str() != state {
-                    return None;
+                    return Ok(None);
                 }
             }
 
@@ -569,20 +580,20 @@ fn parse_tracking_frames_parallel(
             // EARLY PUSHDOWN: Skip frames based on ball_owning_team_id
             if let Some(is_null) = pushdown.ball_owning_team_is_null {
                 if is_null && ball_owning_team_id.is_some() {
-                    return None;
+                    return Ok(None);
                 }
                 if !is_null && ball_owning_team_id.is_none() {
-                    return None;
+                    return Ok(None);
                 }
             }
             if let Some(ref teams) = pushdown.ball_owning_team_ids {
                 match &ball_owning_team_id {
                     Some(team) => {
                         if !teams.contains(team) {
-                            return None;
+                            return Ok(None);
                         }
                     }
-                    None => return None,
+                    None => return Ok(None),
                 }
             }
 
@@ -597,32 +608,32 @@ fn parse_tracking_frames_parallel(
             // EARLY PUSHDOWN: Skip frames based on ball position
             if let Some(min) = pushdown.ball_x_min {
                 if ball.x < min {
-                    return None;
+                    return Ok(None);
                 }
             }
             if let Some(max) = pushdown.ball_x_max {
                 if ball.x > max {
-                    return None;
+                    return Ok(None);
                 }
             }
             if let Some(min) = pushdown.ball_y_min {
                 if ball.y < min {
-                    return None;
+                    return Ok(None);
                 }
             }
             if let Some(max) = pushdown.ball_y_max {
                 if ball.y > max {
-                    return None;
+                    return Ok(None);
                 }
             }
             if let Some(min) = pushdown.ball_z_min {
                 if ball.z < min {
-                    return None;
+                    return Ok(None);
                 }
             }
             if let Some(max) = pushdown.ball_z_max {
                 if ball.z > max {
-                    return None;
+                    return Ok(None);
                 }
             }
 
@@ -652,7 +663,7 @@ fn parse_tracking_frames_parallel(
                 .map(|t| parse_timestamp_ms(t))
                 .unwrap_or(0);
 
-            Some(StandardFrame {
+            Ok(Some(StandardFrame {
                 frame_id: raw.frame,
                 period_id,
                 timestamp_ms,
@@ -660,12 +671,19 @@ fn parse_tracking_frames_parallel(
                 ball_owning_team_id,
                 ball,
                 players,
-            })
+            }))
         })
         .collect();
 
-    // Filter out None values and collect
-    let mut frames: Vec<StandardFrame> = frames.into_iter().flatten().collect();
+    // Check for any errors and return the first one found
+    let mut frames = Vec::with_capacity(results.len());
+    for result in results {
+        match result {
+            Ok(Some(frame)) => frames.push(frame),
+            Ok(None) => {} // Filtered out, skip
+            Err(e) => return Err(e),
+        }
+    }
 
     // Normalize timestamps per period (subtract first timestamp of each period)
     normalize_timestamps_per_period(&mut frames);
@@ -747,6 +765,10 @@ fn load_tracking(
     predicate: Option<PyExpr>,
     parallel: bool,
 ) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
+    // Validate inputs are not empty
+    validate_not_empty(raw_data, "tracking")?;
+    validate_not_empty(meta_data, "metadata")?;
+
     let coordinate_system = CoordinateSystem::from_str(coordinates)?;
     let layout_enum = Layout::from_str(layout)?;
     let orientation_enum = Orientation::from_str(orientation)?;

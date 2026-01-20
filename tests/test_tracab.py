@@ -2,21 +2,18 @@
 
 import pytest
 import polars as pl
-from pathlib import Path
 import datetime
 
 from kloppy_light import tracab
-
-
-# Test data paths
-DATA_DIR = Path(__file__).parent / "files"
-META_XML_PATH = str(DATA_DIR / "tracab_meta.xml")
-META_JSON_PATH = str(DATA_DIR / "tracab_meta.json")
-META_XML_2_PATH = str(DATA_DIR / "tracab_meta_2.xml")
-META_XML_3_PATH = str(DATA_DIR / "tracab_meta_3.xml")
-META_XML_4_PATH = str(DATA_DIR / "tracab_meta_4.xml")
-RAW_DAT_PATH = str(DATA_DIR / "tracab_raw.dat")
-RAW_JSON_PATH = str(DATA_DIR / "tracab_raw.json")
+from tests.config import (
+    TR_META_XML as META_XML_PATH,
+    TR_META_JSON as META_JSON_PATH,
+    TR_META_XML_2 as META_XML_2_PATH,
+    TR_META_XML_3 as META_XML_3_PATH,
+    TR_META_XML_4 as META_XML_4_PATH,
+    TR_RAW_DAT as RAW_DAT_PATH,
+    TR_RAW_JSON as RAW_JSON_PATH,
+)
 
 
 class TestLoadTracking:

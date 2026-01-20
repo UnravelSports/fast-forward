@@ -6,7 +6,7 @@ use std::io::{BufReader, Cursor};
 
 use crate::coordinates::{transform_from_cdf, CoordinateSystem};
 use crate::dataframe::{build_metadata_df, build_periods_df, build_player_df, build_team_df, build_tracking_df_with_pushdown, Layout};
-use crate::error::KloppyError;
+use crate::error::{validate_not_empty, KloppyError};
 use crate::filter_pushdown::{extract_pushdown_filters, PushdownFilters};
 use crate::models::{
     BallState, Ground, Position, StandardBall, StandardFrame, StandardMetadata,
@@ -1654,6 +1654,32 @@ fn load_tracking(
             "player_data must be list of (filename, bytes) tuples",
         ));
     };
+
+    // Validate inputs are not empty
+    validate_not_empty(meta_data, "metadata")?;
+    if ball_bytes_list.is_empty() {
+        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+            "Empty data: ball data list is empty",
+        ));
+    }
+    if player_bytes_list.is_empty() {
+        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+            "Empty data: player data list is empty",
+        ));
+    }
+    // Check that at least some file content is non-empty
+    let has_ball_content = ball_bytes_list.iter().any(|(_, data)| !data.is_empty());
+    if !has_ball_content {
+        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+            "Empty data: all ball data files are empty",
+        ));
+    }
+    let has_player_content = player_bytes_list.iter().any(|(_, data)| !data.is_empty());
+    if !has_player_content {
+        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+            "Empty data: all player data files are empty",
+        ));
+    }
 
     // Parse metadata
     let (game_id, _kickoff_time, pitch_length_final, pitch_width_final) =

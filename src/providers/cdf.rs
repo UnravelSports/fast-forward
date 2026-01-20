@@ -11,7 +11,7 @@ use crate::dataframe::{
     build_metadata_df, build_periods_df, build_player_df, build_team_df,
     build_tracking_df_with_pushdown, Layout,
 };
-use crate::error::KloppyError;
+use crate::error::{categorize_json_error, validate_not_empty, KloppyError};
 use crate::filter_pushdown::{extract_pushdown_filters, PushdownFilters};
 use crate::models::{
     BallState, Ground, Position, StandardBall, StandardFrame, StandardMetadata, StandardPeriod,
@@ -473,43 +473,46 @@ fn parse_tracking_frames_parallel(
 
     let lines: Vec<&str> = content.lines().collect();
 
-    // Process lines in parallel
-    let frames: Vec<Option<StandardFrame>> = lines
+    // Process lines in parallel, returning Result for each line
+    let results: Vec<Result<Option<StandardFrame>, KloppyError>> = lines
         .par_iter()
-        .map(|line| {
+        .enumerate()
+        .map(|(line_idx, line)| {
             // Strip UTF-8 BOM if present
             let line = line.trim_start_matches('\u{feff}');
 
             // Skip empty lines
             if line.trim().is_empty() {
-                return None;
+                return Ok(None);
             }
 
-            let raw: RawTrackingFrame = serde_json::from_str(line).ok()?;
+            let raw: RawTrackingFrame = serde_json::from_str(line).map_err(|e| {
+                categorize_json_error(e, line_idx + 1, line)
+            })?;
 
             let period_id = parse_period(&raw.period);
 
             // EARLY PUSHDOWN: Skip frames based on frame_id
             if let Some(min) = pushdown.frame_id_min {
                 if raw.frame_id < min {
-                    return None;
+                    return Ok(None);
                 }
             }
             if let Some(max) = pushdown.frame_id_max {
                 if raw.frame_id > max {
-                    return None;
+                    return Ok(None);
                 }
             }
             if let Some(ref ids) = pushdown.frame_ids {
                 if !ids.contains(&raw.frame_id) {
-                    return None;
+                    return Ok(None);
                 }
             }
 
             // EARLY PUSHDOWN: Skip frames based on period_id
             if let Some(ref periods) = pushdown.period_ids {
                 if !periods.contains(&(period_id as i32)) {
-                    return None;
+                    return Ok(None);
                 }
             }
 
@@ -518,7 +521,7 @@ fn parse_tracking_frames_parallel(
 
             // Skip dead ball frames if only_alive is true
             if only_alive && !ball_alive {
-                return None;
+                return Ok(None);
             }
 
             let ball_state = if ball_alive {
@@ -583,7 +586,7 @@ fn parse_tracking_frames_parallel(
             let period_start_ms = period_start_timestamps.get(&period_id).copied();
             let timestamp_ms = parse_timestamp_ms(&raw.timestamp, period_start_ms);
 
-            Some(StandardFrame {
+            Ok(Some(StandardFrame {
                 frame_id: raw.frame_id,
                 period_id,
                 timestamp_ms,
@@ -591,12 +594,19 @@ fn parse_tracking_frames_parallel(
                 ball_owning_team_id,
                 ball,
                 players,
-            })
+            }))
         })
         .collect();
 
-    // Filter out None values and collect
-    let mut frames: Vec<StandardFrame> = frames.into_iter().flatten().collect();
+    // Check for any errors and return the first one found
+    let mut frames = Vec::with_capacity(results.len());
+    for result in results {
+        match result {
+            Ok(Some(frame)) => frames.push(frame),
+            Ok(None) => {} // Filtered out, skip
+            Err(e) => return Err(e),
+        }
+    }
 
     // Sort by frame_id to ensure consistent ordering (parallel processing may shuffle)
     frames.sort_by_key(|f| f.frame_id);
@@ -653,6 +663,10 @@ fn load_tracking(
     predicate: Option<PyExpr>,
     parallel: bool,
 ) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
+    // Validate inputs are not empty
+    validate_not_empty(raw_data, "tracking")?;
+    validate_not_empty(meta_data, "metadata")?;
+
     let coordinate_system = CoordinateSystem::from_str(coordinates)?;
     let layout_enum = Layout::from_str(layout)?;
     let orientation_enum = Orientation::from_str(orientation)?;

@@ -11,7 +11,7 @@ use crate::dataframe::{
     build_metadata_df, build_periods_df, build_player_df, build_team_df,
     build_tracking_df_with_pushdown, Layout,
 };
-use crate::error::KloppyError;
+use crate::error::{categorize_json_error, validate_not_empty, KloppyError};
 use crate::filter_pushdown::{extract_pushdown_filters, PushdownFilters};
 use crate::models::{
     BallState, Ground, Position, StandardBall, StandardFrame, StandardMetadata, StandardPeriod,
@@ -104,12 +104,13 @@ struct RawTrackingFrame {
     period: u8,
     period_elapsed_time: f32, // seconds
     #[serde(default)]
-    home_players_smoothed: Vec<RawPlayerData>,
+    home_players_smoothed: Option<Vec<RawPlayerData>>,
     #[serde(default)]
-    away_players_smoothed: Vec<RawPlayerData>,
+    away_players_smoothed: Option<Vec<RawPlayerData>>,
     #[serde(default)]
     balls_smoothed: Option<RawBallData>,
-    #[serde(default)]
+    // Note: JSON uses snake_case for this field even though other fields use camelCase
+    #[serde(default, rename = "game_event")]
     game_event: Option<RawGameEvent>,
     #[serde(flatten)]
     _extra: HashMap<String, serde_json::Value>,
@@ -128,9 +129,9 @@ struct RawPlayerData {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct RawBallData {
-    x: f32,
-    y: f32,
-    z: f32,
+    x: Option<f32>,
+    y: Option<f32>,
+    z: Option<f32>,
     #[serde(flatten)]
     _extra: HashMap<String, serde_json::Value>,
 }
@@ -155,13 +156,30 @@ fn is_ball_alive(game_event: &Option<RawGameEvent>) -> bool {
             None => true,
             Some(event_type) => {
                 // Dead ball events
+                // Note: OTB = Out of Bounds, OUT = Out, END = End of period
                 !matches!(
                     event_type.as_str(),
                     "BALL_OUT" | "PERIOD_END" | "PERIOD_START" | "STOPPAGE"
+                        | "OTB" | "OUT" | "END"
                 )
             }
         },
     }
+}
+
+/// Check if a frame has incomplete data (null ball or null player arrays)
+fn is_frame_incomplete(raw: &RawTrackingFrame) -> bool {
+    // Check if ball coordinates are null
+    let ball_incomplete = match &raw.balls_smoothed {
+        None => true,
+        Some(b) => b.x.is_none() || b.y.is_none() || b.z.is_none(),
+    };
+
+    // Check if either player array is null (not just empty)
+    let players_incomplete =
+        raw.home_players_smoothed.is_none() || raw.away_players_smoothed.is_none();
+
+    ball_incomplete || players_incomplete
 }
 
 // ============================================================================
@@ -347,6 +365,7 @@ fn parse_tracking_frames_parallel(
     away_team_id: &str,
     jersey_to_player_id: &HashMap<String, String>,
     only_alive: bool,
+    include_incomplete_frames: bool,
     pushdown: &PushdownFilters,
     initial_periods: &[StandardPeriod],
 ) -> Result<(Vec<StandardFrame>, Vec<StandardPeriod>), KloppyError> {
@@ -356,43 +375,53 @@ fn parse_tracking_frames_parallel(
     // Read all lines
     let lines: Vec<String> = reader.lines().filter_map(|l| l.ok()).collect();
 
-    // Parse frames in parallel
-    let frames: Vec<Option<StandardFrame>> = lines
+    // Parse frames in parallel, returning Result for each line
+    let results: Vec<Result<Option<StandardFrame>, KloppyError>> = lines
         .par_iter()
-        .map(|line| {
-            let raw: RawTrackingFrame = match serde_json::from_str(line) {
-                Ok(r) => r,
-                Err(_) => return None,
-            };
+        .enumerate()
+        .map(|(line_idx, line)| {
+            // Skip empty lines
+            if line.trim().is_empty() {
+                return Ok(None);
+            }
+
+            let raw: RawTrackingFrame = serde_json::from_str(line).map_err(|e| {
+                categorize_json_error(e, line_idx + 1, line)
+            })?;
+
+            // Skip incomplete frames unless include_incomplete_frames is true
+            if !include_incomplete_frames && is_frame_incomplete(&raw) {
+                return Ok(None);
+            }
 
             // Apply frame_id pushdown filters
             if let Some(min) = pushdown.frame_id_min {
                 if raw.frame_num < min {
-                    return None;
+                    return Ok(None);
                 }
             }
             if let Some(max) = pushdown.frame_id_max {
                 if raw.frame_num > max {
-                    return None;
+                    return Ok(None);
                 }
             }
             if let Some(ref ids) = pushdown.frame_ids {
                 if !ids.contains(&raw.frame_num) {
-                    return None;
+                    return Ok(None);
                 }
             }
 
             // Apply period_id pushdown filters
             if let Some(ref periods) = pushdown.period_ids {
                 if !periods.contains(&(raw.period as i32)) {
-                    return None;
+                    return Ok(None);
                 }
             }
 
             // Determine ball state
             let ball_alive = is_ball_alive(&raw.game_event);
             if only_alive && !ball_alive {
-                return None;
+                return Ok(None);
             }
 
             let ball_state = if ball_alive {
@@ -405,58 +434,68 @@ fn parse_tracking_frames_parallel(
             let has_player_filters = pushdown.has_player_filters();
             let mut players = Vec::with_capacity(24);
 
-            for p in &raw.home_players_smoothed {
-                let key = format!("{}_{}", home_team_id, p.jersey_num);
-                let player_id = jersey_to_player_id
-                    .get(&key)
-                    .cloned()
-                    .unwrap_or_else(|| format!("home_{}", p.jersey_num));
+            if let Some(home_players) = &raw.home_players_smoothed {
+                for p in home_players {
+                    let key = format!("{}_{}", home_team_id, p.jersey_num);
+                    let player_id = jersey_to_player_id
+                        .get(&key)
+                        .cloned()
+                        .unwrap_or_else(|| format!("home_{}", p.jersey_num));
 
-                if has_player_filters && !pushdown.should_include_player(home_team_id, &player_id) {
-                    continue;
+                    if has_player_filters && !pushdown.should_include_player(home_team_id, &player_id) {
+                        continue;
+                    }
+
+                    players.push(StandardPlayerPosition {
+                        team_id: home_team_id.to_string(),
+                        player_id,
+                        x: p.x,
+                        y: p.y,
+                        z: 0.0, // No z coordinate in PFF format
+                        speed: None,
+                    });
                 }
-
-                players.push(StandardPlayerPosition {
-                    team_id: home_team_id.to_string(),
-                    player_id,
-                    x: p.x,
-                    y: p.y,
-                    z: 0.0, // No z coordinate in PFF format
-                    speed: None,
-                });
             }
 
             // Parse away players
-            for p in &raw.away_players_smoothed {
-                let key = format!("{}_{}", away_team_id, p.jersey_num);
-                let player_id = jersey_to_player_id
-                    .get(&key)
-                    .cloned()
-                    .unwrap_or_else(|| format!("away_{}", p.jersey_num));
+            if let Some(away_players) = &raw.away_players_smoothed {
+                for p in away_players {
+                    let key = format!("{}_{}", away_team_id, p.jersey_num);
+                    let player_id = jersey_to_player_id
+                        .get(&key)
+                        .cloned()
+                        .unwrap_or_else(|| format!("away_{}", p.jersey_num));
 
-                if has_player_filters && !pushdown.should_include_player(away_team_id, &player_id) {
-                    continue;
+                    if has_player_filters && !pushdown.should_include_player(away_team_id, &player_id) {
+                        continue;
+                    }
+
+                    players.push(StandardPlayerPosition {
+                        team_id: away_team_id.to_string(),
+                        player_id,
+                        x: p.x,
+                        y: p.y,
+                        z: 0.0,
+                        speed: None,
+                    });
                 }
-
-                players.push(StandardPlayerPosition {
-                    team_id: away_team_id.to_string(),
-                    player_id,
-                    x: p.x,
-                    y: p.y,
-                    z: 0.0,
-                    speed: None,
-                });
             }
 
-            // Parse ball
+            // Parse ball - handle null coordinates gracefully
             let ball = raw
                 .balls_smoothed
                 .as_ref()
-                .map(|b| StandardBall {
-                    x: b.x,
-                    y: b.y,
-                    z: b.z,
-                    speed: None,
+                .and_then(|b| {
+                    // Only create ball if all coordinates are present
+                    match (b.x, b.y, b.z) {
+                        (Some(x), Some(y), Some(z)) => Some(StandardBall {
+                            x,
+                            y,
+                            z,
+                            speed: None,
+                        }),
+                        _ => None, // Null coordinates - use default
+                    }
                 })
                 .unwrap_or(StandardBall {
                     x: 0.0,
@@ -468,7 +507,7 @@ fn parse_tracking_frames_parallel(
             // Convert timestamp from seconds to milliseconds
             let timestamp_ms = (raw.period_elapsed_time * 1000.0) as i64;
 
-            Some(StandardFrame {
+            Ok(Some(StandardFrame {
                 frame_id: raw.frame_num,
                 period_id: raw.period,
                 timestamp_ms,
@@ -476,12 +515,19 @@ fn parse_tracking_frames_parallel(
                 ball_owning_team_id: None, // Could extract from game_event.home_ball if needed
                 ball,
                 players,
-            })
+            }))
         })
         .collect();
 
-    // Filter out None values and collect
-    let mut frames: Vec<StandardFrame> = frames.into_iter().flatten().collect();
+    // Check for any errors and return the first one found
+    let mut frames = Vec::with_capacity(results.len());
+    for result in results {
+        match result {
+            Ok(Some(frame)) => frames.push(frame),
+            Ok(None) => {} // Filtered out, skip
+            Err(e) => return Err(e),
+        }
+    }
 
     // Sort by frame_id to ensure consistent ordering
     frames.sort_by_key(|f| f.frame_id);
@@ -543,7 +589,7 @@ fn resolve_game_id(
 }
 
 #[pyfunction]
-#[pyo3(signature = (raw_data, meta_data, roster_data, layout="long", coordinates="gradientsports", orientation="static_home_away", only_alive=true, include_game_id=None, predicate=None))]
+#[pyo3(signature = (raw_data, meta_data, roster_data, layout="long", coordinates="gradientsports", orientation="static_home_away", only_alive=true, include_incomplete_frames=false, include_game_id=None, predicate=None))]
 #[allow(clippy::too_many_arguments)]
 fn load_tracking(
     py: Python<'_>,
@@ -554,6 +600,7 @@ fn load_tracking(
     coordinates: &str,
     orientation: &str,
     only_alive: bool,
+    include_incomplete_frames: bool,
     include_game_id: Option<Bound<'_, PyAny>>,
     predicate: Option<PyExpr>,
 ) -> PyResult<(
@@ -563,6 +610,11 @@ fn load_tracking(
     PyDataFrame,
     PyDataFrame,
 )> {
+    // Validate inputs are not empty
+    validate_not_empty(raw_data, "tracking")?;
+    validate_not_empty(meta_data, "metadata")?;
+    validate_not_empty(roster_data, "roster")?;
+
     let layout_enum = Layout::from_str(layout)?;
     let coordinate_system = CoordinateSystem::from_str(coordinates)?;
     let orientation_enum = Orientation::from_str(orientation)?;
@@ -588,6 +640,7 @@ fn load_tracking(
         &away_team_id,
         &jersey_to_player_id,
         only_alive,
+        include_incomplete_frames,
         &pushdown,
         &initial_periods,
     )

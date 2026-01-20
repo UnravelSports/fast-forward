@@ -1,19 +1,13 @@
 """Tests for Signality provider."""
 import pytest
-from pathlib import Path
 import polars as pl
 
 from kloppy_light import signality
-
-
-# Test file paths
-BASE_DIR = Path(__file__).parent / "files"
-META_DATA = str(BASE_DIR / "signality_meta_data.json")
-VENUE_INFO = str(BASE_DIR / "signality_venue_information.json")
-RAW_DATA_FEEDS = [
-    str(BASE_DIR / "signality_p1_raw_data_subset.json"),
-    str(BASE_DIR / "signality_p2_raw_data_subset.json"),
-]
+from tests.config import (
+    SIG_META as META_DATA,
+    SIG_VENUE as VENUE_INFO,
+    SIG_RAW_FILES as RAW_DATA_FEEDS,
+)
 
 
 class TestSignalityBasic:

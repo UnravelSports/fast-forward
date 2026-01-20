@@ -2,16 +2,13 @@
 
 import pytest
 import polars as pl
-from pathlib import Path
 
 from kloppy_light import sportec
-
-
-# Test data paths
-DATA_DIR = Path(__file__).parent / "files"
-META_DATA_PATH = str(DATA_DIR / "sportec_meta.xml")
-RAW_DATA_PATH = str(DATA_DIR / "sportec_positional.xml")
-RAW_DATA_W_REF_PATH = str(DATA_DIR / "sportec_positional_w_referee.xml")
+from tests.config import (
+    SP_META as META_DATA_PATH,
+    SP_RAW as RAW_DATA_PATH,
+    SP_RAW_W_REF as RAW_DATA_W_REF_PATH,
+)
 
 
 class TestLoadTracking:

@@ -1,11 +1,15 @@
 # kloppy-light Development Guide
 
+## Before Launch
+
+- [ ] Update `GITHUB_ISSUES_URL` in `src/error.rs` to final repository URL
+
 ## What Was Built
 
 - Rust-based Python library for fast tracking data loading
 - Returns `TrackingDataset` object with 5 properties: `.tracking`, `.metadata`, `.teams`, `.players`, `.periods`
 - Supports 3 layouts: `long`, `long_ball`, `wide`
-- Providers implemented: SecondSpectrum, SkillCorner, Sportec, Tracab, HawkEye, CDF, GradientSports, Signality, StatsPerform
+- Providers implemented: SecondSpectrum, SkillCorner, Sportec, Tracab, HawkEye, CDF, GradientSports, Signality, StatsPerform, Respovision
 - True lazy loading with `pl.LazyFrame` (full Polars API)
 - Caching support for faster subsequent loads
 - PySpark engine support for distributed processing
@@ -13,7 +17,7 @@
 ## API
 
 ```python
-from kloppy_light import secondspectrum, skillcorner, sportec, tracab, hawkeye, cdf, gradientsports, signality, statsperform
+from kloppy_light import secondspectrum, skillcorner, sportec, tracab, hawkeye, cdf, gradientsports, signality, statsperform, respovision
 
 # SecondSpectrum
 dataset = secondspectrum.load_tracking(
@@ -126,6 +130,21 @@ dataset = statsperform.load_tracking(
     include_game_id=False,
     include_officials=False,  # Add referees to tracking data
     lazy=False,
+)
+
+# Respovision (single JSONL file with embedded metadata)
+dataset = respovision.load_tracking(
+    raw_data="20240714-HomeTeam-AwayTeam-tracking.jsonl",  # Filename pattern used for metadata
+    pitch_length=105.0,       # Pitch dimensions for coordinate transform
+    pitch_width=68.0,
+    layout="long",
+    coordinates="cdf",        # "cdf" or "respovision" (native)
+    orientation="static_home_away",
+    only_alive=True,
+    include_game_id=True,     # Auto-generates from filename: YYYYMMDD-xxx-xxx
+    include_joint_angles=True,  # head_angle, shoulders_angle, hips_angle columns
+    include_officials=False,  # Add referees to tracking data
+    # NOTE: lazy=True not supported (metadata embedded in tracking file)
 )
 ```
 
@@ -310,7 +329,8 @@ tests/
     ├── signality_venue_information.json
     ├── signality_p*_raw_data_subset.json
     ├── statsperform_tracking_ma1.json   # or .xml
-    └── statsperform_tracking_ma25.txt
+    ├── statsperform_tracking_ma25.txt
+    └── respovision_tracking.jsonl       # Single file with embedded metadata
 ```
 
 ## Provider Implementation Checklist
@@ -453,6 +473,7 @@ Standardized position codes across all providers:
 | CDF            | ❌ No                   | `parallel=true` default internally         |
 | GradientSports | ❌ No                   | Always parallel (rayon internally)         |
 | StatsPerform   | ❌ No                   | Always parallel (rayon internally)         |
+| Respovision    | ❌ No                   | Always parallel (rayon internally)         |
 
 ## Build Commands
 

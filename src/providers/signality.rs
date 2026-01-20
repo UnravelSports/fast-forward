@@ -8,7 +8,7 @@ use crate::dataframe::{
     build_metadata_df, build_periods_df, build_player_df, build_team_df,
     build_tracking_df_with_pushdown, Layout,
 };
-use crate::error::KloppyError;
+use crate::error::{validate_not_empty, KloppyError};
 use crate::filter_pushdown::{extract_pushdown_filters, PushdownFilters};
 use crate::models::{
     BallState, Ground, Position, StandardBall, StandardFrame, StandardMetadata, StandardPeriod,
@@ -877,6 +877,22 @@ fn load_tracking(
                 "raw_data_feeds must be list of (filename, bytes) tuples",
             ));
         };
+
+    // Validate inputs are not empty
+    validate_not_empty(meta_data, "metadata")?;
+    validate_not_empty(venue_information, "venue information")?;
+    if raw_data_list.is_empty() {
+        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+            "Empty data: raw_data_feeds list is empty",
+        ));
+    }
+    // Check that at least some file content is non-empty
+    let has_raw_content = raw_data_list.iter().any(|(_, data)| !data.is_empty());
+    if !has_raw_content {
+        return Err(PyErr::new::<pyo3::exceptions::PyValueError, _>(
+            "Empty data: all raw data files are empty",
+        ));
+    }
 
     // Parse metadata and venue
     let sig_metadata = parse_metadata(meta_data)

@@ -2,15 +2,12 @@
 
 import pytest
 import polars as pl
-from pathlib import Path
 
 from kloppy_light import cdf
-
-
-# Test data paths
-DATA_DIR = Path(__file__).parent / "files"
-RAW_DATA_PATH = str(DATA_DIR / "cdf_tracking.jsonl")
-META_DATA_PATH = str(DATA_DIR / "cdf_metadata.json")
+from tests.config import (
+    CDF_RAW as RAW_DATA_PATH,
+    CDF_META as META_DATA_PATH,
+)
 
 
 class TestLoadTracking:

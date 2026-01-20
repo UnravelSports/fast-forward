@@ -2,16 +2,13 @@
 
 import pytest
 import polars as pl
-from pathlib import Path
 
 from kloppy_light import gradientsports
-
-
-# Test data paths
-DATA_DIR = Path(__file__).parent / "files"
-RAW_DATA_PATH = str(DATA_DIR / "pff_10517.jsonl")
-META_DATA_PATH = str(DATA_DIR / "pff_metadata_10517.json")
-ROSTER_DATA_PATH = str(DATA_DIR / "pff_rosters_10517.json")
+from tests.config import (
+    GS_RAW as RAW_DATA_PATH,
+    GS_META as META_DATA_PATH,
+    GS_ROSTER as ROSTER_DATA_PATH,
+)
 
 
 class TestLoadTracking:
@@ -258,13 +255,27 @@ class TestTrackingDataFrameLong:
 
     @pytest.fixture
     def dataset(self):
-        """Load tracking data with long layout."""
+        """Load tracking data with long layout (complete frames only)."""
         return gradientsports.load_tracking(
             RAW_DATA_PATH,
             META_DATA_PATH,
             ROSTER_DATA_PATH,
             layout="long",
             only_alive=False,
+            include_incomplete_frames=False,
+            lazy=False,
+        )
+
+    @pytest.fixture
+    def dataset_all_frames(self):
+        """Load tracking data with all frames including incomplete."""
+        return gradientsports.load_tracking(
+            RAW_DATA_PATH,
+            META_DATA_PATH,
+            ROSTER_DATA_PATH,
+            layout="long",
+            only_alive=False,
+            include_incomplete_frames=True,
             lazy=False,
         )
 
@@ -290,10 +301,11 @@ class TestTrackingDataFrameLong:
         }
         assert set(tracking_df.columns) == expected_columns
 
-    def test_has_ball_rows(self, tracking_df):
+    def test_has_ball_rows(self, dataset_all_frames):
         """Test that long format includes ball as separate rows."""
+        tracking_df = dataset_all_frames.tracking
         ball_rows = tracking_df.filter(pl.col("team_id") == "ball")
-        assert ball_rows.height > 0
+        assert ball_rows.height == 200
 
         # Check ball rows have player_id = "ball"
         assert all(pid == "ball" for pid in ball_rows["player_id"].to_list())
@@ -302,18 +314,20 @@ class TestTrackingDataFrameLong:
         """Test that timestamp is Duration type."""
         assert tracking_df.schema["timestamp"] == pl.Duration("ms")
 
-    def test_has_four_periods(self, tracking_df):
+    def test_has_four_periods(self, dataset_all_frames):
         """Test that data includes 4 periods (World Cup Final - extra time)."""
+        tracking_df = dataset_all_frames.tracking
         periods = tracking_df["period_id"].unique().to_list()
         assert len(periods) == 4
 
-    def test_frame_count(self, tracking_df):
+    def test_frame_count(self, dataset_all_frames):
         """Test total number of frames.
 
-        The test data has 175 unique frames across 4 periods.
+        The test data has 200 unique frames across 4 periods when including incomplete frames.
         """
+        tracking_df = dataset_all_frames.tracking
         unique_frames = tracking_df["frame_id"].n_unique()
-        assert unique_frames == 175
+        assert unique_frames == 200
 
 
 class TestTrackingDataFrameLongBall:
@@ -367,13 +381,14 @@ class TestTrackingDataFrameWide:
 
     @pytest.fixture
     def dataset(self):
-        """Load tracking data with wide layout."""
+        """Load tracking data with wide layout (all frames for column count)."""
         return gradientsports.load_tracking(
             RAW_DATA_PATH,
             META_DATA_PATH,
             ROSTER_DATA_PATH,
             layout="wide",
             only_alive=False,
+            include_incomplete_frames=True,
             lazy=False,
         )
 
@@ -404,7 +419,7 @@ class TestTrackingDataFrameWide:
         y_columns = [c for c in columns if c.endswith("_y") and c != "ball_y"]
         z_columns = [c for c in columns if c.endswith("_z") and c != "ball_z"]
 
-        assert len(x_columns) > 0
+        assert len(x_columns) == 35
         assert len(x_columns) == len(y_columns) == len(z_columns)
 
     def test_one_row_per_frame(self, tracking_df):
@@ -425,7 +440,8 @@ class TestCoordinateSystem:
             coordinates="gradientsports",
             lazy=False,
         )
-        assert dataset.tracking.height > 0
+        # Default include_incomplete_frames=False filters incomplete frames
+        assert dataset.tracking.height == 3380
         assert dataset.metadata["coordinate_system"][0] == "gradientsports"
 
     def test_pff_coordinates_alias(self):
@@ -437,7 +453,7 @@ class TestCoordinateSystem:
             coordinates="pff",
             lazy=False,
         )
-        assert dataset.tracking.height > 0
+        assert dataset.tracking.height == 3380
         assert dataset.metadata["coordinate_system"][0] == "pff"
 
     def test_cdf_coordinates(self):
@@ -449,7 +465,7 @@ class TestCoordinateSystem:
             coordinates="cdf",
             lazy=False,
         )
-        assert dataset.tracking.height > 0
+        assert dataset.tracking.height == 3380
         assert dataset.metadata["coordinate_system"][0] == "cdf"
 
 
@@ -507,11 +523,13 @@ class TestOnlyAliveParameter:
 
     def test_only_alive_filters_dead_frames(self):
         """Test that only_alive=True filters out dead ball frames."""
+        # Using include_incomplete_frames=True to get all frames for comparison
         dataset_all = gradientsports.load_tracking(
             RAW_DATA_PATH,
             META_DATA_PATH,
             ROSTER_DATA_PATH,
             only_alive=False,
+            include_incomplete_frames=True,
             lazy=False,
         )
         dataset_alive = gradientsports.load_tracking(
@@ -519,11 +537,13 @@ class TestOnlyAliveParameter:
             META_DATA_PATH,
             ROSTER_DATA_PATH,
             only_alive=True,
+            include_incomplete_frames=True,
             lazy=False,
         )
 
-        # only_alive should have fewer or equal rows
-        assert dataset_all.tracking.height >= dataset_alive.tracking.height
+        # Exact row counts for test data (with include_incomplete_frames=True)
+        assert dataset_all.tracking.height == 4577
+        assert dataset_alive.tracking.height == 4531
 
     def test_only_alive_no_dead_frames(self):
         """Test that only_alive=True results in no dead ball frames."""
@@ -586,7 +606,8 @@ class TestLazyParameter:
         )
         collected = dataset.tracking.collect()
         assert isinstance(collected, pl.DataFrame)
-        assert collected.height > 0
+        # Default include_incomplete_frames=False filters incomplete frames
+        assert collected.height == 3380
 
 
 class TestIncludeGameId:
@@ -634,13 +655,14 @@ class TestGradientSportsCoordinates:
 
     @pytest.fixture
     def dataset(self):
-        """Load and return the dataset."""
+        """Load and return the dataset with all frames for coordinate tests."""
         return gradientsports.load_tracking(
             RAW_DATA_PATH,
             META_DATA_PATH,
             ROSTER_DATA_PATH,
             coordinates="gradientsports",
             only_alive=False,
+            include_incomplete_frames=True,
             lazy=False,
         )
 
@@ -681,10 +703,10 @@ class TestGradientSportsCoordinates:
         first_frame = tracking_df.filter(
             (pl.col("frame_id") == 4630) & (pl.col("player_id") == "10715")
         )
-        if first_frame.height > 0:
-            row = first_frame.row(0, named=True)
-            assert row["x"] == pytest.approx(4.987, abs=0.01)
-            assert row["y"] == pytest.approx(-1.993, abs=0.01)
+        assert first_frame.height == 1
+        row = first_frame.row(0, named=True)
+        assert row["x"] == pytest.approx(4.987, abs=0.01)
+        assert row["y"] == pytest.approx(-1.993, abs=0.01)
 
 
 class TestPeriodsDataFrame:
@@ -692,9 +714,13 @@ class TestPeriodsDataFrame:
 
     @pytest.fixture
     def dataset(self):
-        """Load and return the dataset."""
+        """Load and return the dataset with all frames for period boundary tests."""
         return gradientsports.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, ROSTER_DATA_PATH, lazy=False
+            RAW_DATA_PATH,
+            META_DATA_PATH,
+            ROSTER_DATA_PATH,
+            include_incomplete_frames=True,
+            lazy=False,
         )
 
     @pytest.fixture
@@ -726,3 +752,102 @@ class TestPeriodsDataFrame:
         period_1 = periods_df.filter(pl.col("period_id") == 1)
         assert period_1["start_frame_id"][0] == 4630
         assert period_1["end_frame_id"][0] == 99119
+
+
+class TestIncludeIncompleteFrames:
+    """Tests for include_incomplete_frames parameter."""
+
+    def test_include_incomplete_frames_false_default(self):
+        """Test that include_incomplete_frames=False (default) filters incomplete frames."""
+        dataset = gradientsports.load_tracking(
+            RAW_DATA_PATH,
+            META_DATA_PATH,
+            ROSTER_DATA_PATH,
+            include_incomplete_frames=False,
+            only_alive=False,
+            lazy=False,
+        )
+        # Should filter out frames with null ball/player data
+        ball_rows = dataset.tracking.filter(pl.col("team_id") == "ball")
+        # ~97.5% of frames have null ball data, so we expect ~5 frames with complete ball data
+        assert ball_rows.height == 148
+        assert ball_rows.height < 200
+
+    def test_include_incomplete_frames_true(self):
+        """Test that include_incomplete_frames=True includes all frames."""
+        dataset = gradientsports.load_tracking(
+            RAW_DATA_PATH,
+            META_DATA_PATH,
+            ROSTER_DATA_PATH,
+            include_incomplete_frames=True,
+            only_alive=False,
+            lazy=False,
+        )
+        # Should include all 200 frames
+        ball_rows = dataset.tracking.filter(pl.col("team_id") == "ball")
+        assert ball_rows.height == 200
+
+    def test_difference_in_frame_count(self):
+        """Test that there's a meaningful difference between the two modes."""
+        dataset_all = gradientsports.load_tracking(
+            RAW_DATA_PATH,
+            META_DATA_PATH,
+            ROSTER_DATA_PATH,
+            include_incomplete_frames=True,
+            only_alive=False,
+            lazy=False,
+        )
+        dataset_complete = gradientsports.load_tracking(
+            RAW_DATA_PATH,
+            META_DATA_PATH,
+            ROSTER_DATA_PATH,
+            include_incomplete_frames=False,
+            only_alive=False,
+            lazy=False,
+        )
+        # Significant difference expected
+        all_frames = dataset_all.tracking["frame_id"].n_unique()
+        complete_frames = dataset_complete.tracking["frame_id"].n_unique()
+        assert all_frames == 200
+        assert complete_frames == 148
+        assert all_frames > complete_frames
+
+    def test_incomplete_frames_have_default_ball(self):
+        """Test that incomplete frames have ball at (0, 0, 0) when included."""
+        dataset = gradientsports.load_tracking(
+            RAW_DATA_PATH,
+            META_DATA_PATH,
+            ROSTER_DATA_PATH,
+            include_incomplete_frames=True,
+            only_alive=False,
+            lazy=False,
+        )
+        ball_rows = dataset.tracking.filter(pl.col("team_id") == "ball")
+
+        # Count frames where ball is at origin (0, 0, 0)
+        origin_ball = ball_rows.filter(
+            (pl.col("x") == 0.0) & (pl.col("y") == 0.0) & (pl.col("z") == 0.0)
+        )
+        # Most frames have null ball data which defaults to (0, 0, 0)
+        assert origin_ball.height > 0
+
+    def test_default_is_false(self):
+        """Test that include_incomplete_frames defaults to False."""
+        dataset_default = gradientsports.load_tracking(
+            RAW_DATA_PATH,
+            META_DATA_PATH,
+            ROSTER_DATA_PATH,
+            only_alive=False,
+            lazy=False,
+        )
+        dataset_explicit = gradientsports.load_tracking(
+            RAW_DATA_PATH,
+            META_DATA_PATH,
+            ROSTER_DATA_PATH,
+            include_incomplete_frames=False,
+            only_alive=False,
+            lazy=False,
+        )
+        # Both should have the same number of rows
+        assert dataset_default.tracking.height == dataset_explicit.tracking.height
+        assert dataset_default.tracking.height == 3403

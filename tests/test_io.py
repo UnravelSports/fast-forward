@@ -9,7 +9,35 @@ import pytest
 import polars as pl
 from pathlib import Path
 
-from kloppy_light import secondspectrum, sportec, skillcorner, FileLike
+from kloppy_light import (
+    secondspectrum,
+    sportec,
+    skillcorner,
+    hawkeye,
+    tracab,
+    signality,
+    statsperform,
+    cdf,
+    gradientsports,
+    respovision,
+    FileLike,
+)
+from tests.config import (
+    DATA_DIR,
+    SS_META_ANON,
+    SC_META,
+    SP_META,
+    HE_META_JSON,
+    HE_BALL_FILES,
+    HE_PLAYER_FILES,
+    TR_META_XML,
+    SIG_META,
+    SIG_VENUE,
+    STP_META_JSON,
+    CDF_META,
+    GS_META,
+    GS_ROSTER,
+)
 
 # Try importing S3 test dependencies
 try:
@@ -21,17 +49,13 @@ except ImportError:
     S3_AVAILABLE = False
 
 
-# Test data paths
-DATA_DIR = Path(__file__).parent / "files"
-
-
 class TestFilePathInputs:
     """Test string and Path object inputs."""
 
     def test_string_path_input(self):
         """Verify string paths work (backward compatibility)."""
-        raw_data = str(DATA_DIR / "secondspectrum_tracking.jsonl")
-        meta_data = str(DATA_DIR / "secondspectrum_meta.json")
+        raw_data = str(DATA_DIR / "secondspectrum_tracking_anon.jsonl")
+        meta_data = str(DATA_DIR / "secondspectrum_meta_anon.json")
 
         dataset = secondspectrum.load_tracking(raw_data, meta_data, lazy=False)
         tracking_df = dataset.tracking
@@ -43,8 +67,8 @@ class TestFilePathInputs:
 
     def test_pathlib_path_input(self):
         """Verify pathlib.Path objects work."""
-        raw_data = DATA_DIR / "secondspectrum_tracking.jsonl"
-        meta_data = DATA_DIR / "secondspectrum_meta.json"
+        raw_data = DATA_DIR / "secondspectrum_tracking_anon.jsonl"
+        meta_data = DATA_DIR / "secondspectrum_meta_anon.json"
 
         dataset = secondspectrum.load_tracking(raw_data, meta_data, lazy=False)
         tracking_df = dataset.tracking
@@ -55,7 +79,7 @@ class TestFilePathInputs:
         assert len(tracking_df) == 4554
 
     @pytest.mark.parametrize("provider_name,raw_file,meta_file,expected_tracking,expected_players", [
-        ("secondspectrum", "secondspectrum_tracking.jsonl", "secondspectrum_meta.json", 4554, 40),
+        ("secondspectrum", "secondspectrum_tracking_anon.jsonl", "secondspectrum_meta_anon.json", 4554, 40),
         ("skillcorner", "skillcorner_tracking.jsonl", "skillcorner_meta.json", 3404, 36),
         ("sportec", "sportec_positional.xml", "sportec_meta.xml", 481, 40),
     ])
@@ -83,8 +107,8 @@ class TestBytesInputs:
 
     def test_bytes_input(self):
         """Load files into bytes and pass to load_tracking."""
-        raw_path = DATA_DIR / "secondspectrum_tracking.jsonl"
-        meta_path = DATA_DIR / "secondspectrum_meta.json"
+        raw_path = DATA_DIR / "secondspectrum_tracking_anon.jsonl"
+        meta_path = DATA_DIR / "secondspectrum_meta_anon.json"
 
         # Read files into bytes
         with open(raw_path, "rb") as f:
@@ -102,7 +126,7 @@ class TestBytesInputs:
         assert len(tracking_df) == 4554
 
     @pytest.mark.parametrize("provider_name,raw_file,meta_file,expected_tracking", [
-        ("secondspectrum", "secondspectrum_tracking.jsonl", "secondspectrum_meta.json", 4554),
+        ("secondspectrum", "secondspectrum_tracking_anon.jsonl", "secondspectrum_meta_anon.json", 4554),
         ("skillcorner", "skillcorner_tracking.jsonl", "skillcorner_meta.json", 3404),
         ("sportec", "sportec_positional.xml", "sportec_meta.xml", 481),
     ])
@@ -129,8 +153,8 @@ class TestBytesInputs:
 
     def test_bytes_produces_same_result_as_paths(self):
         """Verify bytes input produces identical results to path input."""
-        raw_path = DATA_DIR / "secondspectrum_tracking.jsonl"
-        meta_path = DATA_DIR / "secondspectrum_meta.json"
+        raw_path = DATA_DIR / "secondspectrum_tracking_anon.jsonl"
+        meta_path = DATA_DIR / "secondspectrum_meta_anon.json"
 
         # Load with paths
         dataset_paths = secondspectrum.load_tracking(str(raw_path), str(meta_path), lazy=False)
@@ -155,8 +179,8 @@ class TestFileHandleInputs:
 
     def test_file_handle_input(self):
         """Pass open file handles to load_tracking."""
-        raw_path = DATA_DIR / "secondspectrum_tracking.jsonl"
-        meta_path = DATA_DIR / "secondspectrum_meta.json"
+        raw_path = DATA_DIR / "secondspectrum_tracking_anon.jsonl"
+        meta_path = DATA_DIR / "secondspectrum_meta_anon.json"
 
         # Open files and pass handles
         with open(raw_path, "rb") as raw_handle, open(meta_path, "rb") as meta_handle:
@@ -170,8 +194,8 @@ class TestFileHandleInputs:
 
     def test_file_handle_with_context_manager(self):
         """Use with statement for file handles."""
-        raw_path = DATA_DIR / "secondspectrum_tracking.jsonl"
-        meta_path = DATA_DIR / "secondspectrum_meta.json"
+        raw_path = DATA_DIR / "secondspectrum_tracking_anon.jsonl"
+        meta_path = DATA_DIR / "secondspectrum_meta_anon.json"
 
         with open(raw_path, "rb") as raw, open(meta_path, "rb") as meta:
             dataset = secondspectrum.load_tracking(raw, meta, lazy=False)
@@ -185,7 +209,7 @@ class TestFileHandleInputs:
         assert len(team_df) == 2
 
     @pytest.mark.parametrize("provider_name,raw_file,meta_file,expected_tracking", [
-        ("secondspectrum", "secondspectrum_tracking.jsonl", "secondspectrum_meta.json", 4554),
+        ("secondspectrum", "secondspectrum_tracking_anon.jsonl", "secondspectrum_meta_anon.json", 4554),
         ("skillcorner", "skillcorner_tracking.jsonl", "skillcorner_meta.json", 3404),
         ("sportec", "sportec_positional.xml", "sportec_meta.xml", 481),
     ])
@@ -208,8 +232,8 @@ class TestLazyLoadingWithFileLike:
 
     def test_lazy_with_string_paths(self):
         """Lazy loading with string paths."""
-        raw_data = str(DATA_DIR / "secondspectrum_tracking.jsonl")
-        meta_data = str(DATA_DIR / "secondspectrum_meta.json")
+        raw_data = str(DATA_DIR / "secondspectrum_tracking_anon.jsonl")
+        meta_data = str(DATA_DIR / "secondspectrum_meta_anon.json")
 
         dataset = secondspectrum.load_tracking(
             raw_data, meta_data, lazy=True
@@ -222,8 +246,8 @@ class TestLazyLoadingWithFileLike:
 
     def test_lazy_with_path_objects(self):
         """Lazy loading with Path objects."""
-        raw_data = DATA_DIR / "secondspectrum_tracking.jsonl"
-        meta_data = DATA_DIR / "secondspectrum_meta.json"
+        raw_data = DATA_DIR / "secondspectrum_tracking_anon.jsonl"
+        meta_data = DATA_DIR / "secondspectrum_meta_anon.json"
 
         dataset = secondspectrum.load_tracking(
             raw_data, meta_data, lazy=True
@@ -235,8 +259,8 @@ class TestLazyLoadingWithFileLike:
 
     def test_lazy_with_bytes(self):
         """Lazy loading with bytes (note: bytes are read twice - once for metadata, once at collect)."""
-        raw_path = DATA_DIR / "secondspectrum_tracking.jsonl"
-        meta_path = DATA_DIR / "secondspectrum_meta.json"
+        raw_path = DATA_DIR / "secondspectrum_tracking_anon.jsonl"
+        meta_path = DATA_DIR / "secondspectrum_meta_anon.json"
 
         with open(raw_path, "rb") as f:
             raw_bytes = f.read()
@@ -253,8 +277,8 @@ class TestLazyLoadingWithFileLike:
 
     def test_lazy_collect_produces_same_result(self):
         """Verify lazy and eager loading produce same data."""
-        raw_data = str(DATA_DIR / "secondspectrum_tracking.jsonl")
-        meta_data = str(DATA_DIR / "secondspectrum_meta.json")
+        raw_data = str(DATA_DIR / "secondspectrum_tracking_anon.jsonl")
+        meta_data = str(DATA_DIR / "secondspectrum_meta_anon.json")
 
         # Eager loading
         dataset = secondspectrum.load_tracking(
@@ -288,8 +312,18 @@ class TestFileLikeTypeExport:
 
 
 class TestErrorHandling:
-    """Test error conditions."""
+    """Test error conditions for all providers.
 
+    Tests verify that providers raise proper errors for:
+    - Missing files
+    - Empty data
+    - Invalid/malformed data
+    - Corrupted tracking data with valid metadata
+    """
+
+    # =========================================================================
+    # Missing File Tests
+    # =========================================================================
     def test_missing_file_error_string_path(self):
         """Verify proper error when file doesn't exist (string path)."""
         with pytest.raises(Exception):  # Could be FileNotFoundError or InputNotFoundError
@@ -306,6 +340,211 @@ class TestErrorHandling:
                 Path("nonexistent_meta.json")
             )
 
+    # =========================================================================
+    # SecondSpectrum Error Tests
+    # =========================================================================
+    def test_secondspectrum_empty_bytes(self):
+        """SecondSpectrum should raise error for empty tracking data."""
+        with pytest.raises(Exception, match="(?i)empty"):
+            secondspectrum.load_tracking(b"", b"{}")
+
+    def test_secondspectrum_invalid_bytes(self):
+        """SecondSpectrum should raise error for invalid JSON."""
+        with pytest.raises(Exception):
+            secondspectrum.load_tracking(b"not valid json", b"not valid json")
+
+    def test_secondspectrum_corrupted_tracking(self):
+        """SecondSpectrum should raise error for corrupted tracking with valid meta."""
+        with open(SS_META_ANON, "rb") as f:
+            valid_meta = f.read()
+        with pytest.raises(Exception):
+            secondspectrum.load_tracking(b'{"bad": "json', valid_meta)
+
+    # =========================================================================
+    # SkillCorner Error Tests
+    # =========================================================================
+    def test_skillcorner_empty_bytes(self):
+        """SkillCorner should raise error for empty tracking data."""
+        with pytest.raises(Exception, match="(?i)empty"):
+            skillcorner.load_tracking(b"", b"{}")
+
+    def test_skillcorner_invalid_bytes(self):
+        """SkillCorner should raise error for invalid JSON."""
+        with pytest.raises(Exception):
+            skillcorner.load_tracking(b"not valid", b"not valid")
+
+    def test_skillcorner_corrupted_tracking(self):
+        """SkillCorner should raise error for corrupted tracking with valid meta."""
+        with open(SC_META, "rb") as f:
+            valid_meta = f.read()
+        with pytest.raises(Exception):
+            skillcorner.load_tracking(b'{"bad": "json', valid_meta)
+
+    # =========================================================================
+    # Sportec Error Tests
+    # =========================================================================
+    def test_sportec_empty_bytes(self):
+        """Sportec should raise error for empty tracking data."""
+        with pytest.raises(Exception, match="(?i)empty"):
+            sportec.load_tracking(b"", b"<MatchDay/>")
+
+    def test_sportec_invalid_bytes(self):
+        """Sportec should raise error for invalid XML."""
+        with pytest.raises(Exception):
+            sportec.load_tracking(b"not valid xml", b"not valid xml")
+
+    def test_sportec_corrupted_tracking(self):
+        """Sportec should raise error for corrupted tracking with valid meta."""
+        with open(SP_META, "rb") as f:
+            valid_meta = f.read()
+        with pytest.raises(Exception):
+            sportec.load_tracking(b"<invalid>xml", valid_meta)
+
+    # =========================================================================
+    # HawkEye Error Tests
+    # =========================================================================
+    def test_hawkeye_empty_bytes(self):
+        """HawkEye should raise error for empty tracking data."""
+        with pytest.raises(Exception, match="(?i)empty"):
+            hawkeye.load_tracking([b""], [b""], b"{}")
+
+    def test_hawkeye_invalid_bytes(self):
+        """HawkEye should raise error for invalid data."""
+        with pytest.raises(Exception):
+            hawkeye.load_tracking([b"invalid"], [b"invalid"], b"invalid")
+
+    def test_hawkeye_corrupted_tracking(self):
+        """HawkEye should raise error for corrupted tracking with valid meta."""
+        with open(HE_META_JSON, "rb") as f:
+            valid_meta = f.read()
+        with pytest.raises(Exception):
+            hawkeye.load_tracking([b"corrupt"], [b"corrupt"], valid_meta)
+
+    # =========================================================================
+    # Tracab Error Tests
+    # =========================================================================
+    def test_tracab_empty_bytes(self):
+        """Tracab should raise error for empty tracking data."""
+        with pytest.raises(Exception, match="(?i)empty"):
+            tracab.load_tracking(b"", b"<MatchMetaData/>")
+
+    def test_tracab_invalid_bytes(self):
+        """Tracab should raise error for invalid data."""
+        with pytest.raises(Exception):
+            tracab.load_tracking(b"not valid", b"not valid")
+
+    def test_tracab_corrupted_tracking(self):
+        """Tracab should raise error for corrupted tracking with valid meta."""
+        with open(TR_META_XML, "rb") as f:
+            valid_meta = f.read()
+        with pytest.raises(Exception):
+            tracab.load_tracking(b"corrupt:data:here", valid_meta)
+
+    # =========================================================================
+    # Signality Error Tests
+    # =========================================================================
+    def test_signality_empty_bytes(self):
+        """Signality should raise error for empty tracking data."""
+        with pytest.raises(Exception, match="(?i)empty"):
+            signality.load_tracking(meta_data=b"{}", raw_data_feeds=[b""], venue_information=b"{}")
+
+    def test_signality_invalid_bytes(self):
+        """Signality should raise error for invalid JSON."""
+        with pytest.raises(Exception):
+            signality.load_tracking([b"invalid"], b"invalid", b"invalid")
+
+    def test_signality_corrupted_tracking(self):
+        """Signality should raise error for corrupted tracking with valid meta."""
+        with open(SIG_META, "rb") as f:
+            valid_meta = f.read()
+        with open(SIG_VENUE, "rb") as f:
+            valid_venue = f.read()
+        with pytest.raises(Exception):
+            signality.load_tracking([b'{"bad": '], valid_meta, valid_venue)
+
+    # =========================================================================
+    # StatsPerform Error Tests
+    # =========================================================================
+    def test_statsperform_empty_bytes(self):
+        """StatsPerform should raise error for empty tracking data."""
+        with pytest.raises(Exception, match="(?i)empty"):
+            statsperform.load_tracking(b"", b"{}")
+
+    def test_statsperform_invalid_bytes(self):
+        """StatsPerform should raise error for invalid data."""
+        with pytest.raises(Exception):
+            statsperform.load_tracking(b"not valid", b"not valid")
+
+    def test_statsperform_corrupted_tracking(self):
+        """StatsPerform should raise error for corrupted tracking with valid meta."""
+        with open(STP_META_JSON, "rb") as f:
+            valid_meta = f.read()
+        with pytest.raises(Exception):
+            statsperform.load_tracking(b"corrupt;data", valid_meta)
+
+    # =========================================================================
+    # CDF Error Tests
+    # =========================================================================
+    def test_cdf_empty_bytes(self):
+        """CDF should raise error for empty tracking data."""
+        with pytest.raises(Exception, match="(?i)empty"):
+            cdf.load_tracking(b"", b"{}")
+
+    def test_cdf_invalid_bytes(self):
+        """CDF should raise error for invalid JSON."""
+        with pytest.raises(Exception):
+            cdf.load_tracking(b"not valid json", b"not valid json")
+
+    def test_cdf_corrupted_tracking(self):
+        """CDF should raise error for corrupted tracking with valid meta."""
+        with open(CDF_META, "rb") as f:
+            valid_meta = f.read()
+        with pytest.raises(Exception):
+            cdf.load_tracking(b'{"bad": "json', valid_meta)
+
+    # =========================================================================
+    # GradientSports Error Tests
+    # =========================================================================
+    def test_gradientsports_empty_bytes(self):
+        """GradientSports should raise error for empty tracking data."""
+        with pytest.raises(Exception, match="(?i)empty"):
+            gradientsports.load_tracking(b"", b"{}", b"[]")
+
+    def test_gradientsports_invalid_bytes(self):
+        """GradientSports should raise error for invalid JSON."""
+        with pytest.raises(Exception):
+            gradientsports.load_tracking(b"not valid", b"not valid", b"not valid")
+
+    def test_gradientsports_corrupted_tracking(self):
+        """GradientSports should raise error for corrupted tracking with valid meta."""
+        with open(GS_META, "rb") as f:
+            valid_meta = f.read()
+        with open(GS_ROSTER, "rb") as f:
+            valid_roster = f.read()
+        with pytest.raises(Exception):
+            gradientsports.load_tracking(b'{"bad": "json', valid_meta, valid_roster)
+
+    # =========================================================================
+    # Respovision Error Tests
+    # =========================================================================
+    def test_respovision_empty_bytes(self):
+        """Respovision should raise error for empty tracking data."""
+        with pytest.raises(Exception, match="(?i)empty"):
+            respovision.load_tracking(b"")
+
+    def test_respovision_invalid_bytes(self):
+        """Respovision should raise error for invalid JSON."""
+        with pytest.raises(Exception):
+            respovision.load_tracking(b"not valid json")
+
+    def test_respovision_corrupted_tracking(self):
+        """Respovision should raise error for corrupted tracking data."""
+        with pytest.raises(Exception):
+            respovision.load_tracking(b'{"bad": "json')
+
+    # =========================================================================
+    # Legacy Tests (kept for backwards compatibility)
+    # =========================================================================
     def test_invalid_bytes_error(self):
         """Verify proper error with invalid data."""
         invalid_bytes = b"this is not valid JSON"
@@ -328,8 +567,8 @@ class TestInputTypeConsistency:
     def ss_files(self):
         """Return paths to SecondSpectrum test files."""
         return {
-            'raw': DATA_DIR / "secondspectrum_tracking.jsonl",
-            'meta': DATA_DIR / "secondspectrum_meta.json"
+            'raw': DATA_DIR / "secondspectrum_tracking_anon.jsonl",
+            'meta': DATA_DIR / "secondspectrum_meta_anon.json"
         }
 
     def test_string_vs_path_consistency(self, ss_files):
@@ -432,17 +671,17 @@ class TestS3Adapter:
 
         # 4. Upload test files to mock S3
         # Upload SecondSpectrum test files
-        ss_raw = DATA_DIR / "secondspectrum_tracking.jsonl"
-        ss_meta = DATA_DIR / "secondspectrum_meta.json"
+        ss_raw = DATA_DIR / "secondspectrum_tracking_anon.jsonl"
+        ss_meta = DATA_DIR / "secondspectrum_meta_anon.json"
 
         client.put_object(
             Bucket=self.bucket,
-            Key="secondspectrum_tracking.jsonl",
+            Key="secondspectrum_tracking_anon.jsonl",
             Body=ss_raw.read_bytes(),
         )
         client.put_object(
             Bucket=self.bucket,
-            Key="secondspectrum_meta.json",
+            Key="secondspectrum_meta_anon.json",
             Body=ss_meta.read_bytes(),
         )
 
@@ -463,8 +702,8 @@ class TestS3Adapter:
 
     def test_load_from_s3_paths(self):
         """Test loading tracking data from S3 paths."""
-        raw_s3_path = f"s3://{self.bucket}/secondspectrum_tracking.jsonl"
-        meta_s3_path = f"s3://{self.bucket}/secondspectrum_meta.json"
+        raw_s3_path = f"s3://{self.bucket}/secondspectrum_tracking_anon.jsonl"
+        meta_s3_path = f"s3://{self.bucket}/secondspectrum_meta_anon.json"
 
         dataset = secondspectrum.load_tracking(raw_s3_path, meta_s3_path, lazy=False)
         tracking_df = dataset.tracking
@@ -478,8 +717,8 @@ class TestS3Adapter:
 
     def test_lazy_load_from_s3(self):
         """Test lazy loading from S3 paths."""
-        raw_s3_path = f"s3://{self.bucket}/secondspectrum_tracking.jsonl"
-        meta_s3_path = f"s3://{self.bucket}/secondspectrum_meta.json"
+        raw_s3_path = f"s3://{self.bucket}/secondspectrum_tracking_anon.jsonl"
+        meta_s3_path = f"s3://{self.bucket}/secondspectrum_meta_anon.json"
 
         dataset = secondspectrum.load_tracking(
             raw_s3_path, meta_s3_path, lazy=True

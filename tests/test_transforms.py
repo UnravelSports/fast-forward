@@ -2,31 +2,29 @@
 
 import pytest
 import polars as pl
-from pathlib import Path
 
 from kloppy_light import secondspectrum, skillcorner
-
-# Test data paths
-DATA_DIR = Path(__file__).parent / "files"
-SS_RAW = str(DATA_DIR / "secondspectrum_tracking.jsonl")
-SS_META = str(DATA_DIR / "secondspectrum_meta.json")
-SC_RAW = str(DATA_DIR / "skillcorner_boundary_tracking.jsonl")
-SC_META = str(DATA_DIR / "skillcorner_boundary_meta.json")
+from tests.config import (
+    SS_RAW_ANON as SS_RAW,
+    SS_META_ANON as SS_META,
+    SC_RAW_BOUNDARY as SC_RAW,
+    SC_META_BOUNDARY as SC_META,
+)
 
 # ============================================================================
 # Hard-coded test data values from secondspectrum test data
 # ============================================================================
 # Pitch dimensions from metadata
-PITCH_LENGTH = 104.85120391845703
-PITCH_WIDTH = 67.97039794921875
-HALF_LENGTH = PITCH_LENGTH / 2  # 52.42560195922852
-HALF_WIDTH = PITCH_WIDTH / 2    # 33.985198974609375
+PITCH_LENGTH = 104.9000015258789
+PITCH_WIDTH = 68.0
+HALF_LENGTH = PITCH_LENGTH / 2  # 52.45000076293945
+HALF_WIDTH = PITCH_WIDTH / 2    # 34.0
 
 # Test row: frame_id=2, player_id="player_1011"
-# Raw JSON: {"playerId": "player_1011", "number": 52, "xyz": [-6.61, -19.1, 0.0], ...}
+# Raw JSON: {"playerId": "player_1011", "number": 52, "xyz": [-6.7, -19.1, 0.0], ...}
 TEST_FRAME_ID = 2
 TEST_PLAYER_ID = "player_1011"
-ORIG_X_CDF = -6.61
+ORIG_X_CDF = -6.7
 ORIG_Y_CDF = -19.1
 
 
@@ -68,8 +66,8 @@ class TestTransformStateProperties:
         assert isinstance(dims, tuple)
         assert len(dims) == 2
         
-        assert dims[0] == pytest.approx(104.85120391)  # pitch_length
-        assert dims[1] == pytest.approx(67.970397)  # pitch_width
+        assert dims[0] == pytest.approx(104.9000015258789)  # pitch_length
+        assert dims[1] == pytest.approx(68.0)  # pitch_width
         
         # Verify matches metadata
         assert dims[0] == pytest.approx(float(dataset.metadata["pitch_length"][0]))
@@ -143,7 +141,7 @@ class TestTransformCoordinates:
     def test_cdf_to_tracab_hard_values(self):
         """CDF to Tracab: multiply by 100.
 
-        Expected: x = -6.61 * 100 = -661.0
+        Expected: x = -6.7 * 100 = -670.0
                   y = -19.1 * 100 = -1910.0
         """
         dataset = secondspectrum.load_tracking(SS_RAW, SS_META, coordinates="cdf", lazy=False)
@@ -151,7 +149,7 @@ class TestTransformCoordinates:
         row = get_test_row(result.tracking)
 
         # Hard-coded expected values
-        expected_x = -661.0
+        expected_x = -670.0
         expected_y = -1910.0
 
         assert result.coordinate_system == "tracab"
@@ -164,8 +162,8 @@ class TestTransformCoordinates:
         Formula: x_opta = ((x_cdf + half_length) / pitch_length) * 100
                  y_opta = ((y_cdf + half_width) / pitch_width) * 100
 
-        Expected: x = ((-6.61 + 52.4256) / 104.8512) * 100 = 43.697
-                  y = ((-19.1 + 33.9852) / 67.9704) * 100 = 21.898
+        Expected: x = ((-6.7 + 52.45) / 104.9) * 100 = 43.613
+                  y = ((-19.1 + 34.0) / 68.0) * 100 = 21.912
         """
         dataset = secondspectrum.load_tracking(SS_RAW, SS_META, coordinates="cdf", lazy=False)
         result = dataset.transform(to_coordinates="opta")
@@ -185,8 +183,8 @@ class TestTransformCoordinates:
         Formula: x_kloppy = (x_cdf + half_length) / pitch_length
                  y_kloppy = (half_width - y_cdf) / pitch_width  # Y inverted
 
-        Expected: x = (-6.61 + 52.4256) / 104.8512 = 0.43697
-                  y = (33.9852 - (-19.1)) / 67.9704 = 0.78102
+        Expected: x = (-6.7 + 52.45) / 104.9 = 0.43613
+                  y = (34.0 - (-19.1)) / 68.0 = 0.78088
         """
         dataset = secondspectrum.load_tracking(SS_RAW, SS_META, coordinates="cdf", lazy=False)
         result = dataset.transform(to_coordinates="kloppy")
@@ -247,7 +245,7 @@ class TestTransformOrientation:
     def test_flip_orientation_hard_values(self):
         """Flipping orientation should negate x and y.
 
-        Expected: x = -(-6.61) = 6.61
+        Expected: x = -(-6.7) = 6.7
                   y = -(-19.1) = 19.1
         """
         dataset = secondspectrum.load_tracking(
@@ -260,7 +258,7 @@ class TestTransformOrientation:
         row = get_test_row(result.tracking)
 
         # Hard-coded expected values (negated)
-        expected_x = 6.61
+        expected_x = 6.7
         expected_y = 19.1
 
         assert result.orientation == "static_away_home"
@@ -316,11 +314,11 @@ class TestTransformDimensions:
     def test_dimension_transform_zone_scale_1(self):
         """Verify zone-based transform for point in scale=1.0 zone.
 
-        Test point: x=-6.61, y=-19.1 on 104.85 x 67.97 pitch → 110.0 x 70.0
+        Test point: x=-6.7, y=-19.1 on 104.9 x 68.0 pitch → 110.0 x 70.0
 
         Zone calculation:
-        - x=-6.61 → x_pos=45.82 → Zone 5 (center circle, scale=1.0)
-        - y=-19.1 → y_pos=14.89 → Zone 1 (penalty to 6-yard, scale=1.0)
+        - x=-6.7 → x_pos=45.75 → Zone 5 (center circle, scale=1.0)
+        - y=-19.1 → y_pos=14.9 → Zone 1 (penalty to 6-yard, scale=1.0)
 
         Since scale=1.0 in both zones, coordinates stay nearly unchanged.
         This verifies the algorithm correctly identifies and handles these zones.
@@ -332,7 +330,7 @@ class TestTransformDimensions:
         # Both x and y fall in zones with scale=1.0
         # Zone boundaries shift with pitch size, but internal scaling is 1.0
         # Expected values stay approximately the same
-        expected_x = -6.61  # Zone 5: center circle (9.15m fixed)
+        expected_x = -6.7  # Zone 5: center circle (9.15m fixed)
         expected_y = -19.1  # Zone 1: penalty area to 6-yard (11m fixed)
 
         assert row["x"][0] == pytest.approx(expected_x, abs=0.1)
@@ -341,7 +339,7 @@ class TestTransformDimensions:
     def test_dimension_transform_zone5_hard_values(self):
         """Verify zone-based transform with hard-coded expected values.
 
-        Test point: player_1011 at x=-6.61, y=-19.1 (frame 2)
+        Test point: player_1011 at x=-6.7, y=-19.1 (frame 2)
         Both x and y fall in zones with scale=1.0, so values stay ~unchanged.
 
         Zone 5 (center circle): scale = 1.0 (9.15m fixed on both pitches)
@@ -352,7 +350,7 @@ class TestTransformDimensions:
         row = get_test_row(result.tracking)
 
         # Hard-coded expected values (scale=1.0 in both zones)
-        expected_x = -6.61
+        expected_x = -6.7
         expected_y = -19.1
 
         assert row["x"][0] == pytest.approx(expected_x, abs=0.01)
@@ -422,8 +420,8 @@ class TestTransformCombined:
     def test_flip_then_tracab_hard_values(self):
         """Flip orientation, then convert to Tracab.
 
-        Step 1: Flip: x = 6.61, y = 19.1
-        Step 2: Tracab (* 100): x = 661.0, y = 1910.0
+        Step 1: Flip: x = 6.7, y = 19.1
+        Step 2: Tracab (* 100): x = 670.0, y = 1910.0
         """
         dataset = secondspectrum.load_tracking(
             SS_RAW, SS_META,
@@ -439,7 +437,7 @@ class TestTransformCombined:
         row = get_test_row(result.tracking)
 
         # Hard-coded expected values
-        expected_x = 661.0
+        expected_x = 670.0
         expected_y = 1910.0
 
         assert result.orientation == "static_away_home"
@@ -450,9 +448,9 @@ class TestTransformCombined:
     def test_flip_then_opta_hard_values(self):
         """Flip orientation, then convert to Opta.
 
-        Step 1: Flip: x = 6.61, y = 19.1
-        Step 2: Opta: x = ((6.61 + 52.4256) / 104.8512) * 100 = 56.303
-                      y = ((19.1 + 33.9852) / 67.9704) * 100 = 78.102
+        Step 1: Flip: x = 6.7, y = 19.1
+        Step 2: Opta: x = ((6.7 + 52.45) / 104.9) * 100 = 56.387
+                      y = ((19.1 + 34.0) / 68.0) * 100 = 78.088
         """
         dataset = secondspectrum.load_tracking(
             SS_RAW, SS_META,
@@ -468,7 +466,7 @@ class TestTransformCombined:
         row = get_test_row(result.tracking)
 
         # Hard-coded expected values
-        flipped_x = 6.61
+        flipped_x = 6.7
         flipped_y = 19.1
         expected_x = ((flipped_x + HALF_LENGTH) / PITCH_LENGTH) * 100  # 56.303
         expected_y = ((flipped_y + HALF_WIDTH) / PITCH_WIDTH) * 100    # 78.102
@@ -549,10 +547,10 @@ class TestTransformCombined:
     def test_all_three_transforms_hard_values(self):
         """Apply flip, dimensions, and coordinate transform with hard-coded values.
 
-        Start: x = -6.61, y = -19.1 (CDF, player_1011 frame 2)
-        Step 1: Flip → x = 6.61, y = 19.1
-        Step 2: Dimensions (scale=1.0 for these zones) → x ≈ 6.61, y ≈ 19.1
-        Step 3: Tracab (* 100) → x = 661.0, y = 1910.0
+        Start: x = -6.7, y = -19.1 (CDF, player_1011 frame 2)
+        Step 1: Flip → x = 6.7, y = 19.1
+        Step 2: Dimensions (scale=1.0 for these zones) → x ≈ 6.7, y ≈ 19.1
+        Step 3: Tracab (* 100) → x = 670.0, y = 1910.0
         """
         dataset = secondspectrum.load_tracking(
             SS_RAW, SS_META,
@@ -569,7 +567,7 @@ class TestTransformCombined:
         row = get_test_row(result.tracking)
 
         # Hard-coded expected values
-        expected_x = 661.0
+        expected_x = 670.0
         expected_y = 1910.0
 
         assert result.orientation == "static_away_home"

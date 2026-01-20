@@ -10,7 +10,7 @@ use std::io::{BufReader, Cursor};
 use crate::coordinates::{transform_from_cdf, CoordinateSystem};
 use crate::dataframe::{build_metadata_df, build_periods_df, build_player_df, build_team_df, build_tracking_df_with_pushdown, Layout};
 use crate::filter_pushdown::{extract_pushdown_filters, PushdownFilters};
-use crate::error::KloppyError;
+use crate::error::{validate_not_empty, KloppyError};
 use crate::models::{
     BallState, Ground, Position, StandardBall, StandardFrame, StandardMetadata, StandardPeriod,
     StandardPlayer, StandardPlayerPosition, StandardTeam,
@@ -346,6 +346,16 @@ fn parse_tracking_frames_parallel(
     only_alive: bool,
     pushdown: &PushdownFilters,
 ) -> Result<(Vec<StandardFrame>, Vec<StandardPeriod>), KloppyError> {
+    // Validate tracking data structure - must contain FrameSet elements
+    let data_str = std::str::from_utf8(tracking_data)
+        .map_err(|e| KloppyError::InvalidInput(format!("Invalid UTF-8 in tracking data: {}", e)))?;
+
+    if !data_str.contains("<FrameSet") {
+        return Err(KloppyError::InvalidInput(
+            "Invalid Sportec tracking data: no FrameSet elements found".to_string()
+        ));
+    }
+
     // Phase 1: Collect FrameSet positions (sequential)
     let frameset_positions = collect_frameset_positions(tracking_data)?;
 
@@ -1084,6 +1094,10 @@ fn load_tracking(
     include_officials: bool,
     predicate: Option<PyExpr>,
 ) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
+    // Validate inputs are not empty
+    validate_not_empty(raw_data, "tracking")?;
+    validate_not_empty(meta_data, "metadata")?;
+
     let coordinate_system = CoordinateSystem::from_str(coordinates)?;
     let layout_enum = Layout::from_str(layout)?;
     let orientation_enum = Orientation::from_str(orientation)?;

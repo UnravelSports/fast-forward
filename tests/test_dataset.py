@@ -2,15 +2,14 @@
 
 import pytest
 import polars as pl
-from pathlib import Path
 
 from kloppy_light import secondspectrum
 from kloppy_light._dataset import TrackingDataset
-
-# Test data paths
-DATA_DIR = Path(__file__).parent / "files"
-RAW_DATA_PATH = str(DATA_DIR / "secondspectrum_tracking.jsonl")
-META_DATA_PATH = str(DATA_DIR / "secondspectrum_meta.json")
+from tests.config import (
+    DATA_DIR,
+    SS_RAW_ANON as RAW_DATA_PATH,
+    SS_META_ANON as META_DATA_PATH,
+)
 
 
 class TestTrackingDatasetStructure:

@@ -60,6 +60,11 @@ fn _kloppy_light(m: &Bound<'_, PyModule>) -> PyResult<()> {
     providers::signality::register_module(&signality)?;
     m.add_submodule(&signality)?;
 
+    // Register respovision submodule
+    let respovision = PyModule::new(m.py(), "respovision")?;
+    providers::respovision::register_module(&respovision)?;
+    m.add_submodule(&respovision)?;
+
     // Register transforms submodule
     let transforms_mod = PyModule::new(m.py(), "transforms")?;
     transforms::register_module(&transforms_mod)?;

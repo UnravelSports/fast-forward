@@ -1,22 +1,14 @@
 """Tests for HawkEye provider."""
 import pytest
-from pathlib import Path
 import polars as pl
+from pathlib import Path
 
 from kloppy_light import hawkeye
-
-
-# Test file paths
-BASE_DIR = Path(__file__).parent / "files"
-BALL_FILES = [
-    str(BASE_DIR / "hawkeye_1_1.football.samples.ball"),
-    str(BASE_DIR / "hawkeye_2_46.football.samples.ball"),
-]
-PLAYER_FILES = [
-    str(BASE_DIR / "hawkeye_1_1.football.samples.centroids"),
-    str(BASE_DIR / "hawkeye_2_46.football.samples.centroids"),
-]
-META_JSON = str(BASE_DIR / "hawkeye_meta.json")
+from tests.config import (
+    HE_BALL_FILES as BALL_FILES,
+    HE_PLAYER_FILES as PLAYER_FILES,
+    HE_META_JSON as META_JSON,
+)
 
 
 class TestHawkEyeBasic:

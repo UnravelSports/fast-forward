@@ -9,7 +9,7 @@ use std::io::{BufRead, BufReader, Cursor};
 
 use crate::coordinates::{transform_from_cdf, CoordinateSystem};
 use crate::dataframe::{build_metadata_df, build_periods_df, build_player_df, build_team_df, build_tracking_df_with_pushdown, Layout};
-use crate::error::KloppyError;
+use crate::error::{categorize_json_error, validate_not_empty, KloppyError};
 use crate::filter_pushdown::{extract_pushdown_filters, PushdownFilters};
 use crate::models::{
     BallState, Ground, Position, StandardBall, StandardFrame, StandardMetadata, StandardPeriod,
@@ -759,42 +759,50 @@ fn parse_tracking_frames_parallel(
 
     let lines: Vec<&str> = content.lines().collect();
 
-    // Process lines in parallel
-    let frames: Vec<Option<StandardFrame>> = lines
+    // Process lines in parallel, returning Result for each line
+    let results: Vec<Result<Option<StandardFrame>, KloppyError>> = lines
         .par_iter()
-        .map(|line| {
+        .enumerate()
+        .map(|(line_idx, line)| {
             // Strip UTF-8 BOM if present
             let line = line.trim_start_matches('\u{feff}');
 
-            let raw: RawTrackingFrame = serde_json::from_str(line).ok()?;
+            // Skip empty lines
+            if line.trim().is_empty() {
+                return Ok(None);
+            }
+
+            let raw: RawTrackingFrame = serde_json::from_str(line).map_err(|e| {
+                categorize_json_error(e, line_idx + 1, line)
+            })?;
 
             // EARLY PUSHDOWN: Skip frames based on frame_id
             if let Some(min) = pushdown.frame_id_min {
                 if raw.frame_idx < min {
-                    return None;
+                    return Ok(None);
                 }
             }
             if let Some(max) = pushdown.frame_id_max {
                 if raw.frame_idx > max {
-                    return None;
+                    return Ok(None);
                 }
             }
             if let Some(ref ids) = pushdown.frame_ids {
                 if !ids.contains(&raw.frame_idx) {
-                    return None;
+                    return Ok(None);
                 }
             }
 
             // EARLY PUSHDOWN: Skip frames based on period_id
             if let Some(ref periods) = pushdown.period_ids {
                 if !periods.contains(&(raw.period as i32)) {
-                    return None;
+                    return Ok(None);
                 }
             }
 
             // Skip dead ball frames if only_alive is true
             if only_alive && !raw.live {
-                return None;
+                return Ok(None);
             }
 
             let ball_state = if raw.live {
@@ -851,7 +859,7 @@ fn parse_tracking_frames_parallel(
             // Convert game_clock (seconds) to milliseconds
             let timestamp_ms = (raw.game_clock * 1000.0) as i64;
 
-            Some(StandardFrame {
+            Ok(Some(StandardFrame {
                 frame_id: raw.frame_idx,
                 period_id: raw.period,
                 timestamp_ms,
@@ -859,12 +867,19 @@ fn parse_tracking_frames_parallel(
                 ball_owning_team_id,
                 ball,
                 players,
-            })
+            }))
         })
         .collect();
 
-    // Filter out None values and collect
-    let frames: Vec<StandardFrame> = frames.into_iter().flatten().collect();
+    // Check for any errors and return the first one found
+    let mut frames = Vec::with_capacity(results.len());
+    for result in results {
+        match result {
+            Ok(Some(frame)) => frames.push(frame),
+            Ok(None) => {} // Filtered out, skip
+            Err(e) => return Err(e),
+        }
+    }
 
     Ok(frames)
 }
@@ -922,6 +937,10 @@ fn load_tracking(
     predicate: Option<PyExpr>,
     parallel: bool,
 ) -> PyResult<(PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame, PyDataFrame)> {
+    // Validate inputs are not empty
+    validate_not_empty(raw_data, "tracking")?;
+    validate_not_empty(meta_data, "metadata")?;
+
     let coordinate_system = CoordinateSystem::from_str(coordinates)?;
     let layout_enum = Layout::from_str(layout)?;
     let orientation_enum = Orientation::from_str(orientation)?;

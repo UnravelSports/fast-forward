@@ -48,6 +48,7 @@ Cache parsed tracking data for faster subsequent loads::
 from kloppy_light._kloppy_light import __version__
 from kloppy_light import cdf
 from kloppy_light import gradientsports
+from kloppy_light import respovision
 from kloppy_light import secondspectrum
 from kloppy_light import signality
 from kloppy_light import skillcorner
@@ -70,6 +71,7 @@ __all__ = [
     "__version__",
     "cdf",
     "gradientsports",
+    "respovision",
     "secondspectrum",
     "signality",
     "skillcorner",
