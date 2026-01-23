@@ -316,12 +316,14 @@ class TestPySparkOnlyAlive:
         dataset_all = secondspectrum.load_tracking(
             RAW_DATA_PATH, META_DATA_PATH,
             only_alive=False,
+            exclude_missing_ball_frames=False,
             engine="pyspark",
             spark_session=spark,
         )
         dataset_alive = secondspectrum.load_tracking(
             RAW_DATA_PATH, META_DATA_PATH,
             only_alive=True,
+            exclude_missing_ball_frames=False,
             engine="pyspark",
             spark_session=spark,
         )

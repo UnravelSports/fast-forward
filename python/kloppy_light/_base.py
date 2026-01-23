@@ -470,7 +470,7 @@ def _register_standard_providers() -> None:
         name="secondspectrum",
         rust_module=_ss,
         metadata_params=[],
-        tracking_params=[],
+        tracking_params=["exclude_missing_ball_frames"],
     )
 
     register_provider(

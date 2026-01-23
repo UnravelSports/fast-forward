@@ -1,0 +1,112 @@
+======================================================================
+kloppy-light Benchmark
+======================================================================
+Memory measurement: memory_profiler (accurate)
+Providers: secondspectrum, skillcorner, sportec, tracab, gradientsports, respovision
+Layouts: long, long_ball, wide
+Engines: polars
+Features: kloppy, no-pushdown, csv=/tmp/full_benchmark.csv
+
+Data directory: /Users/jbekkers/PycharmProjects/kloppy-light/data
+
+Operation                     Memory         Time          Rows
+----------------------------------------------------------------------
+
+Secondspectrum tracking file: 423.4 MiB
+
+## Secondspectrum  - long layout
+Eager loading                1335.58 MiB     2.414s     1,909,069
+Lazy (no collect)               0.12 MiB     0.207s           N/A
+Lazy (with collect)           363.11 MiB     2.069s     1,909,069
+
+## Secondspectrum  - long_ball layout
+Eager loading                 338.22 MiB     2.115s     1,826,066
+Lazy (no collect)               0.00 MiB     0.218s           N/A
+Lazy (with collect)           325.78 MiB     1.981s     1,826,066
+
+## Secondspectrum  - wide layout
+Eager loading                 291.06 MiB     4.141s        83,003
+
+## Secondspectrum (kloppy)
+Load (default)               1762.48 MiB    32.404s        83,003
+Load (native coords)         1396.73 MiB    10.807s        83,003
+
+Skillcorner tracking file: 85.1 MiB
+
+## Skillcorner  - long layout
+Eager loading                 101.39 MiB     0.820s       725,006
+Lazy (no collect)               0.00 MiB     0.232s           N/A
+Lazy (with collect)             7.45 MiB     0.665s       725,006
+
+## Skillcorner  - long_ball layout
+Eager loading                  18.78 MiB     0.680s       693,484
+Lazy (no collect)               0.00 MiB     0.230s           N/A
+Lazy (with collect)             5.09 MiB     0.655s       693,484
+
+## Skillcorner  - wide layout
+Eager loading                   5.31 MiB     1.250s        31,522
+
+## Skillcorner (kloppy)
+Load (default)                925.56 MiB    12.909s        31,522
+Load (native coords)          546.20 MiB     3.831s        31,522
+
+Sportec tracking file: 355.9 MiB
+
+## Sportec  - long layout
+Eager loading                 506.27 MiB     7.541s     1,971,514
+Lazy (no collect)               0.00 MiB     0.221s           N/A
+Lazy (with collect)           703.17 MiB     6.945s     1,971,514
+
+## Sportec  - long_ball layout
+Eager loading                 586.56 MiB     7.464s     1,885,796
+Lazy (no collect)               0.00 MiB     0.233s           N/A
+Lazy (with collect)           570.70 MiB     7.948s     1,885,796
+
+## Sportec  - wide layout
+Eager loading                 553.06 MiB     9.228s        85,718
+
+## Sportec (kloppy)
+Load (default)               3142.39 MiB    49.194s        85,718
+Load (native coords)         3062.12 MiB    25.810s        85,718
+
+Tracab tracking file: 113.4 MiB
+
+## Tracab  - long layout
+Eager loading                 196.22 MiB     1.595s     1,900,849
+Lazy (no collect)               0.02 MiB     0.230s           N/A
+Lazy (with collect)            63.20 MiB     1.501s     1,900,849
+
+## Tracab  - long_ball layout
+Eager loading                  62.62 MiB     1.504s     1,818,177
+Lazy (no collect)               0.00 MiB     0.269s           N/A
+Lazy (with collect)            42.94 MiB     1.680s     1,818,177
+
+## Tracab  - wide layout
+Eager loading                  37.62 MiB     3.013s        82,672
+
+## Tracab (kloppy)
+Load (default)               1349.98 MiB    30.868s        81,263
+Load (native coords)         1279.27 MiB    12.847s        81,263
+
+Gradientsports tracking file: 727.6 MiB
+
+## Gradientsports  - long layout
+Eager loading                1612.34 MiB     4.505s     2,229,440
+Lazy (no collect)               0.53 MiB     0.242s           N/A
+Lazy (with collect)          1576.92 MiB     4.212s     2,229,440
+
+## Gradientsports  - long_ball layout
+Eager loading                1595.72 MiB     4.355s     2,132,921
+Lazy (no collect)               1.00 MiB     0.231s           N/A
+Lazy (with collect)          1541.19 MiB     4.467s     2,132,921
+
+## Gradientsports  - wide layout
+Eager loading                1450.16 MiB     6.436s        96,519
+
+## Gradientsports (kloppy)
+Load (default)               4371.31 MiB    49.005s       101,247
+Load (native coords)         4200.69 MiB    19.142s       101,247
+
+Respovision tracking file: 2283.2 MiB
+
+## Respovision  - long layout

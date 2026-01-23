@@ -37,6 +37,7 @@ def load_tracking(
         "static_away_home",
     ] = "static_home_away",
     only_alive: bool = True,
+    exclude_missing_ball_frames: bool = True,
     include_game_id: Union[bool, str] = True,
     *,
     lazy: bool = False,
@@ -73,6 +74,9 @@ def load_tracking(
         - "attack_left": Attacking team always attacks left
     only_alive : bool, default True
         If True, only include frames where ball is in play (ball_state == "alive")
+    exclude_missing_ball_frames : bool, default True
+        If True, exclude frames where ball coordinates are missing (ball_z == -10).
+        SecondSpectrum uses ball_z = -10 as a sentinel value for failed ball tracking.
     include_game_id : bool or str, default True
         If True, add game_id column to tracking_df, team_df, and player_df from metadata.
         If False, no game_id column is added.
@@ -112,4 +116,5 @@ def load_tracking(
         from_cache=from_cache,
         engine=engine,
         spark_session=spark_session,
+        exclude_missing_ball_frames=exclude_missing_ball_frames,
     )

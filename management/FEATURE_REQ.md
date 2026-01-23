@@ -8,7 +8,7 @@
 - [X] [MEDIUM] Gradient
 - [X] [MEDIUM] Signality
 - [ ] [MEDIUM] SciSports
-- [ ] [LOW] RespoVision
+- [X] [LOW] RespoVision
 - [X] [LOW] CDF - needs support for untracked/dangling JSON objects
 - [ ] HawkEye skeletal
   - [ ] COCO-WholeBody
@@ -25,6 +25,7 @@
       - [ ] Assume left_thumb, right_thumb, left_pinky, right_pinky are equal to hand_left_20 etc.
   - [ ] Body hierarchy
     - [ ] Use categories for "extra_long" format
+  - [ ] First frame of skeletal data for each player, figure out their height from the joints, add to dataset.players
 
 ## HawkEye Enhancements
 

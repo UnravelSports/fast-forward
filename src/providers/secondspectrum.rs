@@ -620,6 +620,7 @@ fn parse_tracking_frames(
     away_team_id: &str,
     _coordinate_system: CoordinateSystem,
     only_alive: bool,
+    exclude_missing_ball_frames: bool,
     pushdown: &PushdownFilters,
     player_team_map: &HashMap<String, String>,
 ) -> Result<Vec<StandardFrame>, KloppyError> {
@@ -668,6 +669,11 @@ fn parse_tracking_frames(
 
         // Skip dead ball frames if only_alive is true
         if only_alive && !raw.live {
+            continue;
+        }
+
+        // Skip frames with missing ball data (ball_z == -10 is a sentinel value)
+        if exclude_missing_ball_frames && raw.ball.xyz[2] == -10.0 {
             continue;
         }
 
@@ -748,6 +754,7 @@ fn parse_tracking_frames_parallel(
     away_team_id: &str,
     _coordinate_system: CoordinateSystem,
     only_alive: bool,
+    exclude_missing_ball_frames: bool,
     pushdown: &PushdownFilters,
     _player_team_map: &HashMap<String, String>,
 ) -> Result<Vec<StandardFrame>, KloppyError> {
@@ -802,6 +809,11 @@ fn parse_tracking_frames_parallel(
 
             // Skip dead ball frames if only_alive is true
             if only_alive && !raw.live {
+                return Ok(None);
+            }
+
+            // Skip frames with missing ball data (ball_z == -10 is a sentinel value)
+            if exclude_missing_ball_frames && raw.ball.xyz[2] == -10.0 {
                 return Ok(None);
             }
 
@@ -924,7 +936,7 @@ fn resolve_game_id(
 }
 
 #[pyfunction]
-#[pyo3(signature = (raw_data, meta_data, layout="long", coordinates="cdf", orientation="static_home_away", only_alive=true, include_game_id=None, predicate=None, parallel=true))]
+#[pyo3(signature = (raw_data, meta_data, layout="long", coordinates="cdf", orientation="static_home_away", only_alive=true, exclude_missing_ball_frames=true, include_game_id=None, predicate=None, parallel=true))]
 fn load_tracking(
     py: Python<'_>,
     raw_data: &[u8],
@@ -933,6 +945,7 @@ fn load_tracking(
     coordinates: &str,
     orientation: &str,
     only_alive: bool,
+    exclude_missing_ball_frames: bool,
     include_game_id: Option<Bound<'_, PyAny>>,
     predicate: Option<PyExpr>,
     parallel: bool,
@@ -973,6 +986,7 @@ fn load_tracking(
             &away_team_id,
             coordinate_system,
             only_alive,
+            exclude_missing_ball_frames,
             &pushdown,
             &player_team_map,
         )?
@@ -983,6 +997,7 @@ fn load_tracking(
             &away_team_id,
             coordinate_system,
             only_alive,
+            exclude_missing_ball_frames,
             &pushdown,
             &player_team_map,
         )?

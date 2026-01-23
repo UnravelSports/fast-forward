@@ -360,10 +360,10 @@ class TestOnlyAliveParameter:
     def test_only_alive_filters_dead_frames(self):
         """Test that only_alive=True filters out dead ball frames."""
         dataset_all = secondspectrum.load_tracking(
-            ANON_RAW_DATA_PATH, ANON_META_DATA_PATH, only_alive=False, lazy=False
+            ANON_RAW_DATA_PATH, ANON_META_DATA_PATH, only_alive=False, exclude_missing_ball_frames=False, lazy=False
         )
         dataset_alive = secondspectrum.load_tracking(
-            ANON_RAW_DATA_PATH, ANON_META_DATA_PATH, only_alive=True, lazy=False
+            ANON_RAW_DATA_PATH, ANON_META_DATA_PATH, only_alive=True, exclude_missing_ball_frames=False, lazy=False
         )
 
         assert dataset_all.tracking.height == 4600
@@ -382,6 +382,35 @@ class TestOnlyAliveParameter:
         dataset = secondspectrum.load_tracking(ANON_RAW_DATA_PATH, ANON_META_DATA_PATH, lazy=False)
         dead_rows = dataset.tracking.filter(pl.col("ball_state") == "dead")
         assert dead_rows.height == 0
+
+
+class TestExcludeMissingBallFramesParameter:
+    """Tests for exclude_missing_ball_frames parameter."""
+
+    def test_exclude_missing_ball_frames_filters_frames(self):
+        """Test that exclude_missing_ball_frames=True filters out frames with ball_z == -10."""
+        # Load with exclude_missing_ball_frames=False to include all frames
+        dataset_all = secondspectrum.load_tracking(
+            ANON_RAW_DATA_PATH, ANON_META_DATA_PATH, only_alive=False, exclude_missing_ball_frames=False, lazy=False
+        )
+        # Load with exclude_missing_ball_frames=True (default) to filter out missing ball frames
+        dataset_filtered = secondspectrum.load_tracking(
+            ANON_RAW_DATA_PATH, ANON_META_DATA_PATH, only_alive=False, exclude_missing_ball_frames=True, lazy=False
+        )
+
+        # The test data has 1 frame with ball_z == -10 (frameIdx 0)
+        # That frame has 23 rows in long format (11 home + 11 away + 1 ball)
+        assert dataset_all.tracking.height == 4600
+        assert dataset_filtered.tracking.height == 4577  # 4600 - 23
+
+    def test_exclude_missing_ball_frames_default_true(self):
+        """Test that exclude_missing_ball_frames defaults to True."""
+        # Default should exclude frames with ball_z == -10
+        dataset = secondspectrum.load_tracking(
+            ANON_RAW_DATA_PATH, ANON_META_DATA_PATH, only_alive=False, lazy=False
+        )
+        # Should have fewer rows because frame 0 with ball_z=-10 is excluded
+        assert dataset.tracking.height == 4577
 
 
 class TestOrientationParameter:

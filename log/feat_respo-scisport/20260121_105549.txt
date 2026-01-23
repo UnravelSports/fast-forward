@@ -1,0 +1,22 @@
+======================================================================
+kloppy-light Benchmark
+======================================================================
+Memory measurement: memory_profiler (accurate)
+Providers: skillcorner
+Layouts: long
+Engines: polars
+Features: no-pushdown, csv=/tmp/test_benchmark.csv
+
+Data directory: /Users/jbekkers/PycharmProjects/kloppy-light/data
+
+Operation                     Memory         Time          Rows
+----------------------------------------------------------------------
+
+Skillcorner tracking file: 85.1 MiB
+
+## Skillcorner  - long layout
+Eager loading                 320.84 MiB     0.959s       725,006
+Lazy (no collect)               0.11 MiB     0.236s           N/A
+Lazy (with collect)            58.78 MiB     0.705s       725,006
+
+======================================================================

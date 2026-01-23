@@ -16,7 +16,7 @@ class TestStaticHomeAway:
     def test_home_team_x_period_1(self):
         """Home team should have x mean of -13.010109 in period 1."""
         dataset = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="static_home_away", only_alive=False, lazy=False
+            RAW_DATA_PATH, META_DATA_PATH, orientation="static_home_away", only_alive=False, exclude_missing_ball_frames=False, lazy=False
         )
         tracking_df = dataset.tracking
         metadata_df = dataset.metadata
@@ -32,7 +32,7 @@ class TestStaticHomeAway:
     def test_home_team_x_period_2(self):
         """Home team should have x mean of -8.234799 in period 2."""
         dataset = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="static_home_away", only_alive=False, lazy=False
+            RAW_DATA_PATH, META_DATA_PATH, orientation="static_home_away", only_alive=False, exclude_missing_ball_frames=False, lazy=False
         )
         tracking_df = dataset.tracking
         metadata_df = dataset.metadata
@@ -48,7 +48,7 @@ class TestStaticHomeAway:
     def test_ball_x_period_1(self):
         """Ball should have x mean of 20.0939 in period 1."""
         dataset = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="static_home_away", only_alive=False, lazy=False
+            RAW_DATA_PATH, META_DATA_PATH, orientation="static_home_away", only_alive=False, exclude_missing_ball_frames=False, lazy=False
         )
         tracking_df = dataset.tracking
 
@@ -61,7 +61,7 @@ class TestStaticHomeAway:
     def test_ball_x_period_2(self):
         """Ball should have x mean of -6.3284 in period 2."""
         dataset = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="static_home_away", only_alive=False, lazy=False
+            RAW_DATA_PATH, META_DATA_PATH, orientation="static_home_away", only_alive=False, exclude_missing_ball_frames=False, lazy=False
         )
         tracking_df = dataset.tracking
 
@@ -78,7 +78,7 @@ class TestStaticAwayHome:
     def test_home_team_x_period_1(self):
         """Home team should have x mean of 13.010109 in period 1 (flipped from static_home_away)."""
         dataset = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="static_away_home", only_alive=False, lazy=False
+            RAW_DATA_PATH, META_DATA_PATH, orientation="static_away_home", only_alive=False, exclude_missing_ball_frames=False, lazy=False
         )
         tracking_df = dataset.tracking
         metadata_df = dataset.metadata
@@ -94,7 +94,7 @@ class TestStaticAwayHome:
     def test_home_team_x_period_2(self):
         """Home team should have x mean of 8.234799 in period 2."""
         dataset = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="static_away_home", only_alive=False, lazy=False
+            RAW_DATA_PATH, META_DATA_PATH, orientation="static_away_home", only_alive=False, exclude_missing_ball_frames=False, lazy=False
         )
         tracking_df = dataset.tracking
         metadata_df = dataset.metadata
@@ -110,7 +110,7 @@ class TestStaticAwayHome:
     def test_ball_x_period_1(self):
         """Ball should have x mean of -20.0939 in period 1."""
         dataset = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="static_away_home", only_alive=False, lazy=False
+            RAW_DATA_PATH, META_DATA_PATH, orientation="static_away_home", only_alive=False, exclude_missing_ball_frames=False, lazy=False
         )
         tracking_df = dataset.tracking
 
@@ -123,7 +123,7 @@ class TestStaticAwayHome:
     def test_ball_x_period_2(self):
         """Ball should have x mean of 6.3284 in period 2."""
         dataset = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="static_away_home", only_alive=False, lazy=False
+            RAW_DATA_PATH, META_DATA_PATH, orientation="static_away_home", only_alive=False, exclude_missing_ball_frames=False, lazy=False
         )
         tracking_df = dataset.tracking
 
@@ -140,7 +140,7 @@ class TestHomeAway:
     def test_home_team_x_period_1(self):
         """Home team should have x mean of -13.010109 in period 1."""
         dataset = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="home_away", only_alive=False, lazy=False
+            RAW_DATA_PATH, META_DATA_PATH, orientation="home_away", only_alive=False, exclude_missing_ball_frames=False, lazy=False
         )
         tracking_df = dataset.tracking
         metadata_df = dataset.metadata
@@ -156,7 +156,7 @@ class TestHomeAway:
     def test_home_team_x_period_2(self):
         """Home team should have x mean of 8.234799 in period 2 (flipped)."""
         dataset = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="home_away", only_alive=False, lazy=False
+            RAW_DATA_PATH, META_DATA_PATH, orientation="home_away", only_alive=False, exclude_missing_ball_frames=False, lazy=False
         )
         tracking_df = dataset.tracking
         metadata_df = dataset.metadata
@@ -172,7 +172,7 @@ class TestHomeAway:
     def test_ball_x_period_1(self):
         """Ball should have x mean of 20.0939 in period 1."""
         dataset = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="home_away", only_alive=False, lazy=False
+            RAW_DATA_PATH, META_DATA_PATH, orientation="home_away", only_alive=False, exclude_missing_ball_frames=False, lazy=False
         )
         tracking_df = dataset.tracking
 
@@ -185,7 +185,7 @@ class TestHomeAway:
     def test_ball_x_period_2(self):
         """Ball should have x mean of 6.3284 in period 2 (flipped)."""
         dataset = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="home_away", only_alive=False, lazy=False
+            RAW_DATA_PATH, META_DATA_PATH, orientation="home_away", only_alive=False, exclude_missing_ball_frames=False, lazy=False
         )
         tracking_df = dataset.tracking
 
@@ -202,7 +202,7 @@ class TestAwayHome:
     def test_home_team_x_period_1(self):
         """Home team should have x mean of 13.010109 in period 1 (flipped)."""
         dataset = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="away_home", only_alive=False, lazy=False
+            RAW_DATA_PATH, META_DATA_PATH, orientation="away_home", only_alive=False, exclude_missing_ball_frames=False, lazy=False
         )
         tracking_df = dataset.tracking
         metadata_df = dataset.metadata
@@ -218,7 +218,7 @@ class TestAwayHome:
     def test_home_team_x_period_2(self):
         """Home team should have x mean of -8.234799 in period 2."""
         dataset = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="away_home", only_alive=False, lazy=False
+            RAW_DATA_PATH, META_DATA_PATH, orientation="away_home", only_alive=False, exclude_missing_ball_frames=False, lazy=False
         )
         tracking_df = dataset.tracking
         metadata_df = dataset.metadata
@@ -234,7 +234,7 @@ class TestAwayHome:
     def test_ball_x_period_1(self):
         """Ball should have x mean of -20.0939 in period 1."""
         dataset = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="away_home", only_alive=False, lazy=False
+            RAW_DATA_PATH, META_DATA_PATH, orientation="away_home", only_alive=False, exclude_missing_ball_frames=False, lazy=False
         )
         tracking_df = dataset.tracking
 
@@ -247,7 +247,7 @@ class TestAwayHome:
     def test_ball_x_period_2(self):
         """Ball should have x mean of -6.3284 in period 2."""
         dataset = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="away_home", only_alive=False, lazy=False
+            RAW_DATA_PATH, META_DATA_PATH, orientation="away_home", only_alive=False, exclude_missing_ball_frames=False, lazy=False
         )
         tracking_df = dataset.tracking
 
@@ -264,7 +264,7 @@ class TestAttackRight:
     def test_home_team_x_period_1(self):
         """Home team should have x mean of 12.738454 in period 1."""
         dataset = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_right", only_alive=False, lazy=False
+            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_right", only_alive=False, exclude_missing_ball_frames=False, lazy=False
         )
         tracking_df = dataset.tracking
         team_df = dataset.teams
@@ -279,7 +279,7 @@ class TestAttackRight:
     def test_home_team_x_period_2(self):
         """Home team should have x mean of -8.234799 in period 2."""
         dataset = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_right", only_alive=False, lazy=False
+            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_right", only_alive=False, exclude_missing_ball_frames=False, lazy=False
         )
         tracking_df = dataset.tracking
         team_df = dataset.teams
@@ -294,7 +294,7 @@ class TestAttackRight:
     def test_ball_x_period_1(self):
         """Ball should have x mean of -20.0883 in period 1."""
         dataset = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_right", only_alive=False, lazy=False
+            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_right", only_alive=False, exclude_missing_ball_frames=False, lazy=False
         )
         tracking_df = dataset.tracking
 
@@ -307,7 +307,7 @@ class TestAttackRight:
     def test_ball_x_period_2(self):
         """Ball should have x mean of -6.3284 in period 2."""
         dataset = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_right", only_alive=False, lazy=False
+            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_right", only_alive=False, exclude_missing_ball_frames=False, lazy=False
         )
         tracking_df = dataset.tracking
 
@@ -324,7 +324,7 @@ class TestAttackLeft:
     def test_home_team_x_period_1(self):
         """Home team should have x mean of -12.738454 in period 1."""
         dataset = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_left", only_alive=False, lazy=False
+            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_left", only_alive=False, exclude_missing_ball_frames=False, lazy=False
         )
         tracking_df = dataset.tracking
         team_df = dataset.teams
@@ -339,7 +339,7 @@ class TestAttackLeft:
     def test_home_team_x_period_2(self):
         """Home team should have x mean of 8.234799 in period 2."""
         dataset = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_left", only_alive=False, lazy=False
+            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_left", only_alive=False, exclude_missing_ball_frames=False, lazy=False
         )
         tracking_df = dataset.tracking
         team_df = dataset.teams
@@ -354,7 +354,7 @@ class TestAttackLeft:
     def test_ball_x_period_1(self):
         """Ball should have x mean of 20.0883 in period 1."""
         dataset = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_left", only_alive=False, lazy=False
+            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_left", only_alive=False, exclude_missing_ball_frames=False, lazy=False
         )
         tracking_df = dataset.tracking
 
@@ -367,7 +367,7 @@ class TestAttackLeft:
     def test_ball_x_period_2(self):
         """Ball should have x mean of 6.3284 in period 2."""
         dataset = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_left", only_alive=False, lazy=False
+            RAW_DATA_PATH, META_DATA_PATH, orientation="attack_left", only_alive=False, exclude_missing_ball_frames=False, lazy=False
         )
         tracking_df = dataset.tracking
 
@@ -384,12 +384,12 @@ class TestOrientationSymmetry:
     def test_static_modes_are_symmetric(self):
         """static_home_away and static_away_home should produce symmetric results."""
         dataset_home = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="static_home_away", only_alive=False, lazy=False
+            RAW_DATA_PATH, META_DATA_PATH, orientation="static_home_away", only_alive=False, exclude_missing_ball_frames=False, lazy=False
         )
         tracking_home = dataset_home.tracking
         team_df = dataset_home.teams
         dataset = secondspectrum.load_tracking(
-            RAW_DATA_PATH, META_DATA_PATH, orientation="static_away_home", only_alive=False, lazy=False
+            RAW_DATA_PATH, META_DATA_PATH, orientation="static_away_home", only_alive=False, exclude_missing_ball_frames=False, lazy=False
         )
         tracking_away = dataset.tracking
 
