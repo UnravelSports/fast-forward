@@ -9,11 +9,13 @@ from kloppy_light import respovision
 from tests.config import RV_RAW as RAW_DATA_SIMPLE
 
 # Test data summary:
-# - 7 frames total: 5 in half_1 (frames 1-5), 2 in half_2 (frames 101-102)
+# - 8 frames total: 6 in half_1 (frames 1-6), 2 in half_2 (frames 101-102)
 # - 22 players (11 per team) + 1 referee per frame
 # - Frames 4-5 have ball_possession=null (dead ball)
+# - Frame 6 has null ball coordinates (missing ball tracking)
 # - Pitch dimensions: 100x64
 # - Teams: "Home Team" (right side half_1), "Away Team" (left side half_1)
+# - With default exclude_missing_ball_frames=True, frame 6 is excluded -> 7 frames
 
 
 class TestRespovisionBasic:
@@ -862,6 +864,94 @@ class TestRespovisionLayouts:
         # Check specific column names
         assert "home_10_x" in columns
         assert "away_10_x" in columns
+
+
+class TestRespovisionExcludeMissingBallFrames:
+    """Tests for exclude_missing_ball_frames parameter."""
+
+    def test_exclude_missing_ball_frames_default_true(self):
+        """Test that exclude_missing_ball_frames defaults to True.
+
+        Test data has 8 frames total, 1 has missing ball (frame 6).
+        With default exclude_missing_ball_frames=True, frame 6 is excluded.
+        7 frames × 23 entities = 161 rows.
+        """
+        dataset = respovision.load_tracking(
+            RAW_DATA_SIMPLE,
+            pitch_length=100.0,
+            pitch_width=64.0,
+            only_alive=False,
+        )
+        # 8 total frames, 1 has missing ball -> 7 frames included
+        # 7 frames × 23 entities = 161 rows
+        assert len(dataset.tracking) == 161
+
+    def test_exclude_missing_ball_frames_false_includes_all(self):
+        """Test that exclude_missing_ball_frames=False includes frames with missing ball."""
+        dataset = respovision.load_tracking(
+            RAW_DATA_SIMPLE,
+            pitch_length=100.0,
+            pitch_width=64.0,
+            only_alive=False,
+            exclude_missing_ball_frames=False,
+        )
+        # 8 frames × 23 entities = 184 rows
+        assert len(dataset.tracking) == 184
+
+    def test_missing_ball_frame_has_nan_coordinates(self):
+        """Test that missing ball frames have NaN coordinates when not excluded."""
+        dataset = respovision.load_tracking(
+            RAW_DATA_SIMPLE,
+            pitch_length=100.0,
+            pitch_width=64.0,
+            only_alive=False,
+            exclude_missing_ball_frames=False,
+        )
+        # Frame 6 has missing ball
+        ball_frame6 = dataset.tracking.filter(
+            (pl.col("team_id") == "ball") & (pl.col("frame_id") == 6)
+        )
+        assert len(ball_frame6) == 1
+        assert ball_frame6["x"].is_nan()[0]
+        assert ball_frame6["y"].is_nan()[0]
+        assert ball_frame6["z"].is_nan()[0]
+
+    def test_exclude_missing_ball_frames_filters_correct_count(self):
+        """Test exact filtering: 8 frames total, 1 missing ball = 7 included."""
+        dataset_all = respovision.load_tracking(
+            RAW_DATA_SIMPLE,
+            pitch_length=100.0,
+            pitch_width=64.0,
+            only_alive=False,
+            exclude_missing_ball_frames=False,
+        )
+        dataset_filtered = respovision.load_tracking(
+            RAW_DATA_SIMPLE,
+            pitch_length=100.0,
+            pitch_width=64.0,
+            only_alive=False,
+            exclude_missing_ball_frames=True,
+        )
+        # All: 8 frames × 23 = 184 rows
+        # Filtered: 7 frames × 23 = 161 rows (frame 6 excluded)
+        assert len(dataset_all.tracking) == 184
+        assert len(dataset_filtered.tracking) == 161
+
+    def test_missing_ball_frame_excluded_from_frame_ids(self):
+        """Test that frame 6 is not present when exclude_missing_ball_frames=True."""
+        dataset = respovision.load_tracking(
+            RAW_DATA_SIMPLE,
+            pitch_length=100.0,
+            pitch_width=64.0,
+            only_alive=False,
+            exclude_missing_ball_frames=True,
+        )
+        frame_ids = set(dataset.tracking["frame_id"].unique().to_list())
+        assert 6 not in frame_ids
+        # Other frames should be present
+        assert 1 in frame_ids
+        assert 5 in frame_ids
+        assert 101 in frame_ids
 
 
 class TestRespovisionErrorHandling:

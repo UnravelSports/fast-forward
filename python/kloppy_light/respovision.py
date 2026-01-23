@@ -44,6 +44,7 @@ def load_tracking(
         "static_away_home",
     ] = "static_home_away",
     only_alive: bool = True,
+    exclude_missing_ball_frames: bool = True,
     pitch_length: float = 105.0,
     pitch_width: float = 68.0,
     include_game_id: Union[bool, str] = True,
@@ -84,6 +85,9 @@ def load_tracking(
         - Other orientations available
     only_alive : bool, default True
         If True, only include frames where ball_possession is not null.
+    exclude_missing_ball_frames : bool, default True
+        If True, exclude frames where ball coordinates are missing (null).
+        Respovision data may have frames where ball tracking failed.
     pitch_length : float, default 105.0
         Pitch length in meters. Used for coordinate transformation.
     pitch_width : float, default 68.0
@@ -182,6 +186,7 @@ def load_tracking(
             coordinates=coordinates,
             orientation=orientation,
             only_alive=only_alive,
+            exclude_missing_ball_frames=exclude_missing_ball_frames,
             pitch_length=pitch_length,
             pitch_width=pitch_width,
             include_game_id=include_game_id,

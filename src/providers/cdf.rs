@@ -75,12 +75,22 @@ struct RawPlayerFrame {
 
 #[derive(Debug, Deserialize)]
 struct RawBall {
-    x: f32,
-    y: f32,
     #[serde(default)]
-    z: f32,
+    x: Option<f32>,
+    #[serde(default)]
+    y: Option<f32>,
+    #[serde(default)]
+    z: Option<f32>,
     #[serde(default)]
     speed: Option<f32>,
+}
+
+/// Check if ball data is missing (any coordinate is None)
+fn is_ball_missing(ball: &Option<RawBall>) -> bool {
+    match ball {
+        None => true,
+        Some(b) => b.x.is_none() || b.y.is_none(),
+    }
 }
 
 // ============================================================================
@@ -463,6 +473,7 @@ fn parse_tracking_frames_parallel(
     away_team_id: &str,
     _coordinate_system: CoordinateSystem,
     only_alive: bool,
+    exclude_missing_ball_frames: bool,
     pushdown: &PushdownFilters,
     _player_team_map: &HashMap<String, String>,
     period_start_timestamps: &HashMap<u8, i64>,
@@ -524,6 +535,11 @@ fn parse_tracking_frames_parallel(
                 return Ok(None);
             }
 
+            // Skip frames with missing ball coordinates if exclude_missing_ball_frames is true
+            if exclude_missing_ball_frames && is_ball_missing(&raw.ball) {
+                return Ok(None);
+            }
+
             let ball_state = if ball_alive {
                 BallState::Alive
             } else {
@@ -533,16 +549,16 @@ fn parse_tracking_frames_parallel(
             // No ball ownership info in CDF format
             let ball_owning_team_id: Option<String> = None;
 
-            // Parse ball
+            // Parse ball (use NaN for missing coordinates)
             let ball = raw.ball.as_ref().map(|b| StandardBall {
-                x: b.x,
-                y: b.y,
-                z: b.z,
+                x: b.x.unwrap_or(f32::NAN),
+                y: b.y.unwrap_or(f32::NAN),
+                z: b.z.unwrap_or(f32::NAN),
                 speed: b.speed,
             }).unwrap_or(StandardBall {
-                x: 0.0,
-                y: 0.0,
-                z: 0.0,
+                x: f32::NAN,
+                y: f32::NAN,
+                z: f32::NAN,
                 speed: None,
             });
 
@@ -650,7 +666,7 @@ fn resolve_game_id(
 }
 
 #[pyfunction]
-#[pyo3(signature = (raw_data, meta_data, layout="long", coordinates="cdf", orientation="static_home_away", only_alive=true, include_game_id=None, predicate=None, parallel=true))]
+#[pyo3(signature = (raw_data, meta_data, layout="long", coordinates="cdf", orientation="static_home_away", only_alive=true, exclude_missing_ball_frames=true, include_game_id=None, predicate=None, parallel=true))]
 fn load_tracking(
     py: Python<'_>,
     raw_data: &[u8],
@@ -659,6 +675,7 @@ fn load_tracking(
     coordinates: &str,
     orientation: &str,
     only_alive: bool,
+    exclude_missing_ball_frames: bool,
     include_game_id: Option<Bound<'_, PyAny>>,
     predicate: Option<PyExpr>,
     parallel: bool,
@@ -694,6 +711,7 @@ fn load_tracking(
         &away_team_id,
         coordinate_system,
         only_alive,
+        exclude_missing_ball_frames,
         &pushdown,
         &player_team_map,
         &period_start_timestamps,

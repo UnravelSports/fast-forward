@@ -91,21 +91,15 @@ pub fn validate_not_empty(data: &[u8], context: &str) -> Result<(), KloppyError>
 /// * `KloppyError::CorruptedData` for syntax errors
 /// * `KloppyError::SchemaMismatch` for missing field or type errors
 pub fn categorize_json_error(e: serde_json::Error, line_num: usize, sample: &str) -> KloppyError {
-    let sample_preview = if sample.len() > 50 {
-        format!("{}...", &sample[..50])
-    } else {
-        sample.to_string()
-    };
-
     if e.is_syntax() || e.is_eof() {
         KloppyError::CorruptedData {
-            message: format!("{} (sample: {})", e, sample_preview),
+            message: format!("{} (sample: {})", e, sample),
             line: line_num,
         }
     } else {
         // Missing field, invalid type, etc. - likely a schema change
         KloppyError::SchemaMismatch {
-            message: format!("{} at line {} (sample: {})", e, line_num, sample_preview),
+            message: format!("{} at line {} (sample: {})", e, line_num, sample),
         }
     }
 }

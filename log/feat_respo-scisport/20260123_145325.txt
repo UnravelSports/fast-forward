@@ -1,0 +1,41 @@
+======================================================================
+kloppy-light Benchmark
+======================================================================
+Memory measurement: memory_profiler (accurate)
+Providers: cdf, respovision
+Layouts: long, long_ball, wide
+Engines: polars
+Features: no-pushdown, csv=/tmp/cdf_respovision_benchmark.csv
+
+Data directory: /Users/jbekkers/PycharmProjects/kloppy-light/data
+
+Operation                     Memory         Time          Rows
+----------------------------------------------------------------------
+
+Cdf tracking file: 76.9 MiB
+
+## Cdf  - long layout
+Eager loading                 332.61 MiB     0.718s       805,931
+Lazy (no collect)               0.11 MiB     0.194s           N/A
+Lazy (with collect)            58.67 MiB     0.655s       805,931
+
+## Cdf  - long_ball layout
+Eager loading                  70.78 MiB     0.670s       770,873
+Lazy (no collect)               0.03 MiB     0.193s           N/A
+Lazy (with collect)            54.31 MiB     0.641s       770,873
+
+## Cdf  - wide layout
+Eager loading                  41.30 MiB     1.313s        35,058
+
+Respovision tracking file: 2283.2 MiB
+
+## Respovision  - long layout
+Eager loading                3484.30 MiB     9.335s     2,358,230
+
+## Respovision  - long_ball layout
+Eager loading                2574.58 MiB     9.033s     2,255,698
+
+## Respovision  - wide layout
+Eager loading                2590.23 MiB     9.167s       102,532
+
+======================================================================

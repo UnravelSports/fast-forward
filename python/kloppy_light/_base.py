@@ -456,7 +456,7 @@ def _register_standard_providers() -> None:
         name="cdf",
         rust_module=_cdf,
         metadata_params=[],
-        tracking_params=[],
+        tracking_params=["exclude_missing_ball_frames"],
     )
 
     register_provider(

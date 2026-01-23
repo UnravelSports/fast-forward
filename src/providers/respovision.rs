@@ -44,9 +44,12 @@ struct PitchSide {
 
 #[derive(Debug, Deserialize)]
 struct RawBall {
-    x: f32,
-    y: f32,
-    z: f32,
+    #[serde(default, deserialize_with = "deserialize_optional_f32_nan")]
+    x: Option<f32>,
+    #[serde(default, deserialize_with = "deserialize_optional_f32_nan")]
+    y: Option<f32>,
+    #[serde(default, deserialize_with = "deserialize_optional_f32_nan")]
+    z: Option<f32>,
     #[serde(default)]
     speed: Option<f32>,
     #[allow(dead_code)]
@@ -195,6 +198,11 @@ where
 // ============================================================================
 // Helper Functions
 // ============================================================================
+
+/// Check if ball data is missing (any coordinate is None)
+fn is_ball_missing(ball: &RawBall) -> bool {
+    ball.x.is_none() || ball.y.is_none() || ball.z.is_none()
+}
 
 /// Parse period string to period id
 fn parse_period(period_str: &str) -> u8 {
@@ -356,6 +364,7 @@ fn parse_single_frame(
     pitch_length: f32,
     pitch_width: f32,
     only_alive: bool,
+    exclude_missing_ball_frames: bool,
     include_officials: bool,
     pushdown: &PushdownFilters,
     home_team_name: &str,
@@ -369,11 +378,21 @@ fn parse_single_frame(
         return Ok(None);
     }
 
-    // Replace NaN with null for JSON parsing (Respovision uses NaN for missing angles)
-    let line = line.replace("NaN", "null");
+    // Only replace NaN with null if NaN is actually present (avoids allocation for most lines)
+    // Use Cow to avoid allocation when no replacement is needed
+    let line: std::borrow::Cow<'_, str> = if line.contains("NaN") {
+        std::borrow::Cow::Owned(line.replace("NaN", "null"))
+    } else {
+        std::borrow::Cow::Borrowed(line)
+    };
 
     let raw: RawFrame = serde_json::from_str(&line)
         .map_err(|e| categorize_json_error(e, line_num, &line))?;
+
+    // Skip frames with missing ball coordinates if exclude_missing_ball_frames is true
+    if exclude_missing_ball_frames && is_ball_missing(&raw.ball) {
+        return Ok(None);
+    }
 
     // EARLY PUSHDOWN: Skip frames based on frame_id
     if let Some(min) = pushdown.frame_id_min {
@@ -426,10 +445,15 @@ fn parse_single_frame(
     });
 
     // Transform ball coordinates from Respovision (bottom-left origin) to CDF (center origin)
+    // Use NaN for missing ball coordinates (when exclude_missing_ball_frames=false)
+    let raw_ball_x = raw.ball.x.unwrap_or(f32::NAN);
+    let raw_ball_y = raw.ball.y.unwrap_or(f32::NAN);
+    let raw_ball_z = raw.ball.z.unwrap_or(f32::NAN);
+
     let (ball_x, ball_y, ball_z) = transform_to_cdf(
-        raw.ball.x,
-        raw.ball.y,
-        raw.ball.z,
+        raw_ball_x,
+        raw_ball_y,
+        raw_ball_z,
         CoordinateSystem::SportecEvent, // Respovision uses same coords as SportecEvent (bottom-left origin, meters)
         pitch_length,
         pitch_width,
@@ -543,6 +567,7 @@ fn parse_tracking_frames(
     pitch_length: f32,
     pitch_width: f32,
     only_alive: bool,
+    exclude_missing_ball_frames: bool,
     include_officials: bool,
     pushdown: &PushdownFilters,
     home_team_name: &str,
@@ -557,7 +582,7 @@ fn parse_tracking_frames(
     let results: Vec<Result<Option<_>, KloppyError>> = lines
         .par_iter()
         .enumerate()
-        .map(|(line_idx, line)| parse_single_frame(line, line_idx + 1, pitch_length, pitch_width, only_alive, include_officials, pushdown, home_team_name, away_team_name))
+        .map(|(line_idx, line)| parse_single_frame(line, line_idx + 1, pitch_length, pitch_width, only_alive, exclude_missing_ball_frames, include_officials, pushdown, home_team_name, away_team_name))
         .collect();
 
     // Collect results and check for errors
@@ -1099,6 +1124,7 @@ fn resolve_game_id(
     coordinates="cdf",
     orientation="static_home_away",
     only_alive=true,
+    exclude_missing_ball_frames=true,
     pitch_length=105.0,
     pitch_width=68.0,
     include_game_id=None,
@@ -1114,6 +1140,7 @@ fn load_tracking(
     coordinates: &str,
     orientation: &str,
     only_alive: bool,
+    exclude_missing_ball_frames: bool,
     pitch_length: f32,
     pitch_width: f32,
     include_game_id: Option<Bound<'_, PyAny>>,
@@ -1147,6 +1174,7 @@ fn load_tracking(
         pitch_length,
         pitch_width,
         only_alive,
+        exclude_missing_ball_frames,
         include_officials,
         &pushdown,
         &filename_home,

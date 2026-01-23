@@ -429,6 +429,70 @@ class TestOnlyAliveParameter:
         assert dead_rows.height == 0
 
 
+class TestExcludeMissingBallFrames:
+    """Tests for exclude_missing_ball_frames parameter."""
+
+    def test_exclude_missing_ball_frames_default_true(self):
+        """Default exclude_missing_ball_frames=True excludes frame 30281."""
+        dataset = cdf.load_tracking(
+            RAW_DATA_PATH,
+            META_DATA_PATH,
+            only_alive=False,
+            lazy=False,
+        )
+        frame_ids = dataset.tracking["frame_id"].unique().to_list()
+        assert 30281 not in frame_ids
+
+    def test_exclude_missing_ball_frames_false_includes_all(self):
+        """exclude_missing_ball_frames=False includes frame 30281."""
+        dataset = cdf.load_tracking(
+            RAW_DATA_PATH,
+            META_DATA_PATH,
+            only_alive=False,
+            exclude_missing_ball_frames=False,
+            lazy=False,
+        )
+        frame_ids = dataset.tracking["frame_id"].unique().to_list()
+        assert 30281 in frame_ids
+
+    def test_missing_ball_frame_has_nan_coordinates(self):
+        """Missing ball frames have NaN coordinates when not excluded."""
+        dataset = cdf.load_tracking(
+            RAW_DATA_PATH,
+            META_DATA_PATH,
+            only_alive=False,
+            exclude_missing_ball_frames=False,
+            layout="long",
+            lazy=False,
+        )
+        ball_frame = dataset.tracking.filter(
+            (pl.col("team_id") == "ball") & (pl.col("frame_id") == 30281)
+        )
+        assert len(ball_frame) == 1
+        assert ball_frame["x"].is_nan()[0]
+        assert ball_frame["y"].is_nan()[0]
+        assert ball_frame["z"].is_nan()[0]
+
+    def test_exclude_missing_ball_frames_filters_correct_count(self):
+        """Filtering removes 1 frame worth of rows."""
+        dataset_all = cdf.load_tracking(
+            RAW_DATA_PATH,
+            META_DATA_PATH,
+            only_alive=False,
+            exclude_missing_ball_frames=False,
+            lazy=False,
+        )
+        dataset_filtered = cdf.load_tracking(
+            RAW_DATA_PATH,
+            META_DATA_PATH,
+            only_alive=False,
+            exclude_missing_ball_frames=True,
+            lazy=False,
+        )
+        # 102 frames vs 101 frames - each frame has 23 entities (11+11+1 ball)
+        assert dataset_all.tracking.height > dataset_filtered.tracking.height
+
+
 class TestOrientationParameter:
     """Tests for orientation parameter."""
 
