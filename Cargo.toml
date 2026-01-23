@@ -20,6 +20,7 @@ chrono = "0.4"
 quick-xml = { version = "0.31", features = ["serialize"] }
 regex = "1.10"
 rayon = "1.10"
+memchr = "2.7"
 
 [profile.release]
 lto = true

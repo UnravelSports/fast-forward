@@ -1140,6 +1140,7 @@ name = "kloppy_light"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "memchr",
  "polars",
  "pyo3",
  "pyo3-polars",
