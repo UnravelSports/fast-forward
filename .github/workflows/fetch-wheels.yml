@@ -55,7 +55,7 @@ jobs:
       - name: Checkout public repo
         uses: actions/checkout@v4
         with:
-          ref: main  # Get latest with wheels
+          ref: feat/separate-rust  # Get latest with wheels
 
       - name: Pull latest changes
         run: git pull origin main
