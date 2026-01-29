@@ -1,0 +1,32 @@
+======================================================================
+kloppy-light Benchmark
+======================================================================
+Memory measurement: memory_profiler (accurate)
+Providers: skillcorner
+Layouts: long, long_ball, wide
+Engines: polars
+Features: eager-to-df, no-pushdown, no-eager
+
+Data directory: /Users/jbekkers/PycharmProjects/kloppy-light/data
+
+Operation                     Memory         Time          Rows
+----------------------------------------------------------------------
+
+Skillcorner tracking file: 85.1 MiB
+
+## Skillcorner  - long layout
+Lazy (no collect)              30.80 MiB     0.315s           N/A
+Lazy (with collect)           289.98 MiB     0.345s       725,006
+
+## Skillcorner  - long_ball layout
+Lazy (no collect)               0.00 MiB     0.206s           N/A
+Lazy (with collect)            62.41 MiB     0.442s       693,484
+
+## Skillcorner  - wide layout
+
+## Skillcorner - eager to_df comparison
+kloppy-light eager             33.89 MiB     0.429s       725,006
+kloppy to_df(polars)          897.30 MiB     4.182s        31,522
+kloppy to_df(pandas)          901.70 MiB     4.490s        31,522
+
+======================================================================

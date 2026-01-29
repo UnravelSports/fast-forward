@@ -7,7 +7,7 @@
 - [X] [HIGH] Stats Perform
 - [X] [MEDIUM] Gradient
 - [X] [MEDIUM] Signality
-- [ ] [MEDIUM] SciSports
+- [X] [MEDIUM] SciSports
 - [X] [LOW] RespoVision
 - [X] [LOW] CDF - needs support for untracked/dangling JSON objects
 - [ ] HawkEye skeletal

@@ -1,0 +1,176 @@
+======================================================================
+kloppy-light Benchmark
+======================================================================
+Memory measurement: memory_profiler (accurate)
+Providers: cdf, secondspectrum, skillcorner, sportec, hawkeye, tracab, gradientsports, respovision
+Layouts: long, long_ball, wide
+Engines: polars
+Features: kloppy, eager-to-df, csv=log/benchmark_results2.csv
+
+Data directory: /Users/jbekkers/PycharmProjects/kloppy-light/data
+
+Operation                     Memory         Time          Rows
+----------------------------------------------------------------------
+
+Cdf tracking file: 76.9 MiB
+
+## Cdf  - long layout
+Eager loading                 318.02 MiB     0.394s       805,931
+Lazy (no collect)               1.00 MiB     0.207s           N/A
+Lazy (with collect)            52.33 MiB     0.329s       805,931
+
+## Cdf  - long_ball layout
+Eager loading                  73.25 MiB     0.530s       770,873
+Lazy (no collect)               0.00 MiB     0.207s           N/A
+Lazy (with collect)            56.50 MiB     0.357s       770,873
+
+## Cdf  - wide layout
+Eager loading                  42.36 MiB     0.384s        35,058
+
+## Cdf (kloppy-light) - filter pushdown
+Filter: period_id==2           22.36 MiB     0.369s       401,858
+Filter: frame<=25k             13.53 MiB     0.325s       334,435
+Filter: combined                2.36 MiB     0.301s       334,435
+Filter: team                   56.28 MiB     0.302s       385,434
+Filter: player                  6.45 MiB     0.306s        10,898
+Filter: between                15.56 MiB     0.341s       246,786
+
+## Cdf (kloppy) - not supported by kloppy
+
+## Cdf - eager to_df comparison: not supported by kloppy
+
+Secondspectrum tracking file: 423.4 MiB
+
+## Secondspectrum  - long layout
+Eager loading                1159.84 MiB     1.249s     1,909,069
+Lazy (no collect)               1.98 MiB     0.228s           N/A
+Lazy (with collect)           325.31 MiB     1.232s     1,909,069
+
+## Secondspectrum  - long_ball layout
+Eager loading                 319.05 MiB     1.362s     1,826,066
+Lazy (no collect)               2.00 MiB     0.235s           N/A
+Lazy (with collect)           266.89 MiB     1.152s     1,826,066
+
+## Secondspectrum  - wide layout
+Eager loading                 231.61 MiB     1.253s        83,003
+
+## Secondspectrum (kloppy-light) - filter pushdown
+Filter: period_id==2          118.84 MiB     1.037s       962,343
+Filter: frame<=50k             73.02 MiB     1.042s       666,517
+Filter: combined              122.19 MiB     1.067s       666,517
+Filter: team                  183.19 MiB     1.095s       913,033
+Filter: player                 40.36 MiB     1.058s        83,003
+Filter: between               204.59 MiB     1.259s       464,623
+
+## Secondspectrum (kloppy)
+Load (default)               1135.03 MiB    23.609s        83,003
+Load (native coords)          818.17 MiB     6.931s        83,003
+
+## Secondspectrum - eager to_df comparison
+kloppy-light (long)           229.98 MiB     1.269s     1,909,069
+kloppy-light (wide)           189.94 MiB     1.594s        83,003
+kloppy to_df(polars)         1080.19 MiB     6.809s        83,003
+kloppy to_df(pandas)         1300.08 MiB     8.223s        83,003
+
+Skillcorner tracking file: 85.1 MiB
+
+## Skillcorner  - long layout
+Eager loading                 104.30 MiB     0.445s       725,006
+Lazy (no collect)               0.00 MiB     0.230s           N/A
+Lazy (with collect)             8.19 MiB     0.351s       725,006
+
+## Skillcorner  - long_ball layout
+Eager loading                   3.56 MiB     0.388s       693,484
+Lazy (no collect)               0.02 MiB     0.234s           N/A
+Lazy (with collect)             3.02 MiB     0.352s       693,484
+
+## Skillcorner  - wide layout
+Eager loading                   3.56 MiB     0.478s        31,522
+
+## Skillcorner (kloppy-light) - filter pushdown
+Filter: period_id==2            0.55 MiB     0.332s       324,461
+Filter: frame<=15k             13.70 MiB     0.346s       220,915
+Filter: combined                0.36 MiB     0.368s       220,915
+Filter: team                    0.47 MiB     0.324s       346,742
+Filter: player                  0.06 MiB     0.322s        31,522
+Filter: between                 2.55 MiB     0.391s       209,875
+
+## Skillcorner (kloppy)
+Load (default)                365.23 MiB     9.259s        31,522
+Load (native coords)          231.03 MiB     2.587s        31,522
+
+## Skillcorner - eager to_df comparison
+kloppy-light (long)             3.36 MiB     0.421s       725,006
+kloppy-light (wide)             2.88 MiB     0.413s        31,522
+kloppy to_df(polars)          323.02 MiB     2.740s        31,522
+kloppy to_df(pandas)          314.41 MiB     2.935s        31,522
+
+Sportec tracking file: 355.9 MiB
+
+## Sportec  - long layout
+Eager loading                 415.70 MiB     1.795s     1,971,514
+Lazy (no collect)               0.00 MiB     0.236s           N/A
+Lazy (with collect)           609.14 MiB     1.683s     1,971,514
+
+## Sportec  - long_ball layout
+Eager loading                 609.20 MiB     1.958s     1,885,796
+Lazy (no collect)               0.00 MiB     0.240s           N/A
+Lazy (with collect)           531.97 MiB     1.751s     1,885,796
+
+## Sportec  - wide layout
+Eager loading                 535.09 MiB     1.926s        85,718
+
+## Sportec (kloppy-light) - filter pushdown
+Filter: period_id==2          233.83 MiB     1.406s       948,681
+Filter: frame<=50k            113.58 MiB     0.970s       626,244
+Filter: combined              129.20 MiB     1.109s       626,244
+Filter: team                  310.44 MiB     1.422s       942,898
+Filter: player                 87.50 MiB     1.215s        85,718
+Filter: between               598.25 MiB     1.877s       589,858
+
+## Sportec (kloppy)
+Load (default)               1843.50 MiB    37.597s        85,718
+Load (native coords)         1845.36 MiB    19.578s        85,718
+
+## Sportec - eager to_df comparison
+kloppy-light (long)           496.27 MiB     1.815s     1,971,514
+kloppy-light (wide)           549.77 MiB     2.115s        85,718
+kloppy to_df(polars)         1838.77 MiB    20.192s        85,718
+kloppy to_df(pandas)         1818.42 MiB    20.937s        85,718
+
+Hawkeye tracking file: 2632.3 MiB
+
+## Hawkeye - parallel vs sequential (long layout)
+Sequential loading           6287.17 MiB    10.100s     6,189,128
+Parallel loading             3881.92 MiB     5.739s     6,189,128
+Lazy seq (collect)           4590.19 MiB     9.917s     6,189,128
+Lazy parallel (collect)      4009.11 MiB     5.668s     6,189,128
+
+## Hawkeye  - long layout
+Eager loading                4204.19 MiB     5.626s     6,189,128
+Lazy (no collect)              23.33 MiB     0.295s           N/A
+Lazy (with collect)          4016.84 MiB     5.136s     6,189,128
+
+## Hawkeye  - long_ball layout
+Eager loading                3971.52 MiB     5.484s     5,920,603
+Lazy (no collect)              23.39 MiB     0.301s           N/A
+Lazy (with collect)          4026.56 MiB     5.859s     5,920,603
+
+## Hawkeye  - wide layout
+Eager loading                4240.69 MiB     5.526s       268,525
+
+## Hawkeye (kloppy-light) - filter pushdown
+Filter: period_id==2         3694.09 MiB     4.327s     3,359,420
+Filter: frame<=75k           3863.08 MiB     5.342s     1,466,003
+Filter: combined             3858.59 MiB     3.897s     1,466,003
+Filter: team                 3882.12 MiB     5.545s     2,960,246
+Filter: player               3898.59 MiB     4.429s             0
+Filter: between              3917.80 MiB     5.680s     1,050,720
+
+## Hawkeye (kloppy)
+Load (default)               4131.77 MiB   116.308s       270,000
+Load (native coords)         1227.64 MiB    58.913s       270,000
+
+## Hawkeye - eager to_df comparison
+kloppy-light (long)          3977.97 MiB     5.442s     6,189,128
+kloppy-light (wide)          3848.03 MiB     6.011s       268,525

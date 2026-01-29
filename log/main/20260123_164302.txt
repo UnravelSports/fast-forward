@@ -1,0 +1,39 @@
+======================================================================
+kloppy-light Benchmark
+======================================================================
+Memory measurement: memory_profiler (accurate)
+Providers: hawkeye
+Layouts: wide, long_ball
+Engines: polars
+Features: kloppy, csv=/tmp/hawkeye_benchmark.csv
+
+Data directory: /Users/jbekkers/PycharmProjects/kloppy-light/data
+
+Operation                     Memory         Time          Rows
+----------------------------------------------------------------------
+
+Hawkeye tracking file: 2632.3 MiB
+
+## Hawkeye - parallel vs sequential (long layout)
+Sequential loading           7369.72 MiB    11.180s     6,189,128
+Parallel loading             4028.92 MiB     5.647s     6,189,128
+Lazy seq (collect)           4891.95 MiB    10.225s     6,189,128
+Lazy parallel (collect)      4011.47 MiB     6.017s     6,189,128
+
+## Hawkeye  - wide layout
+Eager loading                4642.48 MiB     6.118s       268,525
+
+## Hawkeye  - long_ball layout
+Eager loading                3917.14 MiB     5.667s     5,920,603
+Lazy (no collect)              24.25 MiB     0.288s           N/A
+Lazy (with collect)          4105.47 MiB     6.184s     5,920,603
+
+## Hawkeye (kloppy-light) - filter pushdown
+Filter: period_id==2         3837.88 MiB     4.634s     3,359,420
+Filter: frame<=75k           3988.38 MiB     5.070s     1,466,003
+Filter: combined             3751.72 MiB     4.142s     1,466,003
+Filter: team                 3883.19 MiB     5.322s     2,960,246
+Filter: player               3892.62 MiB     4.770s             0
+Filter: between              3909.95 MiB     6.072s     1,050,720
+
+## Hawkeye (kloppy)

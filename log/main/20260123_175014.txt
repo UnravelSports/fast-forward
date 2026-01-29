@@ -1,0 +1,69 @@
+======================================================================
+kloppy-light Benchmark
+======================================================================
+Memory measurement: memory_profiler (accurate)
+Providers: cdf, secondspectrum, skillcorner, sportec, hawkeye, tracab, gradientsports, respovision
+Layouts: long, long_ball, wide
+Engines: polars
+Features: kloppy, eager-to-df, csv=log/benchmark_results2.csv
+
+Data directory: /Users/jbekkers/PycharmProjects/kloppy-light/data
+
+Operation                     Memory         Time          Rows
+----------------------------------------------------------------------
+
+Cdf tracking file: 76.9 MiB
+
+## Cdf  - long layout
+Eager loading                 318.05 MiB     0.498s       805,931
+Lazy (no collect)               0.09 MiB     0.212s           N/A
+Lazy (with collect)            54.73 MiB     0.387s       805,931
+
+## Cdf  - long_ball layout
+Eager loading                  69.59 MiB     0.536s       770,873
+Lazy (no collect)               0.00 MiB     0.200s           N/A
+Lazy (with collect)            46.39 MiB     0.473s       770,873
+
+## Cdf  - wide layout
+Eager loading                  12.23 MiB     0.410s        35,058
+
+## Cdf (kloppy-light) - filter pushdown
+Filter: period_id==2           30.14 MiB     0.341s       401,858
+Filter: frame<=25k             43.08 MiB     0.300s       334,435
+Filter: combined                6.39 MiB     0.305s       334,435
+Filter: team                   51.30 MiB     0.324s       385,434
+Filter: player                 14.41 MiB     0.290s        10,898
+Filter: between                46.73 MiB     0.315s       246,786
+
+## Cdf (kloppy) - not supported by kloppy
+
+## Cdf - eager to_df comparison: not supported by kloppy
+
+Secondspectrum tracking file: 423.4 MiB
+
+## Secondspectrum  - long layout
+Eager loading                1169.47 MiB     1.282s     1,909,069
+Lazy (no collect)               0.98 MiB     0.222s           N/A
+Lazy (with collect)           311.28 MiB     1.233s     1,909,069
+
+## Secondspectrum  - long_ball layout
+Eager loading                 262.64 MiB     1.285s     1,826,066
+Lazy (no collect)               0.00 MiB     0.231s           N/A
+Lazy (with collect)           306.06 MiB     1.395s     1,826,066
+
+## Secondspectrum  - wide layout
+Eager loading                 230.78 MiB     1.345s        83,003
+
+## Secondspectrum (kloppy-light) - filter pushdown
+Filter: period_id==2          131.30 MiB     1.036s       962,343
+Filter: frame<=50k            116.17 MiB     0.870s       666,517
+Filter: combined              109.61 MiB     0.995s       666,517
+Filter: team                  136.98 MiB     1.049s       913,033
+Filter: player                 55.86 MiB     1.024s        83,003
+Filter: between               246.44 MiB     1.005s       464,623
+
+## Secondspectrum (kloppy)
+Load (default)               1145.92 MiB    23.447s        83,003
+Load (native coords)          821.98 MiB     6.985s        83,003
+
+## Secondspectrum - eager to_df comparison

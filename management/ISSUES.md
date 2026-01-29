@@ -6,7 +6,6 @@
 
 ## Metadata
 
-- [ ] [MEDIUM] Better period metadata - add period start time, kickoff time
 - [X] [LOW] Add game_id to periods DataFrame
 
 ## Code Quality

@@ -210,3 +210,6 @@ __marimo__/
 /data
 /scripts
 /fake
+
+*/.DS_Store
+.DS_Store

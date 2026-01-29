@@ -1,0 +1,5 @@
+- [ ] Better period metadata - add period start time, kickoff time
+- [ ] Disable lazy loading
+- [ ] Disable cache writing
+- [ ] Create docs
+- [ ] Move Rust code
