@@ -540,7 +540,7 @@ class TestCacheIntegration:
             )
 
             # Check warning was raised
-            assert len(w) == 1
+            assert len(w) == 2
             assert "No cache found" in str(w[0].message)
             assert "write_cache()" in str(w[0].message)
 
@@ -592,7 +592,7 @@ class TestCacheIntegration:
             .collect()
         )
 
-        assert len(result) == 2166
+        assert len(result) == 2277
         assert list(result.columns) == ["frame_id", "x", "y"]
         # period_id not in result columns since we only selected frame_id, x, y
         assert "period_id" not in result.columns

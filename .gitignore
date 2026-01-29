@@ -213,3 +213,9 @@ __marimo__/
 
 */.DS_Store
 .DS_Store
+
+# Nested Rust repository (private)
+rust/
+
+# Allow pre-built wheels
+!wheels/

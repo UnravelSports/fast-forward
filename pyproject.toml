@@ -7,7 +7,7 @@ name = "kloppy-light"
 version = "0.1.0"
 description = "Fast SecondSpectrum tracking data loader using Rust"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = {text = "MIT"}
 keywords = ["sports", "tracking", "soccer", "football", "polars"]
 classifiers = [
@@ -53,3 +53,4 @@ all = [
 python-source = "python"
 module-name = "kloppy_light._kloppy_light"
 features = ["pyo3/extension-module"]
+manifest-path = "rust/Cargo.toml"

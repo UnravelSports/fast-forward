@@ -3,3 +3,4 @@
 - [ ] Disable cache writing
 - [ ] Create docs
 - [ ] Move Rust code
+- [ ] Squash commit history
