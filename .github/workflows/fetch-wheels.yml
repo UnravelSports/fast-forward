@@ -21,7 +21,7 @@ jobs:
 
       - name: Download wheels from private repo release
         env:
-          GH_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
+          GH_TOKEN: ${{ secrets.PRIVATE_PAT_REPO }}
         run: |
           # Create wheels directory
           mkdir -p wheels
