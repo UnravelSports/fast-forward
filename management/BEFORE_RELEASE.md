@@ -4,3 +4,5 @@
 - [ ] Create docs
 - [ ] Move Rust code
 - [ ] Squash commit history
+- [ ] Remove /assets from repo
+- [ ] Remove /future_tests

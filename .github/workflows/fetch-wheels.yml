@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout public repo
         uses: actions/checkout@v4
+        with:
+          ref: feat/separate-rust
 
       - name: Download wheels from private repo release
         env:
@@ -58,7 +60,7 @@ jobs:
           ref: feat/separate-rust  # Get latest with wheels
 
       - name: Pull latest changes
-        run: git pull origin main
+        run: git pull origin feat/separate-rust
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -84,10 +86,10 @@ jobs:
       - name: Checkout public repo
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: feat/separate-rust
 
       - name: Pull latest changes
-        run: git pull origin main
+        run: git pull origin feat/separate-rust
 
       - name: Create release with wheels
         env:

@@ -219,3 +219,6 @@ rust/
 
 # Allow pre-built wheels
 !wheels/
+
+/assets/
+/future_tests/
