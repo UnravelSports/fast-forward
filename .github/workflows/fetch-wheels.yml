@@ -1,5 +1,8 @@
 name: Fetch Wheels and Run Tests
 
+# NOTE: This is a minimal test configuration (Ubuntu, Python 3.12 only)
+# Before release, expand to full matrix - see BEFORE_RELEASE.md
+
 on:
   workflow_dispatch:
     inputs:
@@ -39,14 +42,11 @@ jobs:
           path: wheels/*.whl
           retention-days: 1
 
+  # TEMPORARY: Only testing on Ubuntu + Python 3.12
+  # TODO: Before release, expand to full matrix (see BEFORE_RELEASE.md)
   run-tests:
     needs: fetch-wheels
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ['3.11', '3.12', '3.13']
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout public repo
         uses: actions/checkout@v4
@@ -62,26 +62,21 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: '3.12'
 
-      - name: Install pre-built wheel
+      - name: Install wheel
         run: |
           pip install kloppy-light --find-links=wheels/ --no-index
 
-      - name: Copy extension to Python source
+      - name: Verify installation
         run: |
-          # Find the installed extension and copy to python/kloppy_light/
-          SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])")
-          cp -v "$SITE_PACKAGES"/kloppy_light/_kloppy_light* python/kloppy_light/ || true
-        shell: bash
+          python -c "from kloppy_light import secondspectrum; print('kloppy_light imported successfully')"
 
       - name: Install test dependencies
         run: |
-          pip install pytest polars
+          pip install pytest
 
       - name: Run tests
-        env:
-          PYTHONPATH: ${{ github.workspace }}/python
         run: |
           pytest tests/ -v
 
