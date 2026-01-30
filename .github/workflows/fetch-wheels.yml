@@ -33,7 +33,8 @@ jobs:
           gh release download ${{ inputs.version }} \
             --repo UnravelSports/fast-forward-rs \
             --pattern "*.whl" \
-            --dir wheels/
+            --dir wheels/ \
+            --clobber
 
           echo "Downloaded wheels:"
           ls -la wheels/
