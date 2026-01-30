@@ -68,6 +68,13 @@ jobs:
         run: |
           pip install kloppy-light --find-links=wheels/ --no-index
 
+      - name: Copy extension to Python source
+        run: |
+          # Find the installed extension and copy to python/kloppy_light/
+          SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])")
+          cp -v "$SITE_PACKAGES"/kloppy_light/_kloppy_light* python/kloppy_light/ || true
+        shell: bash
+
       - name: Install test dependencies
         run: |
           pip install pytest polars
