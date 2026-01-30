@@ -17,19 +17,12 @@ jobs:
     outputs:
       version: ${{ inputs.version }}
     steps:
-      - name: Checkout public repo
-        uses: actions/checkout@v4
-        with:
-          ref: feat/separate-rust
-
       - name: Download wheels from private repo release
         env:
           GH_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
         run: |
-          # Create wheels directory
           mkdir -p wheels
 
-          # Download all wheel files from the private repo release
           gh release download ${{ inputs.version }} \
             --repo UnravelSports/fast-forward-rs \
             --pattern "*.whl" \
@@ -39,15 +32,12 @@ jobs:
           echo "Downloaded wheels:"
           ls -la wheels/
 
-      - name: Commit wheels to public repo
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          # Add wheels (make sure *.whl is not in .gitignore)
-          git add wheels/
-          git commit -m "Add pre-built wheels for ${{ inputs.version }}" || echo "No changes to commit"
-          git push
+      - name: Upload wheels as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels
+          path: wheels/*.whl
+          retention-days: 1
 
   run-tests:
     needs: fetch-wheels
@@ -61,25 +51,31 @@ jobs:
       - name: Checkout public repo
         uses: actions/checkout@v4
         with:
-          ref: feat/separate-rust  # Get latest with wheels
+          ref: feat/separate-rust
 
-      - name: Pull latest changes
-        run: git pull origin feat/separate-rust
+      - name: Download wheels artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: wheels
+          path: wheels/
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install package with pre-built wheel
+      - name: Install pre-built wheel
         run: |
-          pip install . --find-links=wheels/
+          pip install wheels/*.whl
+        shell: bash
 
       - name: Install test dependencies
         run: |
           pip install pytest polars
 
       - name: Run tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}/python
         run: |
           pytest tests/ -v
 
@@ -87,13 +83,11 @@ jobs:
     needs: run-tests
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout public repo
-        uses: actions/checkout@v4
+      - name: Download wheels artifact
+        uses: actions/download-artifact@v4
         with:
-          ref: feat/separate-rust
-
-      - name: Pull latest changes
-        run: git pull origin feat/separate-rust
+          name: wheels
+          path: wheels/
 
       - name: Create release with wheels
         env:
@@ -101,5 +95,6 @@ jobs:
         run: |
           gh release create ${{ inputs.version }} \
             wheels/*.whl \
+            --repo ${{ github.repository }} \
             --title "Release ${{ inputs.version }}" \
             --generate-notes
