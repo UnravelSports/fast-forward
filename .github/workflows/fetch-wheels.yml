@@ -70,9 +70,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install wheel for this platform
+      - name: Install package with pre-built wheel
         run: |
-          pip install wheels/*.whl || pip install --find-links=wheels/ kloppy-light
+          pip install . --find-links=wheels/
 
       - name: Install test dependencies
         run: |
