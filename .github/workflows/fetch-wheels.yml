@@ -66,8 +66,7 @@ jobs:
 
       - name: Install pre-built wheel
         run: |
-          pip install wheels/*.whl
-        shell: bash
+          pip install kloppy-light --find-links=wheels/ --no-index
 
       - name: Install test dependencies
         run: |
