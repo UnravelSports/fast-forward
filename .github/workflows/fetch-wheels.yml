@@ -79,7 +79,7 @@ jobs:
         run: pip install "kloppy @ git+https://github.com/PySport/kloppy.git" pyarrow
 
       - name: Install wheel
-        run: pip install --find-links wheels/ --no-deps kloppy-light
+        run: pip install --find-links wheels/ kloppy-light
 
       - name: Verify installation
         run: |
