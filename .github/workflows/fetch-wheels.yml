@@ -64,17 +64,24 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install wheel
+      - name: Inspect wheel contents
         run: |
-          pip install kloppy-light --find-links=wheels/ --no-index
+          ls -la wheels/
+          for whl in wheels/*.whl; do
+            echo "=== $whl ==="
+            python3 -m zipfile -l "$whl"
+          done
+
+      - name: Install wheel
+        run: pip install wheels/*.whl
 
       - name: Verify installation
         run: |
+          pip show kloppy-light
           python -c "from kloppy_light import secondspectrum; print('kloppy_light imported successfully')"
 
       - name: Install test dependencies
-        run: |
-          pip install pytest
+        run: pip install pytest
 
       - name: Run tests
         run: |
