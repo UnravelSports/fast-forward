@@ -76,7 +76,7 @@ jobs:
           done
 
       - name: Install dependencies
-        run: pip install "kloppy @ git+https://github.com/PySport/kloppy.git"
+        run: pip install "kloppy @ git+https://github.com/PySport/kloppy.git" pyarrow
 
       - name: Install wheel
         run: pip install wheels/*.whl
