@@ -75,6 +75,9 @@ jobs:
             python3 -m zipfile -l "$whl"
           done
 
+      - name: Install dependencies
+        run: pip install "kloppy @ git+https://github.com/PySport/kloppy.git"
+
       - name: Install wheel
         run: pip install wheels/*.whl
 
