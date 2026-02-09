@@ -53,6 +53,9 @@ jobs:
         with:
           ref: feat/separate-rust
 
+      - name: Clean old wheels
+        run: rm -f wheels/*.whl
+
       - name: Download wheels artifact
         uses: actions/download-artifact@v4
         with:
