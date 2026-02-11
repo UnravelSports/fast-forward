@@ -119,13 +119,6 @@ def load_tracking(
     include_officials : bool, default False
         If True, include officials in player_df and tracking data with team_id="officials"
         and position codes: REF (Main Referee), AREF (Assistant Referee).
-    lazy : bool, default True
-        If True, return a TrackingDataset with LazyFrame for tracking.
-        If False, return a TrackingDataset with eager DataFrame for tracking.
-        Lazy loading is useful for large datasets where you want to filter before loading all data.
-    from_cache : bool, default False
-        If True, load from cache if available.
-        Warns if no cache exists. Use dataset.write_cache() to create cache.
     engine : {"polars", "pyspark"}, default "polars"
         DataFrame engine to use:
         - "polars": Return Polars DataFrames (default)
@@ -138,15 +131,13 @@ def load_tracking(
     -------
     TrackingDataset
         Object with .tracking, .metadata, .teams, .players, .periods properties.
-        If engine="polars" and lazy=True, .tracking returns pl.LazyFrame.
-        If engine="polars" and lazy=False, .tracking returns pl.DataFrame.
+        If engine="polars", .tracking returns pl.DataFrame.
         If engine="pyspark", all DataFrames are PySpark DataFrames.
 
     Notes
     -----
     - Officials are excluded by default; set include_officials=True to include them
     - Period and minute are extracted from filename patterns like hawkeye_1_1.ball
-    - Lazy loading only parses tracking data when .collect() is called
 
     Examples
     --------
@@ -155,26 +146,26 @@ def load_tracking(
     >>> ball_files = ["hawkeye_1_1.ball", "hawkeye_1_2.ball"]
     >>> player_files = ["hawkeye_1_1.centroids", "hawkeye_1_2.centroids"]
     >>> dataset = load_tracking(ball_files, player_files, "hawkeye_meta.json")
-    >>> tracking_df = dataset.tracking.collect()
+    >>> tracking_df = dataset.tracking
 
     Load with specific object ID preference:
 
     >>> dataset = load_tracking(ball_files, player_files, "hawkeye_meta.json", object_id="fifa")
 
-    Cache workflow:
+    PySpark engine:
 
-    >>> dataset = load_tracking(ball_files, player_files, "hawkeye_meta.json")
-    >>> dataset.write_cache()  # Write to cache
-    >>> dataset = load_tracking(ball_files, player_files, "hawkeye_meta.json", from_cache=True)
-
-        >>> # PySpark engine
-        >>> dataset = load_tracking(ball_files, player_files, "hawkeye_meta.json", engine="pyspark")
-        >>> dataset.tracking.show(5)
+    >>> dataset = load_tracking(ball_files, player_files, "hawkeye_meta.json", engine="pyspark")
+    >>> dataset.tracking.show(5)
     """
     from kloppy_light._engine import validate_engine, polars_to_spark, get_spark_session
 
     # Validate engine parameter
     engine = validate_engine(engine)
+
+    if lazy:
+        raise NotImplementedError("lazy loading is not yet supported in kloppy-light")
+    if from_cache:
+        raise NotImplementedError("cache loading is not yet supported in kloppy-light")
 
     # Wide format doesn't support lazy loading - column names are game-specific
     if lazy and layout == "wide":

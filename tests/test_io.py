@@ -227,6 +227,7 @@ class TestFileHandleInputs:
         assert len(dataset.teams) == 2
 
 
+@pytest.mark.skip(reason="lazy/cache disabled — see DISABLED_FEATURES.md")
 class TestLazyLoadingWithFileLike:
     """Test lazy loading with different input types."""
 
@@ -715,6 +716,7 @@ class TestS3Adapter:
         assert len(team_df) == 2
         assert len(player_df) == 40
 
+    @pytest.mark.skip(reason="lazy/cache disabled — see DISABLED_FEATURES.md")
     def test_lazy_load_from_s3(self):
         """Test lazy loading from S3 paths."""
         raw_s3_path = f"s3://{self.bucket}/secondspectrum_tracking_anon.jsonl"

@@ -204,6 +204,11 @@ def load_tracking_impl(
         Dataset with tracking (pl.LazyFrame, pl.DataFrame, or pyspark.sql.DataFrame),
         metadata, teams, players, periods
     """
+    if lazy:
+        raise NotImplementedError("lazy loading is not yet supported in kloppy-light")
+    if from_cache:
+        raise NotImplementedError("cache loading is not yet supported in kloppy-light")
+
     from kloppy_light._lazy import create_lazy_tracking, _is_local_file
     from kloppy_light._schema import get_tracking_schema
     from kloppy_light._cache import (

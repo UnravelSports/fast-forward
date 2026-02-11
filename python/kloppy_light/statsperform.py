@@ -102,10 +102,6 @@ def load_tracking(
     include_officials : bool, default False
         If True, include match officials (referees) in the players DataFrame
         with team_id="officials" and appropriate position codes (REF, AREF, 4TH).
-    lazy : bool, default False
-        If True, return a TrackingDataset with LazyFrame for tracking.
-        If False, return a TrackingDataset with eager DataFrame for tracking.
-
     Returns
     -------
     TrackingDataset
@@ -122,6 +118,9 @@ def load_tracking(
 
     The MA1 metadata format is auto-detected (JSON or XML) based on content.
     """
+    if lazy:
+        raise NotImplementedError("lazy loading is not yet supported in kloppy-light")
+
     # Wide format doesn't support lazy loading - column names are game-specific
     if lazy and layout == "wide":
         raise ValueError(

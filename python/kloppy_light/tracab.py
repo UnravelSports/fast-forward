@@ -8,7 +8,7 @@ and multiple raw data formats (DAT, JSON).
 
 from typing import TYPE_CHECKING, Literal, Optional, Union
 
-from kloppy_light._base import load_tracking_impl
+from kloppy_light._base import load_tracking_impl as _load_tracking_impl
 from kloppy_light._dataset import TrackingDataset
 from kloppy.io import FileLike
 
@@ -49,8 +49,7 @@ def load_tracking(
     engine: Literal["polars", "pyspark"] = "polars",
     spark_session: Optional["SparkSession"] = None,
 ) -> TrackingDataset:
-    """
-    Load Tracab tracking data.
+    """Load Tracab tracking data.
 
     Supports multiple file formats:
     - Metadata: XML (hierarchical or flat format), JSON
@@ -60,52 +59,58 @@ def load_tracking(
     Coordinates are automatically converted to CDF (meters) internally and then
     transformed to the target coordinate system.
 
-    Args:
-        raw_data: Path to tracking data file (.dat or .json), bytes, or file-like object.
-        meta_data: Path to metadata file (.xml or .json), bytes, or file-like object.
-        layout: Output layout format.
-            - "long": Ball as separate rows with team_id="ball"
-            - "long_ball": Ball in separate columns (ball_x, ball_y, ball_z)
-            - "wide": One row per frame, player columns as {player_id}_x, _y, _z
-        coordinates: Target coordinate system.
-        orientation: Target orientation.
-        only_alive: If True, only include frames where ball is in play.
-        include_game_id: Include game_id column. True uses metadata value,
-            False omits column, string uses custom value.
-        lazy: If True, return lazy loader. Call .collect() to load data.
-        from_cache: If True, load from cache if available.
-            Warns if no cache exists. Use dataset.write_cache() to create cache.
-        engine: DataFrame engine to use ("polars" or "pyspark"). Default "polars".
-        spark_session: PySpark SparkSession to use. If None and engine="pyspark",
-            will get or create a session automatically.
+    Parameters
+    ----------
+    raw_data : FileLike
+        Path to tracking data file (.dat or .json), bytes, or file-like object.
+    meta_data : FileLike
+        Path to metadata file (.xml or .json), bytes, or file-like object.
+    layout : {"long", "long_ball", "wide"}, default "long"
+        DataFrame layout:
+        - "long": Ball as separate rows with team_id="ball"
+        - "long_ball": Ball in separate columns (ball_x, ball_y, ball_z)
+        - "wide": One row per frame, player columns as {player_id}_x, _y, _z
+    coordinates : str, default "cdf"
+        Target coordinate system.
+    orientation : str, default "static_home_away"
+        Target orientation.
+    only_alive : bool, default True
+        If True, only include frames where ball is in play.
+    include_game_id : bool or str, default True
+        If True, add game_id column from metadata.
+        If False, no game_id column is added.
+        If str, use the provided string as the game_id value.
+    engine : {"polars", "pyspark"}, default "polars"
+        DataFrame engine to use:
+        - "polars": Return Polars DataFrames (default)
+        - "pyspark": Return PySpark DataFrames
+    spark_session : SparkSession, optional
+        PySpark SparkSession to use. If None and engine="pyspark",
+        will get or create a session automatically.
 
-    Returns:
-        TrackingDataset with .tracking, .metadata, .teams, .players, .periods
-        If engine="polars" and lazy=True, .tracking returns pl.LazyFrame.
-        If engine="polars" and lazy=False, .tracking returns pl.DataFrame.
+    Returns
+    -------
+    TrackingDataset
+        Object with .tracking, .metadata, .teams, .players, .periods properties.
+        If engine="polars", .tracking returns pl.DataFrame.
         If engine="pyspark", all DataFrames are PySpark DataFrames.
 
-    Example:
-        >>> from kloppy_light import tracab
-        >>> dataset = tracab.load_tracking("tracking.dat", "meta.xml")
-        >>> tracking_df = dataset.tracking.collect()  # if lazy=True
+    Examples
+    --------
+    >>> from kloppy_light import tracab
+    >>> dataset = tracab.load_tracking("tracking.dat", "meta.xml")
 
-        >>> # Using different formats
-        >>> dataset = tracab.load_tracking("tracking.json", "meta.json")
+    >>> # Using different formats
+    >>> dataset = tracab.load_tracking("tracking.json", "meta.json")
 
-        >>> # Get tracab coordinates (centimeters)
-        >>> dataset = tracab.load_tracking("tracking.dat", "meta.xml", coordinates="tracab")
+    >>> # Get tracab coordinates (centimeters)
+    >>> dataset = tracab.load_tracking("tracking.dat", "meta.xml", coordinates="tracab")
 
-        >>> # Cache workflow
-        >>> dataset = tracab.load_tracking("tracking.dat", "meta.xml")
-        >>> dataset.write_cache()  # Write to cache
-        >>> dataset = tracab.load_tracking("tracking.dat", "meta.xml", from_cache=True)  # Load from cache
-
-        >>> # PySpark engine
-        >>> dataset = tracab.load_tracking("tracking.dat", "meta.xml", engine="pyspark")
-        >>> dataset.tracking.show(5)
+    >>> # PySpark engine
+    >>> dataset = tracab.load_tracking("tracking.dat", "meta.xml", engine="pyspark")
+    >>> dataset.tracking.show(5)
     """
-    return load_tracking_impl(
+    return _load_tracking_impl(
         provider_name="tracab",
         raw_data=raw_data,
         meta_data=meta_data,

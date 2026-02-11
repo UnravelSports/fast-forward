@@ -386,6 +386,7 @@ class TestErrorHandling:
             skillcorner.load_tracking(RAW_DATA_PATH, "nonexistent_metadata.json", lazy=False)
 
 
+@pytest.mark.skip(reason="lazy/cache disabled — see DISABLED_FEATURES.md")
 class TestLazyParameter:
     """Tests for lazy loading parameter."""
 
@@ -428,6 +429,16 @@ class TestLazyParameter:
             RAW_DATA_PATH, META_DATA_PATH, lazy=False
         )
         assert dataset_lazy.tracking.collect().equals(dataset_eager.tracking)
+
+
+class TestLazyNotImplemented:
+    def test_lazy_raises(self):
+        with pytest.raises(NotImplementedError, match="lazy loading"):
+            skillcorner.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=True)
+
+    def test_from_cache_raises(self):
+        with pytest.raises(NotImplementedError, match="cache loading"):
+            skillcorner.load_tracking(RAW_DATA_PATH, META_DATA_PATH, from_cache=True)
 
 
 class TestTimestampBehavior:

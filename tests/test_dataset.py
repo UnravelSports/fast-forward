@@ -76,6 +76,7 @@ class TestTrackingDatasetEager:
         assert dataset.players.height == 40
 
 
+@pytest.mark.skip(reason="lazy/cache disabled — see DISABLED_FEATURES.md")
 class TestTrackingDatasetLazy:
     """Tests for lazy loading (lazy=True)."""
 
@@ -186,6 +187,7 @@ class TestTrackingDatasetRepr:
         repr_str = repr(dataset)
         assert "game_id=" in repr_str
 
+    @pytest.mark.skip(reason="lazy/cache disabled — see DISABLED_FEATURES.md")
     def test_repr_contains_tracking_type(self):
         """Test that repr shows tracking type."""
         # Eager loading
@@ -312,6 +314,7 @@ class TestTrackingDatasetWithDifferentProviders:
         assert isinstance(dataset.periods, pl.DataFrame)
 
 
+@pytest.mark.skip(reason="lazy/cache disabled — see DISABLED_FEATURES.md")
 class TestLazyFrameFunctionality:
     """Tests for full pl.LazyFrame functionality with lazy loading."""
 

@@ -363,6 +363,7 @@ class TestSignalityData:
         assert timestamp_ms == 12  # milliseconds
 
 
+@pytest.mark.skip(reason="lazy/cache disabled — see DISABLED_FEATURES.md")
 class TestSignalityLazy:
     """Test lazy loading."""
 
@@ -397,6 +398,26 @@ class TestSignalityLazy:
         # Filter to period 1 only
         filtered = dataset.tracking.filter(pl.col("period_id") == 1).collect()
         assert all(filtered["period_id"] == 1)
+
+
+class TestLazyNotImplemented:
+    def test_lazy_raises(self):
+        with pytest.raises(NotImplementedError, match="lazy loading"):
+            signality.load_tracking(
+                meta_data=META_DATA,
+                raw_data_feeds=RAW_DATA_FEEDS,
+                venue_information=VENUE_INFO,
+                lazy=True,
+            )
+
+    def test_from_cache_raises(self):
+        with pytest.raises(NotImplementedError, match="cache loading"):
+            signality.load_tracking(
+                meta_data=META_DATA,
+                raw_data_feeds=RAW_DATA_FEEDS,
+                venue_information=VENUE_INFO,
+                from_cache=True,
+            )
 
 
 class TestSignalityParallel:

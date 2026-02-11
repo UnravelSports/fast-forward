@@ -123,16 +123,13 @@ def load_tracking(
         If True, add game_id column from metadata.
         If False, no game_id column is added.
         If str, use the provided string as the game_id value.
-    lazy : bool, default False
-        If True, return a TrackingDataset with LazyFrame for tracking.
-        If False, return a TrackingDataset with eager DataFrame for tracking.
-
     Returns
     -------
     TrackingDataset
         Object with .tracking, .metadata, .teams, .players, .periods properties.
     """
     if lazy:
+        raise NotImplementedError("lazy loading is not yet supported in kloppy-light")
         # Load metadata only
         with open_as_file(meta_data) as meta_file:
             meta_bytes = meta_file.read() if meta_file else b""

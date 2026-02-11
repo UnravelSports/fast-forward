@@ -1,5 +1,9 @@
 """Unit tests for cache functionality."""
 
+import pytest
+
+pytestmark = pytest.mark.skip(reason="lazy/cache disabled — see DISABLED_FEATURES.md")
+
 import os
 import tempfile
 from pathlib import Path

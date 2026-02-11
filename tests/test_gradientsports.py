@@ -582,6 +582,7 @@ class TestOrientationParameter:
         assert dataset.metadata["orientation"][0] == "attack_left"
 
 
+@pytest.mark.skip(reason="lazy/cache disabled — see DISABLED_FEATURES.md")
 class TestLazyParameter:
     """Tests for lazy loading parameter."""
 
@@ -608,6 +609,12 @@ class TestLazyParameter:
         assert isinstance(collected, pl.DataFrame)
         # Default include_incomplete_frames=False filters incomplete frames
         assert collected.height == 3380
+
+
+class TestLazyNotImplemented:
+    def test_lazy_raises(self):
+        with pytest.raises(NotImplementedError, match="lazy loading"):
+            gradientsports.load_tracking(RAW_DATA_PATH, META_DATA_PATH, ROSTER_DATA_PATH, lazy=True)
 
 
 class TestIncludeGameId:

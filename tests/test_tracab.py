@@ -360,6 +360,7 @@ class TestOrientationParameter:
         assert dataset.metadata["orientation"][0] == "static_away_home"
 
 
+@pytest.mark.skip(reason="lazy/cache disabled — see DISABLED_FEATURES.md")
 class TestLazyParameter:
     """Tests for the lazy parameter."""
 
@@ -379,6 +380,16 @@ class TestLazyParameter:
         tracking_df = dataset.tracking.collect()
         assert isinstance(tracking_df, pl.DataFrame)
         assert tracking_df.height == 46
+
+
+class TestLazyNotImplemented:
+    def test_lazy_raises(self):
+        with pytest.raises(NotImplementedError, match="lazy loading"):
+            tracab.load_tracking(RAW_DAT_PATH, META_XML_PATH, lazy=True)
+
+    def test_from_cache_raises(self):
+        with pytest.raises(NotImplementedError, match="cache loading"):
+            tracab.load_tracking(RAW_DAT_PATH, META_XML_PATH, from_cache=True)
 
 
 class TestIncludeGameIdParameter:

@@ -559,6 +559,7 @@ class TestOrientationParameter:
         assert dataset.metadata["orientation"][0] == "attack_left"
 
 
+@pytest.mark.skip(reason="lazy/cache disabled — see DISABLED_FEATURES.md")
 class TestLazyParameter:
     """Tests for lazy loading parameter."""
 
@@ -584,6 +585,12 @@ class TestLazyParameter:
         collected = dataset.tracking.collect()
         assert isinstance(collected, pl.DataFrame)
         assert collected.height == 2117
+
+
+class TestLazyNotImplemented:
+    def test_lazy_raises(self):
+        with pytest.raises(NotImplementedError, match="lazy loading"):
+            statsperform.load_tracking(MA25_DATA_PATH, MA1_JSON_PATH, lazy=True)
 
 
 class TestIncludeGameId:

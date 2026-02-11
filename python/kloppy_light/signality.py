@@ -102,12 +102,6 @@ def load_tracking(
     include_officials : bool, default False
         If True, include officials in player_df and tracking data with team_id="officials"
         and position codes: REF (Main Referee), AREF (Assistant Referee), FOURTH (4th Official).
-    lazy : bool, default False
-        If True, return a TrackingDataset with LazyFrame for tracking.
-        If False, return a TrackingDataset with eager DataFrame for tracking.
-    from_cache : bool, default False
-        If True, load from cache if available.
-        Warns if no cache exists. Use dataset.write_cache() to create cache.
     parallel : bool, default True
         If True, process multiple files in parallel using rayon.
     engine : {"polars", "pyspark"}, default "polars"
@@ -149,6 +143,11 @@ def load_tracking(
 
     # Validate engine parameter
     engine = validate_engine(engine)
+
+    if lazy:
+        raise NotImplementedError("lazy loading is not yet supported in kloppy-light")
+    if from_cache:
+        raise NotImplementedError("cache loading is not yet supported in kloppy-light")
 
     # Wide format doesn't support lazy loading - column names are game-specific
     if lazy and layout == "wide":

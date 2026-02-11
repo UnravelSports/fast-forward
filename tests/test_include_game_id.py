@@ -269,6 +269,7 @@ class TestIncludeGameIdSportec:
         assert m["game_id"][0] == "custom_sportec_id"
 
 
+@pytest.mark.skip(reason="lazy/cache disabled — see DISABLED_FEATURES.md")
 class TestIncludeGameIdLazy:
     """Tests for include_game_id with lazy loading."""
 

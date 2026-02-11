@@ -101,9 +101,6 @@ def load_tracking(
         Only applies to long and long_ball layouts.
     include_officials : bool, default False
         If True, include referees in tracking data with team_id="officials".
-    lazy : bool, default False
-        NOT SUPPORTED. Respovision requires full file parsing to extract metadata.
-        Will raise ValueError if set to True.
     engine : {"polars", "pyspark"}, default "polars"
         DataFrame engine to use:
         - "polars": Return Polars DataFrames (default)

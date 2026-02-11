@@ -607,6 +607,7 @@ class TestHawkEyeFilenameExtraction:
         assert periods == [1, 2]
 
 
+@pytest.mark.skip(reason="lazy/cache disabled — see DISABLED_FEATURES.md")
 class TestHawkEyeLazyLoading:
     """Tests for lazy loading support."""
 
@@ -748,6 +749,16 @@ class TestHawkEyeLazyLoading:
         assert len(result) == 68147
         periods = result["period_id"].unique().to_list()
         assert periods == [1]  # Only loaded first file
+
+
+class TestLazyNotImplemented:
+    def test_lazy_raises(self):
+        with pytest.raises(NotImplementedError, match="lazy loading"):
+            hawkeye.load_tracking(BALL_FILES, PLAYER_FILES, META_JSON, lazy=True)
+
+    def test_from_cache_raises(self):
+        with pytest.raises(NotImplementedError, match="cache loading"):
+            hawkeye.load_tracking(BALL_FILES, PLAYER_FILES, META_JSON, from_cache=True)
 
 
 class TestHawkEyeDirectoryLoading:
@@ -899,6 +910,7 @@ class TestHawkEyeDirectoryLoading:
             periods = dataset.tracking["period_id"].unique().sort().to_list()
             assert periods == [1, 2]
 
+    @pytest.mark.skip(reason="lazy/cache disabled — see DISABLED_FEATURES.md")
     def test_directory_with_lazy(self):
         """Test directory loading with lazy mode."""
         import tempfile
@@ -1012,6 +1024,7 @@ class TestHawkEyeOfficials:
         # With officials included, should match original player row count (141625)
         assert len(dataset.tracking) == 141625
 
+    @pytest.mark.skip(reason="lazy/cache disabled — see DISABLED_FEATURES.md")
     def test_officials_lazy_loading(self):
         """Test officials with lazy loading."""
         dataset = hawkeye.load_tracking(

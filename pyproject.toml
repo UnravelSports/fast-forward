@@ -49,6 +49,9 @@ all = [
     "pandas>=2.0.0",
 ]
 
+[tool.pytest.ini_options]
+pythonpath = ["python"]
+
 [tool.maturin]
 python-source = "python"
 module-name = "kloppy_light._kloppy_light"

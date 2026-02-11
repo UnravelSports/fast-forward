@@ -479,6 +479,7 @@ class TestOrientationParameter:
         assert player_away["x"] is not None
 
 
+@pytest.mark.skip(reason="lazy/cache disabled — see DISABLED_FEATURES.md")
 class TestLazyParameter:
     """Tests for lazy loading parameter."""
 
@@ -534,6 +535,16 @@ class TestLazyParameter:
         )
         repr_str = repr(dataset.tracking)
         assert "frame_id" in repr_str or "LazyFrame" in repr_str
+
+
+class TestLazyNotImplemented:
+    def test_lazy_raises(self):
+        with pytest.raises(NotImplementedError, match="lazy loading"):
+            secondspectrum.load_tracking(ANON_RAW_DATA_PATH, ANON_META_DATA_PATH, lazy=True)
+
+    def test_from_cache_raises(self):
+        with pytest.raises(NotImplementedError, match="cache loading"):
+            secondspectrum.load_tracking(ANON_RAW_DATA_PATH, ANON_META_DATA_PATH, from_cache=True)
 
 
 class TestTimestampBehavior:
@@ -850,6 +861,7 @@ class TestKloppyLayouts:
         assert "ball_z" in dataset.tracking.columns
 
 
+@pytest.mark.skip(reason="lazy/cache disabled — see DISABLED_FEATURES.md")
 class TestKloppyLazyLoading:
     """Tests for lazy loading functionality using original kloppy data."""
 

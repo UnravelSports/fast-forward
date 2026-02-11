@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Literal, Optional, Union
 
 from kloppy.io import FileLike
 
-from kloppy_light._base import load_tracking_impl
+from kloppy_light._base import load_tracking_impl as _load_tracking_impl
 from kloppy_light._dataset import TrackingDataset
 
 if TYPE_CHECKING:
@@ -81,12 +81,6 @@ def load_tracking(
         If True, add game_id column to tracking_df, team_df, and player_df from metadata.
         If False, no game_id column is added.
         If str, use the provided string as the game_id value.
-    lazy : bool, default True
-        If True, return a TrackingDataset with LazyFrame for tracking.
-        If False, return a TrackingDataset with eager DataFrame for tracking.
-    from_cache : bool, default False
-        If True, load from cache if available.
-        Warns if no cache exists. Use dataset.write_cache() to create cache.
     engine : {"polars", "pyspark"}, default "polars"
         DataFrame engine to use:
         - "polars": Return Polars DataFrames (default)
@@ -99,11 +93,10 @@ def load_tracking(
     -------
     TrackingDataset
         Object with .tracking, .metadata, .teams, .players, .periods properties.
-        If engine="polars" and lazy=True, .tracking returns pl.LazyFrame.
-        If engine="polars" and lazy=False, .tracking returns pl.DataFrame.
+        If engine="polars", .tracking returns pl.DataFrame.
         If engine="pyspark", all DataFrames are PySpark DataFrames.
     """
-    return load_tracking_impl(
+    return _load_tracking_impl(
         provider_name="secondspectrum",
         raw_data=raw_data,
         meta_data=meta_data,

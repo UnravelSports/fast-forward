@@ -116,58 +116,36 @@ class TrackingDataset:
     """Container for tracking data and associated metadata.
 
     Supports multiple DataFrame backends:
-    - Polars (default): pl.DataFrame or pl.LazyFrame
+    - Polars (default): pl.DataFrame
     - PySpark: pyspark.sql.DataFrame
 
     Attributes
     ----------
-    tracking : pl.DataFrame, pl.LazyFrame, or pyspark.sql.DataFrame
+    tracking : pl.DataFrame or pyspark.sql.DataFrame
         Tracking data. DataFrame type depends on engine parameter.
-        For Polars with lazy=True, returns LazyFrame with full Polars functionality.
-        For PySpark, returns a PySpark DataFrame (inherently lazy).
     metadata : pl.DataFrame or pyspark.sql.DataFrame
-        Single-row DataFrame with match-level metadata
+        Single-row DataFrame with match-level metadata.
     teams : pl.DataFrame or pyspark.sql.DataFrame
-        Team information (2 rows: home and away)
+        Team information (2 rows: home and away).
     players : pl.DataFrame or pyspark.sql.DataFrame
-        Player information with team associations
+        Player information with team associations.
     periods : pl.DataFrame or pyspark.sql.DataFrame
-        Period information with period_id, start_frame_id, end_frame_id
+        Period information with period_id, start_frame_id, end_frame_id.
     engine : str
-        The DataFrame engine being used ('polars' or 'pyspark')
+        The DataFrame engine being used ('polars' or 'pyspark').
 
     Examples
     --------
-    Eager loading (default):
-
     >>> from kloppy_light import secondspectrum
     >>> dataset = secondspectrum.load_tracking("tracking.jsonl", "meta.json")
     >>> dataset.tracking  # pl.DataFrame
     >>> dataset.metadata  # pl.DataFrame (1 row)
     >>> dataset.periods   # pl.DataFrame (2+ rows)
-
-    Lazy loading:
-
-    >>> dataset = secondspectrum.load_tracking("tracking.jsonl", "meta.json", lazy=True)
-    >>> dataset.tracking  # pl.LazyFrame
-    >>> dataset.tracking.schema  # Access schema before collect
-    >>> period1 = dataset.tracking.filter(pl.col("period_id") == 1).collect()
-
-    Full LazyFrame functionality:
-
-    >>> result = (
-    ...     dataset.tracking
-    ...     .filter(pl.col("period_id") == 1)
-    ...     .with_columns(pl.col("x") * 100)
-    ...     .group_by("player_id")
-    ...     .agg(pl.col("x").mean())
-    ...     .collect()
-    ... )
     """
 
     def __init__(
         self,
-        tracking: Union[pl.DataFrame, pl.LazyFrame, "SparkDataFrame"],
+        tracking: Union[pl.DataFrame, "SparkDataFrame"],
         metadata: Union[pl.DataFrame, "SparkDataFrame"],
         teams: Union[pl.DataFrame, "SparkDataFrame"],
         players: Union[pl.DataFrame, "SparkDataFrame"],
@@ -186,7 +164,7 @@ class TrackingDataset:
 
         Parameters
         ----------
-        tracking : pl.DataFrame, pl.LazyFrame, or pyspark.sql.DataFrame
+        tracking : pl.DataFrame or pyspark.sql.DataFrame
             Tracking data. Type depends on engine parameter.
         metadata : pl.DataFrame or pyspark.sql.DataFrame
             Metadata (single row)
@@ -248,12 +226,8 @@ class TrackingDataset:
         return self._engine
 
     @property
-    def tracking(self) -> Union[pl.DataFrame, pl.LazyFrame, "SparkDataFrame"]:
-        """Get tracking data (DataFrame or LazyFrame).
-
-        Returns the collected DataFrame if collect() was previously called,
-        otherwise returns the original LazyFrame.
-        """
+    def tracking(self) -> Union[pl.DataFrame, "SparkDataFrame"]:
+        """Get tracking data as a DataFrame."""
         if self._collected_df is not None:
             return self._collected_df
         return self._tracking

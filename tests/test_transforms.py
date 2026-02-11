@@ -577,6 +577,7 @@ class TestTransformCombined:
         assert row["y"][0] == pytest.approx(expected_y, abs=0.1)
 
 
+@pytest.mark.skip(reason="lazy/cache disabled — see DISABLED_FEATURES.md")
 class TestTransformLazy:
     """Test transform with lazy DataFrames."""
 
