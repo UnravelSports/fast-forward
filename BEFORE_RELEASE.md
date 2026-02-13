@@ -2,8 +2,15 @@
 
 ## ### TODO:
 
-- [ ] Host Docs on readthedocs.io
+- [ ] git Host Docs on readthedocs.io
 - [ ] Reset github repo to completely clean main branch, no commit history
+
+## Version Bump
+
+- [ ] **Update version in all three locations** (they must match):
+  - `rust/Cargo.toml` → `version = "X.Y.Z"` (source of `__version__` in Python)
+  - `pyproject.toml` → `version = "X.Y.Z"` (local dev install metadata)
+  - `rust/.github/workflows/build-wheels.yml` → all inline `version = "X.Y.Z"` in the `cat > pyproject.toml` blocks
 
 ## Build Matrix (Currently Minimal for Testing)
 
@@ -47,6 +54,14 @@
 
 - [ ] Re-enable lazy loading (`lazy=True`) — remove `NotImplementedError` guards
 - [ ] Re-enable cache loading (`from_cache=True`) — remove guards, re-add cache exports to `__init__.py`
+
+## Release Push Order
+
+**Always push in this order:**
+1. **Public repo (`fast-forward`) first** — no CI triggers on push, but ensures latest Python code is available
+2. **Private repo (`fast-forward-rs`) second** — tag push triggers `build-wheels.yml`, which clones the public repo's branch for Python source
+
+If you push the private repo first, its workflow will clone stale Python code from the public repo.
 
 ## Workflow Triggers
 

@@ -8,6 +8,10 @@ Fast tracking data loader using Rust. Supports multiple providers: SecondSpectru
 pip install fast-forward
 ```
 
+```
+pip install fast-forward --find-links https://github.com/UnravelSports/fast-forward/releases/latest
+```
+
 ## Usage
 
 ```python
