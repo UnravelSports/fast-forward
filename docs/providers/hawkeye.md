@@ -5,7 +5,7 @@ Load tracking data from **HawkEye** per-minute file format.
 ## Function Signature
 
 ```python
-from kloppy_light import hawkeye
+from fastforward import hawkeye
 
 dataset = hawkeye.load_tracking(
     ball_data=["period1_minute1.ball", "period1_minute2.ball"],
@@ -43,7 +43,7 @@ HawkEye uses **per-minute files** — separate files for each minute of each per
 
 ## Directory Loading
 
-Instead of listing individual files, you can pass a directory path. kloppy-light will discover and sort files automatically:
+Instead of listing individual files, you can pass a directory path. fast-forward will discover and sort files automatically:
 
 ```python
 dataset = hawkeye.load_tracking(
@@ -81,7 +81,7 @@ metadata = hawkeye.load_metadata_only(
 ## Example
 
 ```python
-from kloppy_light import hawkeye
+from fastforward import hawkeye
 
 dataset = hawkeye.load_tracking(
     ball_data="/data/match/",

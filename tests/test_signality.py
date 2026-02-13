@@ -2,7 +2,7 @@
 import pytest
 import polars as pl
 
-from kloppy_light import signality
+from fastforward import signality
 from tests.config import (
     SIG_META as META_DATA,
     SIG_VENUE as VENUE_INFO,
@@ -243,6 +243,55 @@ class TestSignalityParameters:
 
         # Signality coordinates are same as CDF
         assert metadata_df["coordinate_system"][0] == "signality"
+
+
+class TestPeriodsDataFrame:
+    """Tests for the periods DataFrame."""
+
+    @pytest.fixture
+    def dataset(self):
+        """Load and return the dataset."""
+        return signality.load_tracking(
+            meta_data=META_DATA,
+            raw_data_feeds=RAW_DATA_FEEDS,
+            venue_information=VENUE_INFO,
+            only_alive=False,
+        )
+
+    @pytest.fixture
+    def periods_df(self, dataset):
+        """Return the periods DataFrame."""
+        return dataset.periods
+
+    def test_has_two_periods(self, periods_df):
+        """Test that periods_df has 2 periods."""
+        assert periods_df.height == 2
+
+    def test_schema(self, periods_df):
+        """Test that periods_df has expected columns."""
+        expected_columns = {
+            "game_id", "period_id", "start_frame_id", "end_frame_id",
+            "start_timestamp", "end_timestamp", "duration",
+        }
+        assert set(periods_df.columns) == expected_columns
+
+    def test_period_timing(self, periods_df):
+        """Test that all periods have correct timing values."""
+        from datetime import timedelta
+
+        periods = periods_df.sort("period_id")
+
+        # Period 1
+        p1 = periods.row(0, named=True)
+        assert p1["start_timestamp"] == timedelta(milliseconds=12)
+        assert p1["end_timestamp"] == timedelta(milliseconds=2922450)
+        assert p1["duration"] == timedelta(milliseconds=2922438)
+
+        # Period 2
+        p2 = periods.row(1, named=True)
+        assert p2["start_timestamp"] == timedelta(milliseconds=12)
+        assert p2["end_timestamp"] == timedelta(milliseconds=2965955)
+        assert p2["duration"] == timedelta(milliseconds=2965943)
 
 
 class TestSignalityData:

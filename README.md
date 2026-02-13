@@ -1,17 +1,17 @@
-# kloppy-light
+# fast-forward
 
 Fast tracking data loader using Rust. Supports multiple providers: SecondSpectrum, SkillCorner, Sportec, Tracab, HawkEye, CDF, GradientSports, Signality, and StatsPerform.
 
 ## Installation
 
 ```bash
-pip install kloppy-light
+pip install fast-forward
 ```
 
 ## Usage
 
 ```python
-from kloppy_light import secondspectrum, skillcorner, sportec, tracab, hawkeye, cdf, gradientsports, signality, statsperform
+from fastforward import secondspectrum, skillcorner, sportec, tracab, hawkeye, cdf, gradientsports, signality, statsperform
 
 # Load tracking data (example with SecondSpectrum)
 dataset = secondspectrum.load_tracking(

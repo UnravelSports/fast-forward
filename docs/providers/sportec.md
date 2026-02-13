@@ -5,7 +5,7 @@ Load tracking data from **Sportec** XML format (used in the Bundesliga).
 ## Function Signature
 
 ```python
-from kloppy_light import sportec
+from fastforward import sportec
 
 dataset = sportec.load_tracking(
     raw_data="tracking.xml",
@@ -36,7 +36,7 @@ dataset = sportec.load_tracking(
 ## Example
 
 ```python
-from kloppy_light import sportec
+from fastforward import sportec
 
 dataset = sportec.load_tracking(
     raw_data="sportec_positional.xml",

@@ -5,7 +5,7 @@ Load tracking data from **Tracab** format. Supports multiple file format variant
 ## Function Signature
 
 ```python
-from kloppy_light import tracab
+from fastforward import tracab
 
 dataset = tracab.load_tracking(
     raw_data="tracking.dat",
@@ -41,7 +41,7 @@ dataset = tracab.load_tracking(
 ## Example
 
 ```python
-from kloppy_light import tracab
+from fastforward import tracab
 
 # DAT + XML (most common)
 dataset = tracab.load_tracking(
@@ -60,6 +60,6 @@ print(dataset.tracking.head())
 
 ## Notes
 
-- Tracab natively uses **centimeters** with center origin. kloppy-light automatically converts to the target coordinate system (CDF meters by default)
+- Tracab natively uses **centimeters** with center origin. fast-forward automatically converts to the target coordinate system (CDF meters by default)
 - Player information may not be fully available in the metadata file. Players are automatically extracted from the tracking data during loading
 - Multiple metadata XML structures are supported (hierarchical and flat) and auto-detected

@@ -1,12 +1,16 @@
+---
+hide:
+  - title
+---
 <p align="center">
-  <img src="assets/logos/fastforward-gradient-logo.png" alt="kloppy-light" width="600">
+  <img src="assets/logos/fastforward-gradient-logo.png" alt="fast-forward" width="600">
 </p>
-
-# kloppy-light
 
 **Fast, Rust-powered tracking data loader for soccer analytics.**
 
-kloppy-light loads tracking data from all major providers into [Polars](https://pola.rs/) DataFrames with a unified API. Built on a Rust core for speed, it handles parsing, coordinate transformations, and orientation normalization out of the box.
+fast-forward loads tracking data from all major providers into [Polars](https://pola.rs/) DataFrames with a unified API. Built on a Rust core for speed, it handles parsing, coordinate transformations, and orientation normalization out of the box.
+
+``pip install fast-forward``
 
 ## Key Features
 
@@ -19,14 +23,14 @@ kloppy-light loads tracking data from all major providers into [Polars](https://
 
 ## Benchmarks
 
-kloppy-light's Rust core is significantly faster than pure-Python alternatives. See the full [Benchmarks](benchmarks.md) page for details.
+fast-forward's Rust core is significantly faster than pure-Python alternatives. See the full [Benchmarks](benchmarks.md) page for details.
 
 ![Load Time Benchmark](assets/images/benchmark_load_time.png)
 
 ## Quick Example
 
 ```python
-from kloppy_light import secondspectrum
+from fastforward import secondspectrum
 
 dataset = secondspectrum.load_tracking(
     raw_data="tracking.jsonl",
@@ -49,18 +53,18 @@ transformed = dataset.transform(
 
 ## Supported Providers
 
-| Provider | Format | Files Required |
-|----------|--------|----------------|
-| [CDF](providers/cdf.md) | JSONL + JSON | 2 |
-| [GradientSports](providers/gradientsports.md) | JSONL + JSON | 3 |
-| [HawkEye](providers/hawkeye.md) | Per-minute text + JSON/XML | Multiple |
-| [Respovision](providers/respovision.md) | JSONL (embedded metadata) | 1 |
-| [SecondSpectrum](providers/secondspectrum.md) | JSONL + JSON | 2 |
-| [Signality](providers/signality.md) | JSON (per-period) | 3+ |
-| [SkillCorner](providers/skillcorner.md) | JSONL + JSON | 2 |
-| [Sportec](providers/sportec.md) | XML | 2 |
-| [StatsPerform](providers/statsperform.md) | MA25 text + MA1 JSON/XML | 2 |
-| [Tracab](providers/tracab.md) | DAT/JSON + XML/JSON | 2 |
+| Provider                                   | Format                     | Files Required |
+| ------------------------------------------ | -------------------------- | -------------- |
+| [CDF](providers/cdf.md)                       | JSONL + JSON               | 2              |
+| [GradientSports](providers/gradientsports.md) | JSONL + JSON               | 3              |
+| [HawkEye](providers/hawkeye.md)               | Per-minute text + JSON/XML | Multiple       |
+| [Respovision](providers/respovision.md)       | JSONL (embedded metadata)  | 1              |
+| [SecondSpectrum](providers/secondspectrum.md) | JSONL + JSON               | 2              |
+| [Signality](providers/signality.md)           | JSON (per-period)          | 3+             |
+| [SkillCorner](providers/skillcorner.md)       | JSONL + JSON               | 2              |
+| [Sportec](providers/sportec.md)               | XML                        | 2              |
+| [StatsPerform](providers/statsperform.md)     | MA25 text + MA1 JSON/XML   | 2              |
+| [Tracab](providers/tracab.md)                 | DAT/JSON + XML/JSON        | 2              |
 
 ## Next Steps
 

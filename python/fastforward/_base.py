@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Tuple, Uni
 import polars as pl
 from kloppy.io import FileLike, open_as_file
 
-from kloppy_light._dataset import TrackingDataset
+from fastforward._dataset import TrackingDataset
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
@@ -33,7 +33,7 @@ def register_provider(
     name : str
         Provider name (e.g., "secondspectrum")
     rust_module : Any
-        The Rust module (e.g., _kloppy_light.secondspectrum)
+        The Rust module (e.g., _fastforward.secondspectrum)
     metadata_params : list of str, optional
         Extra parameter names to pass to load_metadata_only
     tracking_params : list of str, optional
@@ -205,13 +205,13 @@ def load_tracking_impl(
         metadata, teams, players, periods
     """
     if lazy:
-        raise NotImplementedError("lazy loading is not yet supported in kloppy-light")
+        raise NotImplementedError("lazy loading is not yet supported in fast-forward")
     if from_cache:
-        raise NotImplementedError("cache loading is not yet supported in kloppy-light")
+        raise NotImplementedError("cache loading is not yet supported in fast-forward")
 
-    from kloppy_light._lazy import create_lazy_tracking, _is_local_file
-    from kloppy_light._schema import get_tracking_schema
-    from kloppy_light._cache import (
+    from fastforward._lazy import create_lazy_tracking, _is_local_file
+    from fastforward._schema import get_tracking_schema
+    from fastforward._cache import (
         compute_cache_key_fast,
         compute_cache_key,
         get_cache_path,
@@ -219,7 +219,7 @@ def load_tracking_impl(
         read_cache,
         CACHE_SCHEMA_VERSION,
     )
-    from kloppy_light._engine import validate_engine, polars_to_spark, get_spark_session
+    from fastforward._engine import validate_engine, polars_to_spark, get_spark_session
 
     # Validate engine parameter
     engine = validate_engine(engine)
@@ -450,12 +450,12 @@ def load_tracking_impl(
 
 def _register_standard_providers() -> None:
     """Register the standard providers at module load time."""
-    from kloppy_light._kloppy_light import cdf as _cdf
-    from kloppy_light._kloppy_light import gradientsports as _gs
-    from kloppy_light._kloppy_light import secondspectrum as _ss
-    from kloppy_light._kloppy_light import skillcorner as _sc
-    from kloppy_light._kloppy_light import sportec as _sp
-    from kloppy_light._kloppy_light import tracab as _tr
+    from fastforward._fastforward import cdf as _cdf
+    from fastforward._fastforward import gradientsports as _gs
+    from fastforward._fastforward import secondspectrum as _ss
+    from fastforward._fastforward import skillcorner as _sc
+    from fastforward._fastforward import sportec as _sp
+    from fastforward._fastforward import tracab as _tr
 
     register_provider(
         name="cdf",

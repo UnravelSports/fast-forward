@@ -3,13 +3,13 @@
 ## Installation
 
 ```bash
-pip install kloppy-light
+pip install fast-forward
 ```
 
 For PySpark support:
 
 ```bash
-pip install kloppy-light[pyspark]
+pip install fast-forward[pyspark]
 ```
 
 !!! note "Requirements"
@@ -21,7 +21,7 @@ pip install kloppy-light[pyspark]
 Every provider has a `load_tracking()` function that returns a `TrackingDataset`:
 
 ```python
-from kloppy_light import secondspectrum
+from fastforward import secondspectrum
 
 dataset = secondspectrum.load_tracking(
     raw_data="path/to/tracking.jsonl",

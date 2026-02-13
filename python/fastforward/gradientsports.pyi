@@ -1,4 +1,4 @@
-"""Type stubs for kloppy_light.gradientsports"""
+"""Type stubs for fastforward.gradientsports"""
 
 from typing import Literal, Union
 

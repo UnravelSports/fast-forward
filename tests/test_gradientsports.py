@@ -3,7 +3,7 @@
 import pytest
 import polars as pl
 
-from kloppy_light import gradientsports
+from fastforward import gradientsports
 from tests.config import (
     GS_RAW as RAW_DATA_PATH,
     GS_META as META_DATA_PATH,
@@ -16,7 +16,7 @@ class TestLoadTracking:
 
     def test_returns_tracking_dataset(self):
         """Test that load_tracking returns a TrackingDataset object."""
-        from kloppy_light._dataset import TrackingDataset
+        from fastforward._dataset import TrackingDataset
 
         result = gradientsports.load_tracking(
             RAW_DATA_PATH, META_DATA_PATH, ROSTER_DATA_PATH, lazy=False
@@ -746,6 +746,9 @@ class TestPeriodsDataFrame:
             "period_id",
             "start_frame_id",
             "end_frame_id",
+            "start_timestamp",
+            "end_timestamp",
+            "duration",
         }
         assert set(periods_df.columns) == expected_columns
 
@@ -759,6 +762,36 @@ class TestPeriodsDataFrame:
         period_1 = periods_df.filter(pl.col("period_id") == 1)
         assert period_1["start_frame_id"][0] == 4630
         assert period_1["end_frame_id"][0] == 99119
+
+    def test_period_timing(self, periods_df):
+        """Test that all periods have correct timing values."""
+        from datetime import timedelta
+
+        periods = periods_df.sort("period_id")
+
+        # Period 1
+        p1 = periods.row(0, named=True)
+        assert p1["start_timestamp"] == timedelta(milliseconds=0)
+        assert p1["end_timestamp"] == timedelta(milliseconds=3152786)
+        assert p1["duration"] == timedelta(milliseconds=3152786)
+
+        # Period 2
+        p2 = periods.row(1, named=True)
+        assert p2["start_timestamp"] == timedelta(milliseconds=33)
+        assert p2["end_timestamp"] == timedelta(milliseconds=3216549)
+        assert p2["duration"] == timedelta(milliseconds=3216516)
+
+        # Period 3
+        p3 = periods.row(2, named=True)
+        assert p3["start_timestamp"] == timedelta(milliseconds=0)
+        assert p3["end_timestamp"] == timedelta(milliseconds=965165)
+        assert p3["duration"] == timedelta(milliseconds=965165)
+
+        # Period 4
+        p4 = periods.row(3, named=True)
+        assert p4["start_timestamp"] == timedelta(milliseconds=32)
+        assert p4["end_timestamp"] == timedelta(milliseconds=1148614)
+        assert p4["duration"] == timedelta(milliseconds=1148582)
 
 
 class TestIncludeIncompleteFrames:

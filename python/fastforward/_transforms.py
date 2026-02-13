@@ -5,7 +5,7 @@ of tracking data.
 """
 
 import polars as pl
-from kloppy_light._kloppy_light import transforms as _rust_transforms
+from fastforward._fastforward import transforms as _rust_transforms
 
 
 def transform_coordinates(

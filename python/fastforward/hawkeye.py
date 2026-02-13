@@ -14,14 +14,14 @@ import polars as pl
 
 from kloppy.io import FileLike, open_as_file
 
-from kloppy_light._base import (
+from fastforward._base import (
     discover_files_in_directory,
     get_filename_from_filelike,
 )
-from kloppy_light._kloppy_light import hawkeye as _hawkeye
-from kloppy_light._lazy import create_lazy_tracking_hawkeye, _is_local_file
-from kloppy_light._schema import get_tracking_schema
-from kloppy_light._dataset import TrackingDataset
+from fastforward._fastforward import hawkeye as _hawkeye
+from fastforward._lazy import create_lazy_tracking_hawkeye, _is_local_file
+from fastforward._schema import get_tracking_schema
+from fastforward._dataset import TrackingDataset
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
@@ -157,15 +157,15 @@ def load_tracking(
     >>> dataset = load_tracking(ball_files, player_files, "hawkeye_meta.json", engine="pyspark")
     >>> dataset.tracking.show(5)
     """
-    from kloppy_light._engine import validate_engine, polars_to_spark, get_spark_session
+    from fastforward._engine import validate_engine, polars_to_spark, get_spark_session
 
     # Validate engine parameter
     engine = validate_engine(engine)
 
     if lazy:
-        raise NotImplementedError("lazy loading is not yet supported in kloppy-light")
+        raise NotImplementedError("lazy loading is not yet supported in fast-forward")
     if from_cache:
-        raise NotImplementedError("cache loading is not yet supported in kloppy-light")
+        raise NotImplementedError("cache loading is not yet supported in fast-forward")
 
     # Wide format doesn't support lazy loading - column names are game-specific
     if lazy and layout == "wide":
@@ -216,7 +216,7 @@ def load_tracking(
         is_local = all(_is_local_file(f) for f in all_files)
 
         if is_local:
-            from kloppy_light._cache import compute_cache_key_fast_multi
+            from fastforward._cache import compute_cache_key_fast_multi
 
             all_paths = [str(f) for f in ball_data_processed] + [str(f) for f in player_data_processed]
             try:
@@ -229,7 +229,7 @@ def load_tracking(
 
         # Check for cache hit if from_cache=True
         if from_cache and cache_key:
-            from kloppy_light._cache import cache_exists, get_cache_path, read_cache
+            from fastforward._cache import cache_exists, get_cache_path, read_cache
 
             cache_path = get_cache_path(cache_key, "hawkeye")
             if cache_exists(cache_path):
@@ -372,7 +372,7 @@ def load_tracking(
     all_files = list(ball_data_list) + list(player_data_list) + [meta_data]
     is_local = all(_is_local_file(f) for f in all_files)
     if is_local:
-        from kloppy_light._cache import compute_cache_key_fast_multi
+        from fastforward._cache import compute_cache_key_fast_multi
 
         config_str = (
             f"{layout}|{coordinates}|{orientation}|{only_alive}|"

@@ -1,6 +1,6 @@
 # Benchmarks
 
-Performance comparison between **kloppy-light** (Rust core) and **kloppy** (pure Python) across all supported providers.
+Performance comparison between **fast-forward** (Rust core) and **kloppy** (pure Python) across all supported providers.
 
 ## Load Time
 
@@ -28,7 +28,7 @@ Load time normalized by the number of frames, showing per-frame overhead indepen
 - **Layout**: wide (one row per frame, all players as columns)
 - **Providers**: sorted by input file size (ascending, left to right)
 - **Configurations**:
-    - **kloppy-light (Rust) - eager parallel**: Rust-based parsing with parallel I/O where applicable
+    - **fast-forward (Rust) - eager parallel**: Rust-based parsing with parallel I/O where applicable
     - **kloppy - provider coordinates & to_df polars**: kloppy loading in provider-native coordinates, converted to Polars
     - **kloppy - default coordinates & to_df polars**: kloppy loading with default coordinate transformation, converted to Polars
 - **FPS**: shown per provider on the x-axis (affects frame count for same-duration matches)

@@ -5,7 +5,7 @@ supporting both MA25 tracking files and MA1 metadata (JSON or XML format).
 
 Example
 -------
-    from kloppy_light import statsperform
+    from fastforward import statsperform
 
     # Load tracking data with MA1 JSON metadata
     dataset = statsperform.load_tracking(
@@ -26,9 +26,9 @@ from typing import Literal, Optional, Union
 import polars as pl
 from kloppy.io import FileLike, open_as_file
 
-from kloppy_light._kloppy_light import statsperform as _statsperform
-from kloppy_light._dataset import TrackingDataset
-from kloppy_light._schema import get_tracking_schema
+from fastforward._fastforward import statsperform as _statsperform
+from fastforward._dataset import TrackingDataset
+from fastforward._schema import get_tracking_schema
 
 
 def load_tracking(
@@ -119,7 +119,7 @@ def load_tracking(
     The MA1 metadata format is auto-detected (JSON or XML) based on content.
     """
     if lazy:
-        raise NotImplementedError("lazy loading is not yet supported in kloppy-light")
+        raise NotImplementedError("lazy loading is not yet supported in fast-forward")
 
     # Wide format doesn't support lazy loading - column names are game-specific
     if lazy and layout == "wide":

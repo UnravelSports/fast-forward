@@ -1,4 +1,4 @@
-"""Type stubs for kloppy_light.skillcorner"""
+"""Type stubs for fastforward.skillcorner"""
 
 from typing import Literal, Union
 import polars as pl

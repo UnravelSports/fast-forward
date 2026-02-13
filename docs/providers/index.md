@@ -1,6 +1,6 @@
 # Providers
 
-kloppy-light supports 10 tracking data providers. Each provider has a `load_tracking()` function that returns a [`TrackingDataset`](../concepts/dataset.md).
+fast-forward supports 10 tracking data providers. Each provider has a `load_tracking()` function that returns a [`TrackingDataset`](../concepts/dataset.md).
 
 ## Comparison Table
 
@@ -34,7 +34,7 @@ All providers share these parameters:
 ## Usage Pattern
 
 ```python
-from kloppy_light import secondspectrum  # or any provider
+from fastforward import secondspectrum  # or any provider
 
 dataset = secondspectrum.load_tracking(
     raw_data="tracking.jsonl",

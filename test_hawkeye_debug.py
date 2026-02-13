@@ -1,6 +1,6 @@
 """Debug script to test HawkEye single file loading."""
 
-from kloppy_light import hawkeye
+from fastforward import hawkeye
 import polars as pl
 from pathlib import Path
 

@@ -3,8 +3,8 @@
 import pytest
 import polars as pl
 
-from kloppy_light import secondspectrum
-from kloppy_light._dataset import TrackingDataset
+from fastforward import secondspectrum
+from fastforward._dataset import TrackingDataset
 from tests.config import (
     DATA_DIR,
     SS_RAW_ANON as RAW_DATA_PATH,
@@ -133,7 +133,7 @@ class TestPeriodsDataFrame:
     def test_periods_schema(self, dataset):
         """Test that periods DataFrame has correct schema."""
         # game_id is included by default (include_game_id=True)
-        expected_columns = {"game_id", "period_id", "start_frame_id", "end_frame_id"}
+        expected_columns = {"game_id", "period_id", "start_frame_id", "end_frame_id", "start_timestamp", "end_timestamp", "duration"}
         assert set(dataset.periods.columns) == expected_columns
 
     def test_periods_has_rows(self, dataset):
@@ -272,7 +272,7 @@ class TestTrackingDatasetWithDifferentProviders:
 
     def test_skillcorner_returns_dataset(self):
         """Test that SkillCorner returns TrackingDataset."""
-        from kloppy_light import skillcorner
+        from fastforward import skillcorner
 
         sc_raw = str(DATA_DIR / "skillcorner_tracking.jsonl")
         sc_meta = str(DATA_DIR / "skillcorner_meta.json")
@@ -284,7 +284,7 @@ class TestTrackingDatasetWithDifferentProviders:
 
     def test_sportec_returns_dataset(self):
         """Test that Sportec returns TrackingDataset."""
-        from kloppy_light import sportec
+        from fastforward import sportec
 
         sp_raw = str(DATA_DIR / "sportec_positional.xml")
         sp_meta = str(DATA_DIR / "sportec_meta.xml")
@@ -296,7 +296,7 @@ class TestTrackingDatasetWithDifferentProviders:
 
     def test_hawkeye_returns_dataset(self):
         """Test that HawkEye returns TrackingDataset."""
-        from kloppy_light import hawkeye
+        from fastforward import hawkeye
 
         ball_files = [
             str(DATA_DIR / "hawkeye_1_1.football.samples.ball"),

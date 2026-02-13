@@ -1,4 +1,4 @@
-# kloppy-light Development Guide
+# fast-forward Development Guide
 
 ## Before Launch
 
@@ -17,7 +17,7 @@
 ## API
 
 ```python
-from kloppy_light import secondspectrum, skillcorner, sportec, tracab, hawkeye, cdf, gradientsports, signality, statsperform, respovision
+from fastforward import secondspectrum, skillcorner, sportec, tracab, hawkeye, cdf, gradientsports, signality, statsperform, respovision
 
 # SecondSpectrum
 dataset = secondspectrum.load_tracking(
@@ -154,7 +154,7 @@ True lazy loading with `pl.LazyFrame` - full Polars API available:
 
 ```python
 import polars as pl
-from kloppy_light import secondspectrum
+from fastforward import secondspectrum
 
 # Lazy loading - returns LazyFrame
 dataset = secondspectrum.load_tracking(
@@ -186,11 +186,11 @@ df = dataset.collect()
 Cache parsed tracking data for faster subsequent loads:
 
 ```python
-import kloppy_light
-from kloppy_light import tracab
+import fastforward
+from fastforward import tracab
 
 # Optional: Set custom cache directory
-kloppy_light.set_cache_dir("/path/to/cache")
+fastforward.set_cache_dir("/path/to/cache")
 # Or use environment variable: KLOPPY_LIGHT_CACHE_DIR=/path/to/cache
 
 # First load: parse from source
@@ -201,10 +201,10 @@ dataset.write_cache()  # Write to cache
 dataset = tracab.load_tracking("tracking.dat", "meta.xml", from_cache=True)
 
 # Cache management functions
-kloppy_light.get_cache_dir()      # Get current cache directory
-kloppy_light.get_cache_size()     # Total cache size in bytes
-kloppy_light.clear_cache()        # Clear all cached files
-kloppy_light.clear_cache("tracab") # Clear only tracab cache
+fastforward.get_cache_dir()      # Get current cache directory
+fastforward.get_cache_size()     # Total cache size in bytes
+fastforward.clear_cache()        # Clear all cached files
+fastforward.clear_cache("tracab") # Clear only tracab cache
 ```
 
 ## PySpark Engine
@@ -212,7 +212,7 @@ kloppy_light.clear_cache("tracab") # Clear only tracab cache
 For distributed processing, use the PySpark engine:
 
 ```python
-from kloppy_light import secondspectrum
+from fastforward import secondspectrum
 
 # Load as PySpark DataFrames
 dataset = secondspectrum.load_tracking(
@@ -231,7 +231,7 @@ spark_dataset = dataset.to_pyspark()   # Convert to PySpark
 print(dataset.engine)  # "polars" or "pyspark"
 ```
 
-Install PySpark support: `pip install kloppy-light[pyspark]`
+Install PySpark support: `pip install fast-forward[pyspark]`
 
 ## DataFrame Schemas
 
@@ -350,9 +350,9 @@ For each new provider:
    - Register submodule in `src/lib.rs`
 3. **Python interface**:
 
-   - Create Python wrapper: `python/kloppy_light/{provider}.py`
-   - Export in `python/kloppy_light/__init__.py`
-   - Create type stubs: `python/kloppy_light/{provider}.pyi`
+   - Create Python wrapper: `python/fastforward/{provider}.py`
+   - Export in `python/fastforward/__init__.py`
+   - Create type stubs: `python/fastforward/{provider}.pyi`
 4. **Testing**:
 
    - Add tests: `tests/test_{provider}.py`

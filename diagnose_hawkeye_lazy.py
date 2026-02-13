@@ -3,7 +3,7 @@
 This script helps identify why lazy loading might appear to return empty dataframes.
 """
 
-from kloppy_light import hawkeye
+from fastforward import hawkeye
 import polars as pl
 from pathlib import Path
 import sys

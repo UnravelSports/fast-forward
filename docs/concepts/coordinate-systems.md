@@ -1,6 +1,6 @@
 # Coordinate Systems
 
-kloppy-light supports 14 named coordinate systems that map to 6 unique coordinate system definitions. Many providers use the same underlying system (CDF), just with different names.
+fast-forward supports 14 named coordinate systems that map to 6 unique coordinate system definitions. Many providers use the same underlying system (CDF), just with different names.
 
 ## Alias Table
 

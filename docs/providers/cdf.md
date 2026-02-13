@@ -1,11 +1,11 @@
 # CDF
 
-The **Common Data Format (CDF)** is kloppy-light's internal standardized format. Use this provider to load data that is already in CDF format.
+The **Common Data Format (CDF)** is fast-forward's internal standardized format. Use this provider to load data that is already in CDF format.
 
 ## Function Signature
 
 ```python
-from kloppy_light import cdf
+from fastforward import cdf
 
 dataset = cdf.load_tracking(
     raw_data="tracking.jsonl",
@@ -36,7 +36,7 @@ dataset = cdf.load_tracking(
 ## Example
 
 ```python
-from kloppy_light import cdf
+from fastforward import cdf
 
 dataset = cdf.load_tracking(
     raw_data="cdf_tracking.jsonl",

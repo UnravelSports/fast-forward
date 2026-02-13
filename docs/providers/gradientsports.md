@@ -5,7 +5,7 @@ Load tracking data from **GradientSports (PFF)** format.
 ## Function Signature
 
 ```python
-from kloppy_light import gradientsports
+from fastforward import gradientsports
 
 dataset = gradientsports.load_tracking(
     raw_data="tracking.jsonl",
@@ -40,7 +40,7 @@ dataset = gradientsports.load_tracking(
 ## Example
 
 ```python
-from kloppy_light import gradientsports
+from fastforward import gradientsports
 
 dataset = gradientsports.load_tracking(
     raw_data="pff_tracking.jsonl",

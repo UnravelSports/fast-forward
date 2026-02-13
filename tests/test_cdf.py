@@ -3,7 +3,7 @@
 import pytest
 import polars as pl
 
-from kloppy_light import cdf
+from fastforward import cdf
 from tests.config import (
     CDF_RAW as RAW_DATA_PATH,
     CDF_META as META_DATA_PATH,
@@ -15,7 +15,7 @@ class TestLoadTracking:
 
     def test_returns_tracking_dataset(self):
         """Test that load_tracking returns a TrackingDataset object."""
-        from kloppy_light._dataset import TrackingDataset
+        from fastforward._dataset import TrackingDataset
 
         result = cdf.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
 
@@ -635,6 +635,9 @@ class TestPeriodsDataFrame:
             "period_id",
             "start_frame_id",
             "end_frame_id",
+            "start_timestamp",
+            "end_timestamp",
+            "duration",
         }
         assert set(periods_df.columns) == expected_columns
 
@@ -642,3 +645,21 @@ class TestPeriodsDataFrame:
         """Test period IDs are 1 and 2."""
         period_ids = sorted(periods_df["period_id"].to_list())
         assert period_ids == [1, 2]
+
+    def test_period_timing(self, periods_df):
+        """Test that all periods have correct timing values."""
+        from datetime import timedelta
+
+        periods = periods_df.sort("period_id")
+
+        # Period 1
+        p1 = periods.row(0, named=True)
+        assert p1["start_timestamp"] == timedelta(milliseconds=2000)
+        assert p1["end_timestamp"] == timedelta(milliseconds=3900)
+        assert p1["duration"] == timedelta(milliseconds=1900)
+
+        # Period 2
+        p2 = periods.row(1, named=True)
+        assert p2["start_timestamp"] == timedelta(milliseconds=-3022700)
+        assert p2["end_timestamp"] == timedelta(milliseconds=-3020000)
+        assert p2["duration"] == timedelta(milliseconds=2700)

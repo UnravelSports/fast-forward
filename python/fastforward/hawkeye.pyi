@@ -1,4 +1,4 @@
-"""Type stubs for kloppy_light.hawkeye"""
+"""Type stubs for fastforward.hawkeye"""
 
 from typing import List, Literal, Union
 import polars as pl

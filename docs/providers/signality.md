@@ -5,7 +5,7 @@ Load tracking data from **Signality** per-period JSON format.
 ## Function Signature
 
 ```python
-from kloppy_light import signality
+from fastforward import signality
 
 dataset = signality.load_tracking(
     meta_data="metadata.json",
@@ -52,7 +52,7 @@ metadata = signality.load_metadata_only(
 ## Example
 
 ```python
-from kloppy_light import signality
+from fastforward import signality
 
 dataset = signality.load_tracking(
     meta_data="signality_meta_data.json",

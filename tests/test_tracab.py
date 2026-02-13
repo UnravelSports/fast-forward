@@ -4,7 +4,7 @@ import pytest
 import polars as pl
 import datetime
 
-from kloppy_light import tracab
+from fastforward import tracab
 from tests.config import (
     TR_META_XML as META_XML_PATH,
     TR_META_JSON as META_JSON_PATH,
@@ -21,7 +21,7 @@ class TestLoadTracking:
 
     def test_returns_dataset(self):
         """Test that load_tracking returns a TrackingDataset."""
-        from kloppy_light import TrackingDataset
+        from fastforward import TrackingDataset
 
         dataset = tracab.load_tracking(RAW_DAT_PATH, META_XML_PATH, lazy=False)
 
@@ -206,8 +206,29 @@ class TestPeriodsDataFrame:
             "period_id",
             "start_frame_id",
             "end_frame_id",
+            "start_timestamp",
+            "end_timestamp",
+            "duration",
         }
         assert set(periods_df.columns) == expected_columns
+
+    def test_period_timing(self, periods_df):
+        """Test that all periods have correct timing values."""
+        from datetime import timedelta
+
+        periods = periods_df.sort("period_id")
+
+        # Period 1: test data has 2 frames at 40ms and 80ms
+        p1 = periods.row(0, named=True)
+        assert p1["start_timestamp"] == timedelta(milliseconds=40)
+        assert p1["end_timestamp"] == timedelta(milliseconds=80)
+        assert p1["duration"] == timedelta(milliseconds=40)
+
+        # Period 2: no tracking frames in test data
+        p2 = periods.row(1, named=True)
+        assert p2["start_timestamp"] is None
+        assert p2["end_timestamp"] is None
+        assert p2["duration"] is None
 
 
 class TestTrackingDataFrameLong:

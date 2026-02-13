@@ -4,7 +4,7 @@ import pytest
 import polars as pl
 from pathlib import Path
 
-from kloppy_light import skillcorner, secondspectrum
+from fastforward import skillcorner, secondspectrum
 from tests.config import (
     DATA_DIR,
     SC_RAW_BOUNDARY as BOUNDARY_RAW_PATH,

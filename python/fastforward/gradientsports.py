@@ -5,9 +5,9 @@ from typing import Literal, Union
 import polars as pl
 from kloppy.io import FileLike, open_as_file
 
-from kloppy_light._kloppy_light import gradientsports as _gradientsports
-from kloppy_light._dataset import TrackingDataset
-from kloppy_light._schema import get_tracking_schema
+from fastforward._fastforward import gradientsports as _gradientsports
+from fastforward._dataset import TrackingDataset
+from fastforward._schema import get_tracking_schema
 
 
 def _create_lazy_tracking_gradientsports(
@@ -129,7 +129,7 @@ def load_tracking(
         Object with .tracking, .metadata, .teams, .players, .periods properties.
     """
     if lazy:
-        raise NotImplementedError("lazy loading is not yet supported in kloppy-light")
+        raise NotImplementedError("lazy loading is not yet supported in fast-forward")
         # Load metadata only
         with open_as_file(meta_data) as meta_file:
             meta_bytes = meta_file.read() if meta_file else b""

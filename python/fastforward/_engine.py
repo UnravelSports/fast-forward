@@ -1,7 +1,7 @@
 """Engine abstraction for DataFrame backends.
 
 This module provides utilities for converting between Polars and PySpark DataFrames,
-enabling kloppy-light to support multiple DataFrame engines.
+enabling fast-forward to support multiple DataFrame engines.
 """
 
 from typing import TYPE_CHECKING, Literal, Optional
@@ -57,7 +57,7 @@ def get_spark_session() -> "SparkSession":
     except ImportError:
         raise ImportError(
             "PySpark is required for engine='pyspark'. "
-            "Install with: pip install kloppy-light[pyspark]"
+            "Install with: pip install fast-forward[pyspark]"
         )
 
     return SparkSession.builder.getOrCreate()

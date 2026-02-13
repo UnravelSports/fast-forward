@@ -41,10 +41,10 @@ def set_cache_dir(path: Union[str, Path, None]) -> None:
               Pass None to reset to default behavior.
 
     Example:
-        >>> import kloppy_light
-        >>> kloppy_light.set_cache_dir("/my/cache/dir")
+        >>> import fastforward
+        >>> fastforward.set_cache_dir("/my/cache/dir")
         >>> # All subsequent cache operations use this directory
-        >>> kloppy_light.set_cache_dir(None)  # Reset to default
+        >>> fastforward.set_cache_dir(None)  # Reset to default
     """
     global _global_cache_dir
     _global_cache_dir = str(path) if path is not None else None
@@ -62,9 +62,9 @@ def get_cache_dir() -> Path:
         Path to the cache directory
 
     Example:
-        >>> import kloppy_light
-        >>> kloppy_light.get_cache_dir()
-        PosixPath('/Users/user/Library/Caches/kloppy-light')
+        >>> import fastforward
+        >>> fastforward.get_cache_dir()
+        PosixPath('/Users/user/Library/Caches/fast-forward')
     """
     if _global_cache_dir is not None:
         return Path(_global_cache_dir)
@@ -79,9 +79,9 @@ def get_default_cache_dir() -> Path:
     """Get default platform-specific cache directory.
 
     Returns platform-specific cache directory:
-    - Linux: ~/.cache/kloppy-light/
-    - macOS: ~/Library/Caches/kloppy-light/
-    - Windows: %LOCALAPPDATA%/kloppy-light/cache/
+    - Linux: ~/.cache/fast-forward/
+    - macOS: ~/Library/Caches/fast-forward/
+    - Windows: %LOCALAPPDATA%/fast-forward/cache/
 
     Note: Use get_cache_dir() to get the effective cache directory,
     which respects set_cache_dir() and KLOPPY_LIGHT_CACHE_DIR env var.
@@ -91,12 +91,12 @@ def get_default_cache_dir() -> Path:
         base = Path(
             os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local")
         )
-        return base / "kloppy-light" / "cache"
+        return base / "fast-forward" / "cache"
     elif system == "Darwin":
-        return Path.home() / "Library" / "Caches" / "kloppy-light"
+        return Path.home() / "Library" / "Caches" / "fast-forward"
     else:
         xdg_cache = os.environ.get("XDG_CACHE_HOME", str(Path.home() / ".cache"))
-        return Path(xdg_cache) / "kloppy-light"
+        return Path(xdg_cache) / "fast-forward"
 
 
 def compute_cache_key(

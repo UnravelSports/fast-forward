@@ -25,7 +25,7 @@ Compressed files (`.gz`, `.xz`, `.bz2`) are automatically decompressed.
 Every provider's `load_tracking()` function uses `FileLike` for its data inputs:
 
 ```python
-from kloppy_light import secondspectrum
+from fastforward import secondspectrum
 
 # From file paths
 dataset = secondspectrum.load_tracking("tracking.jsonl", "meta.xml")

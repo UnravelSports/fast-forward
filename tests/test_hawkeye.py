@@ -3,7 +3,7 @@ import pytest
 import polars as pl
 from pathlib import Path
 
-from kloppy_light import hawkeye
+from fastforward import hawkeye
 from tests.config import (
     HE_BALL_FILES as BALL_FILES,
     HE_PLAYER_FILES as PLAYER_FILES,
@@ -186,6 +186,50 @@ class TestHawkEyeParameters:
         # Note: actual metadata values may override these
         assert 'pitch_length' in metadata_df.columns
         assert 'pitch_width' in metadata_df.columns
+
+
+class TestPeriodsDataFrame:
+    """Tests for the periods DataFrame."""
+
+    @pytest.fixture
+    def dataset(self):
+        """Load and return the dataset."""
+        return hawkeye.load_tracking(BALL_FILES, PLAYER_FILES, META_JSON, lazy=False)
+
+    @pytest.fixture
+    def periods_df(self, dataset):
+        """Return the periods DataFrame."""
+        return dataset.periods
+
+    def test_has_two_periods(self, periods_df):
+        """Test that periods_df has 2 periods."""
+        assert periods_df.height == 2
+
+    def test_schema(self, periods_df):
+        """Test that periods_df has expected columns."""
+        expected_columns = {
+            "game_id", "period_id", "start_frame_id", "end_frame_id",
+            "start_timestamp", "end_timestamp", "duration",
+        }
+        assert set(periods_df.columns) == expected_columns
+
+    def test_period_timing(self, periods_df):
+        """Test that all periods have correct timing values."""
+        from datetime import timedelta
+
+        periods = periods_df.sort("period_id")
+
+        # Period 1
+        p1 = periods.row(0, named=True)
+        assert p1["start_timestamp"] == timedelta(milliseconds=0)
+        assert p1["end_timestamp"] == timedelta(milliseconds=59237)
+        assert p1["duration"] == timedelta(milliseconds=59237)
+
+        # Period 2
+        p2 = periods.row(1, named=True)
+        assert p2["start_timestamp"] == timedelta(milliseconds=0)
+        assert p2["end_timestamp"] == timedelta(milliseconds=59997)
+        assert p2["duration"] == timedelta(milliseconds=59997)
 
 
 class TestHawkEyeData:

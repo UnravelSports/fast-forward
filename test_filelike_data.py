@@ -8,7 +8,7 @@ def test_with_real_data():
     """Test FileLike integration with real data files."""
     print("Testing FileLike with actual data...")
 
-    from kloppy_light import secondspectrum
+    from fastforward import secondspectrum
 
     test_dir = Path("tests/files")
     raw_path = test_dir / "secondspectrum_tracking_anon.jsonl"
@@ -109,7 +109,7 @@ def test_with_real_data():
     # Test 6: Test with SkillCorner
     print("\n6. Testing SkillCorner with Path objects...")
     try:
-        from kloppy_light import skillcorner
+        from fastforward import skillcorner
 
         sc_raw = test_dir / "skillcorner_tracking.jsonl"
         sc_meta = test_dir / "skillcorner_meta.json"
@@ -133,7 +133,7 @@ def test_with_real_data():
     # Test 7: Test with Sportec
     print("\n7. Testing Sportec with bytes...")
     try:
-        from kloppy_light import sportec
+        from fastforward import sportec
 
         sp_raw = test_dir / "sportec_positional.xml"
         sp_meta = test_dir / "sportec_meta.xml"

@@ -5,7 +5,7 @@ Load tracking data from **Respovision** JSONL format. Unique among providers: me
 ## Function Signature
 
 ```python
-from kloppy_light import respovision
+from fastforward import respovision
 
 dataset = respovision.load_tracking(
     raw_data="20240714-HomeTeam-AwayTeam-tracking.jsonl",
@@ -49,7 +49,7 @@ Set `include_joint_angles=False` to exclude these columns.
 ## Example
 
 ```python
-from kloppy_light import respovision
+from fastforward import respovision
 
 dataset = respovision.load_tracking(
     raw_data="20240714-HomeTeam-AwayTeam-tracking.jsonl",

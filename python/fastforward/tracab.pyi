@@ -1,4 +1,4 @@
-"""Type stubs for kloppy_light.cdf"""
+"""Type stubs for fastforward.tracab"""
 
 from typing import Literal, Union
 import polars as pl
@@ -34,25 +34,29 @@ def load_tracking(
     only_alive: bool = True,
     include_game_id: Union[bool, str] = True,
     *,
-    lazy: bool = False,
+    lazy: bool = True,
 ) -> TrackingDataset:
     """
-    Load CDF (Common Data Format) tracking data.
+    Load Tracab tracking data.
+
+    Supports multiple metadata formats (XML hierarchical, XML flat, JSON)
+    and multiple raw data formats (DAT, JSON).
 
     Parameters
     ----------
     raw_data : str
-        Path to JSONL tracking file
+        Path to tracking data file (.dat or .json)
     meta_data : str
-        Path to JSON metadata file
+        Path to metadata file (.xml or .json)
     layout : {"long", "long_ball", "wide"}, default "long"
         DataFrame layout:
         - "long": Ball as row with team_id="ball", player_id="ball"
         - "long_ball": Ball in separate columns, only player rows
         - "wide": One row per frame, player_id in column names
-    coordinates : {"cdf"}, default "cdf"
+    coordinates : {"cdf", "tracab", ...}, default "cdf"
         Coordinate system:
-        - "cdf": Common Data Format (origin at center)
+        - "cdf": Common Data Format (origin at center, meters)
+        - "tracab": Tracab format (origin at center, centimeters)
     orientation : str, default "static_home_away"
         Coordinate orientation:
         - "static_home_away": Home attacks right (+x) entire match
@@ -63,11 +67,10 @@ def load_tracking(
         - "attack_left": Attacking team always attacks left
     only_alive : bool, default True
         If True, only include frames where ball is in play (ball_state == "alive")
-    include_game_id : Union[bool, str], default True
-        If True, add game_id column to tracking_df, team_df, and player_df from metadata.
-        If False, no game_id column is added.
-        If str, use the provided string as the game_id value.
-    lazy : bool, default False
+    include_game_id : bool or str, default True
+        Include game_id column. True uses metadata value,
+        False omits column, string uses custom value.
+    lazy : bool, default True
         If True, return a TrackingDataset with LazyTrackingLoader for tracking.
         If False, return a TrackingDataset with eager DataFrame for tracking.
 
@@ -81,7 +84,7 @@ def load_tracking(
         tracking_df: Tracking data in the specified layout
 
         metadata_df: Single row with match-level metadata:
-        - provider (str): Provider name ("cdf")
+        - provider (str): Provider name ("tracab")
         - game_id (str): Game identifier
         - game_date (date): Game date (nullable)
         - home_team (str): Home team name
@@ -91,8 +94,8 @@ def load_tracking(
         - pitch_length (f32): Pitch length in meters
         - pitch_width (f32): Pitch width in meters
         - fps (f32): Frames per second
-        - coordinate_system (str): Coordinate system ("cdf")
-        - orientation (str): Orientation ("static_home_away")
+        - coordinate_system (str): Coordinate system
+        - orientation (str): Orientation
 
         team_df: Team metadata (2 rows, home and away):
         - team_id (str): Team identifier

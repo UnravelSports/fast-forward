@@ -1,4 +1,4 @@
-"""Type stubs for kloppy_light.secondspectrum"""
+"""Type stubs for fastforward.cdf"""
 
 from typing import Literal, Union
 import polars as pl
@@ -31,12 +31,13 @@ def load_tracking(
         "home_away",
         "static_away_home",
     ] = "static_home_away",
-    only_alive: bool = False,
+    only_alive: bool = True,
+    include_game_id: Union[bool, str] = True,
     *,
-    lazy: bool = True,
+    lazy: bool = False,
 ) -> TrackingDataset:
     """
-    Load SecondSpectrum tracking data.
+    Load CDF (Common Data Format) tracking data.
 
     Parameters
     ----------
@@ -60,9 +61,13 @@ def load_tracking(
         - "away_home": Away attacks right 1st half, left 2nd half
         - "attack_right": Attacking team always attacks right
         - "attack_left": Attacking team always attacks left
-    only_alive : bool, default False
+    only_alive : bool, default True
         If True, only include frames where ball is in play (ball_state == "alive")
-    lazy : bool, default True
+    include_game_id : Union[bool, str], default True
+        If True, add game_id column to tracking_df, team_df, and player_df from metadata.
+        If False, no game_id column is added.
+        If str, use the provided string as the game_id value.
+    lazy : bool, default False
         If True, return a TrackingDataset with LazyTrackingLoader for tracking.
         If False, return a TrackingDataset with eager DataFrame for tracking.
 
@@ -76,7 +81,7 @@ def load_tracking(
         tracking_df: Tracking data in the specified layout
 
         metadata_df: Single row with match-level metadata:
-        - provider (str): Provider name ("secondspectrum")
+        - provider (str): Provider name ("cdf")
         - game_id (str): Game identifier
         - game_date (date): Game date (nullable)
         - home_team (str): Home team name

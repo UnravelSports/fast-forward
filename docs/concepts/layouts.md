@@ -1,6 +1,6 @@
 # Layouts
 
-kloppy-light supports three DataFrame layouts that determine how tracking data is structured. Choose based on your analysis needs.
+fast-forward supports three DataFrame layouts that determine how tracking data is structured. Choose based on your analysis needs.
 
 ## Long Layout (default)
 

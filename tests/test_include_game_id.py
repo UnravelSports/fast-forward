@@ -3,7 +3,7 @@
 import pytest
 import polars as pl
 
-from kloppy_light import secondspectrum, skillcorner, sportec
+from fastforward import secondspectrum, skillcorner, sportec
 from tests.config import (
     SS_RAW_ANON as SS_RAW,
     SS_META_ANON as SS_META,

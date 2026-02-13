@@ -4,7 +4,7 @@ This guide provides patterns for updating test files from the old tuple unpackin
 
 ## Overview
 
-The kloppy-light library now returns a `TrackingDataset` object instead of a 4-tuple. All tests must be updated to use the new API.
+The fast-forward library now returns a `TrackingDataset` object instead of a 4-tuple. All tests must be updated to use the new API.
 
 ## Migration Patterns
 
@@ -72,7 +72,7 @@ def test_lazy_loading(self):
 #### NEW:
 ```python
 def test_lazy_loading(self):
-    from kloppy_light._dataset import TrackingDataset
+    from fastforward._dataset import TrackingDataset
 
     dataset = provider.load_tracking(RAW_PATH, META_PATH, lazy=True)
     assert isinstance(dataset, TrackingDataset)
@@ -100,7 +100,7 @@ def test_returns_four_dataframes(self):
 ```python
 def test_returns_tracking_dataset(self):
     """Test that load_tracking returns a TrackingDataset object."""
-    from kloppy_light._dataset import TrackingDataset
+    from fastforward._dataset import TrackingDataset
 
     result = provider.load_tracking(RAW_PATH, META_PATH, lazy=False)
     assert isinstance(result, TrackingDataset)
@@ -186,8 +186,8 @@ For each test file:
 
 1. **Update imports** (if needed):
    ```python
-   from kloppy_light._dataset import TrackingDataset
-   from kloppy_light._lazy import LazyTrackingLoader
+   from fastforward._dataset import TrackingDataset
+   from fastforward._lazy import LazyTrackingLoader
    ```
 
 2. **Update fixtures**:
@@ -303,4 +303,4 @@ class TestMetadataDataFrame:
 
 - **tests/test_secondspectrum.py** - Fully updated reference implementation
 - **tests/test_dataset.py** - Comprehensive TrackingDataset tests
-- **python/kloppy_light/_dataset.py** - TrackingDataset source code
+- **python/fastforward/_dataset.py** - TrackingDataset source code

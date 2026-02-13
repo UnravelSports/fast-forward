@@ -11,7 +11,7 @@ def test_filelike_integration():
     # Test 1: Import FileLike
     print("\n1. Testing FileLike import...")
     try:
-        from kloppy_light import FileLike
+        from fastforward import FileLike
         print("   ✓ FileLike imported successfully")
     except ImportError as e:
         print(f"   ✗ Failed to import FileLike: {e}")
@@ -20,7 +20,7 @@ def test_filelike_integration():
     # Test 2: Import providers
     print("\n2. Testing provider imports...")
     try:
-        from kloppy_light import secondspectrum, sportec, skillcorner
+        from fastforward import secondspectrum, sportec, skillcorner
         print("   ✓ All providers imported successfully")
     except ImportError as e:
         print(f"   ✗ Failed to import providers: {e}")

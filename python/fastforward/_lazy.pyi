@@ -1,4 +1,4 @@
-"""Type stubs for kloppy_light._lazy"""
+"""Type stubs for fastforward._lazy"""
 
 from typing import Dict, List, Union
 import polars as pl

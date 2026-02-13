@@ -1,4 +1,4 @@
-# Adding a New Tracking Data Provider to kloppy-light
+# Adding a New Tracking Data Provider to fast-forward
 
 This guide provides a step-by-step procedure for adding a new tracking data provider. Follow each section carefully and use the checklists to ensure nothing is missed.
 
@@ -537,7 +537,7 @@ m.add_submodule(&{provider}_module)?;
 
 ### 3.1 Create Provider Wrapper
 
-Create `python/kloppy_light/{provider}.py`:
+Create `python/fastforward/{provider}.py`:
 
 ```python
 """
@@ -548,8 +548,8 @@ This module provides functions to load {Provider} tracking data.
 
 from typing import TYPE_CHECKING, Literal, Optional, Union
 
-from kloppy_light._base import load_tracking_impl
-from kloppy_light._dataset import TrackingDataset
+from fastforward._base import load_tracking_impl
+from fastforward._dataset import TrackingDataset
 from kloppy.io import FileLike
 
 if TYPE_CHECKING:
@@ -614,7 +614,7 @@ def load_tracking(
         TrackingDataset with .tracking, .metadata, .teams, .players, .periods
 
     Example:
-        >>> from kloppy_light import {provider}
+        >>> from fastforward import {provider}
         >>> dataset = {provider}.load_tracking("tracking.jsonl", "meta.json")
         >>> tracking_df = dataset.tracking  # pl.DataFrame (eager)
     """
@@ -637,21 +637,21 @@ def load_tracking(
 
 ### 3.2 Register Provider
 
-**In `python/kloppy_light/_base.py`:**
+**In `python/fastforward/_base.py`:**
 
 Add to `_register_standard_providers()`:
 
 ```python
 def _register_standard_providers():
     """Register all standard providers."""
-    from kloppy_light import _kloppy_light
+    from fastforward import _fastforward
 
     # ... existing registrations ...
 
     # {Provider}
     register_provider(
         name="{provider}",
-        rust_module=_kloppy_light.{provider},
+        rust_module=_fastforward.{provider},
         metadata_params=[],  # Add param names if needed for load_metadata_only
         tracking_params=[],  # Add param names if needed for load_tracking
         # Example with params:
@@ -662,11 +662,11 @@ def _register_standard_providers():
 
 ### 3.3 Create Type Stubs
 
-Create `python/kloppy_light/{provider}.pyi`:
+Create `python/fastforward/{provider}.pyi`:
 
 ```python
 from typing import Literal, Optional, Union
-from kloppy_light._dataset import TrackingDataset
+from fastforward._dataset import TrackingDataset
 from kloppy.io import FileLike
 from pyspark.sql import SparkSession
 
@@ -697,10 +697,10 @@ def load_tracking(
 
 ### 3.4 Export Module
 
-**In `python/kloppy_light/__init__.py`:**
+**In `python/fastforward/__init__.py`:**
 
 ```python
-from kloppy_light import {provider}  # Add import
+from fastforward import {provider}  # Add import
 
 __all__ = [
     # ... existing exports ...
@@ -750,7 +750,7 @@ def load_tracking(
 ```python
 register_provider(
     name="provider",
-    rust_module=_kloppy_light.provider,
+    rust_module=_fastforward.provider,
     metadata_params=["custom_param"],  # If needed for metadata loading
     tracking_params=["custom_param"],  # For tracking loading
 )
@@ -851,9 +851,9 @@ from pathlib import Path
 import polars as pl
 import pytest
 
-from kloppy_light import {provider}
-from kloppy_light._dataset import TrackingDataset
-from kloppy_light._lazy import LazyTrackingLoader
+from fastforward import {provider}
+from fastforward._dataset import TrackingDataset
+from fastforward._lazy import LazyTrackingLoader
 
 DATA_DIR = Path(__file__).parent / "files"
 TRACKING_PATH = str(DATA_DIR / "{provider}_tracking.{ext}")
@@ -1181,7 +1181,7 @@ pytest tests/test_{provider}.py -v
 pytest tests/test_{provider}.py::TestMetadataDataFrame -v
 
 # Run with coverage
-pytest tests/test_{provider}.py --cov=kloppy_light --cov-report=term-missing
+pytest tests/test_{provider}.py --cov=fastforward --cov-report=term-missing
 ```
 
 ---
@@ -1204,7 +1204,7 @@ pytest tests/test_{provider}.py --cov=kloppy_light --cov-report=term-missing
 ### 7.2 Manual Verification
 
 ```python
-from kloppy_light import {provider}
+from fastforward import {provider}
 
 # 1. Basic load
 dataset = {provider}.load_tracking("tracking.jsonl", "meta.json", lazy=False)
@@ -1249,7 +1249,7 @@ Add to `scripts/benchmark_memory.py`:
 ```python
 def benchmark_{provider}():
     """Benchmark {Provider} provider."""
-    from kloppy_light import {provider}
+    from fastforward import {provider}
 
     start = time.time()
     dataset = {provider}.load_tracking(
@@ -1290,10 +1290,10 @@ def benchmark_{provider}():
 - [ ] Register submodule in `src/lib.rs`
 
 ### Python Implementation
-- [ ] Create `python/kloppy_light/{provider}.py`
-- [ ] Create `python/kloppy_light/{provider}.pyi`
-- [ ] Register provider in `python/kloppy_light/_base.py`
-- [ ] Export in `python/kloppy_light/__init__.py`
+- [ ] Create `python/fastforward/{provider}.py`
+- [ ] Create `python/fastforward/{provider}.pyi`
+- [ ] Register provider in `python/fastforward/_base.py`
+- [ ] Export in `python/fastforward/__init__.py`
 
 ### Testing
 - [ ] Create `tests/test_{provider}.py`
@@ -1341,7 +1341,7 @@ Follow the structure of `notebooks/test_sportec.ipynb`:
 ```python
 # Cell 1: Imports and Data Paths
 from pathlib import Path
-from kloppy_light import {provider}
+from fastforward import {provider}
 import polars as pl
 
 DATA_DIR = Path("../data/{provider}")
@@ -1401,57 +1401,57 @@ Add the provider to `scripts/benchmark_memory.py` for performance comparison.
 
 def load_{provider}_eager():
     """Load {Provider} data eagerly (long layout)."""
-    from kloppy_light import {provider}
+    from fastforward import {provider}
     return {provider}.load_tracking({PR}_TRACKING, {PR}_META, lazy=False)
 
 
 def load_{provider}_eager_wide():
     """Load {Provider} data eagerly (wide layout)."""
-    from kloppy_light import {provider}
+    from fastforward import {provider}
     return {provider}.load_tracking({PR}_TRACKING, {PR}_META, layout="wide", lazy=False)
 
 
 def load_{provider}_eager_long_ball():
     """Load {Provider} data eagerly (long_ball layout)."""
-    from kloppy_light import {provider}
+    from fastforward import {provider}
     return {provider}.load_tracking({PR}_TRACKING, {PR}_META, layout="long_ball", lazy=False)
 
 
 def load_{provider}_lazy():
     """Load {Provider} data lazily (metadata only)."""
-    from kloppy_light import {provider}
+    from fastforward import {provider}
     return {provider}.load_tracking({PR}_TRACKING, {PR}_META, lazy=True)
 
 
 def load_{provider}_lazy_collect():
     """Load {Provider} data lazily and collect (long layout)."""
-    from kloppy_light import {provider}
+    from fastforward import {provider}
     dataset = {provider}.load_tracking({PR}_TRACKING, {PR}_META, lazy=True)
     return dataset.tracking.collect(), dataset.metadata, dataset.teams, dataset.players
 
 
 def load_{provider}_lazy_wide():
     """Load {Provider} data lazily (wide layout, metadata only)."""
-    from kloppy_light import {provider}
+    from fastforward import {provider}
     return {provider}.load_tracking({PR}_TRACKING, {PR}_META, lazy=True, layout="wide")
 
 
 def load_{provider}_lazy_collect_wide():
     """Load {Provider} data lazily and collect (wide layout)."""
-    from kloppy_light import {provider}
+    from fastforward import {provider}
     dataset = {provider}.load_tracking({PR}_TRACKING, {PR}_META, lazy=True, layout="wide")
     return dataset.tracking.collect(), dataset.metadata, dataset.teams, dataset.players
 
 
 def load_{provider}_lazy_long_ball():
     """Load {Provider} data lazily (long_ball layout, metadata only)."""
-    from kloppy_light import {provider}
+    from fastforward import {provider}
     return {provider}.load_tracking({PR}_TRACKING, {PR}_META, lazy=True, layout="long_ball")
 
 
 def load_{provider}_lazy_collect_long_ball():
     """Load {Provider} data lazily and collect (long_ball layout)."""
-    from kloppy_light import {provider}
+    from fastforward import {provider}
     dataset = {provider}.load_tracking({PR}_TRACKING, {PR}_META, lazy=True, layout="long_ball")
     return dataset.tracking.collect(), dataset.metadata, dataset.teams, dataset.players
 ```
@@ -1483,7 +1483,7 @@ def run_{provider}_benchmarks():
     file_size = Path({PR}_TRACKING).stat().st_size / (1024 * 1024)
     print(f"\n{Provider} tracking file: {file_size:.1f} MiB")
 
-    print("\n## {Provider} (kloppy-light) - long layout")
+    print("\n## {Provider} (fast-forward) - long layout")
     mem, t, result = measure_memory_and_time(load_{provider}_eager)
     rows = result.tracking.height if result else None
     print(format_row("Eager loading", mem, t, rows))
@@ -1601,6 +1601,6 @@ The tracab implementation:
 | SkillCorner (with param) | [src/providers/skillcorner.rs](src/providers/skillcorner.rs) |
 | Sportec (XML format) | [src/providers/sportec.rs](src/providers/sportec.rs) |
 | HawkEye (complex) | [src/providers/hawkeye.rs](src/providers/hawkeye.rs) |
-| Python registry | [python/kloppy_light/_base.py](python/kloppy_light/_base.py) |
-| Lazy loader | [python/kloppy_light/_lazy.py](python/kloppy_light/_lazy.py) |
-| Dataset container | [python/kloppy_light/_dataset.py](python/kloppy_light/_dataset.py) |
+| Python registry | [python/fastforward/_base.py](python/fastforward/_base.py) |
+| Lazy loader | [python/fastforward/_lazy.py](python/fastforward/_lazy.py) |
+| Dataset container | [python/fastforward/_dataset.py](python/fastforward/_dataset.py) |

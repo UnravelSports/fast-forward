@@ -5,7 +5,7 @@ Load tracking data from **SkillCorner** format.
 ## Function Signature
 
 ```python
-from kloppy_light import skillcorner
+from fastforward import skillcorner
 
 dataset = skillcorner.load_tracking(
     raw_data="tracking_extrapolated.jsonl",
@@ -36,7 +36,7 @@ dataset = skillcorner.load_tracking(
 ## Example
 
 ```python
-from kloppy_light import skillcorner
+from fastforward import skillcorner
 
 dataset = skillcorner.load_tracking(
     raw_data="tracking_extrapolated.jsonl",

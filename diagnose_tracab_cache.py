@@ -7,8 +7,8 @@ from pathlib import Path
 # Enable logging to see cache hit messages
 logging.basicConfig(level=logging.INFO, format="%(name)s - %(message)s")
 
-from kloppy_light import tracab
-from kloppy_light._cache import clear_cache, get_default_cache_dir
+from fastforward import tracab
+from fastforward._cache import clear_cache, get_default_cache_dir
 
 # Test with XML metadata that has NO player info
 META_FILE = "tests/files/tracab_meta_2.xml"

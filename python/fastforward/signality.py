@@ -15,14 +15,14 @@ from typing import TYPE_CHECKING, List, Literal, Optional, Tuple, Union
 import polars as pl
 from kloppy.io import FileLike, open_as_file
 
-from kloppy_light._base import (
+from fastforward._base import (
     discover_files_in_directory,
     get_filename_from_filelike,
 )
-from kloppy_light._kloppy_light import signality as _signality
-from kloppy_light._lazy import create_lazy_tracking_signality, _is_local_file
-from kloppy_light._schema import get_tracking_schema
-from kloppy_light._dataset import TrackingDataset
+from fastforward._fastforward import signality as _signality
+from fastforward._lazy import create_lazy_tracking_signality, _is_local_file
+from fastforward._schema import get_tracking_schema
+from fastforward._dataset import TrackingDataset
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
@@ -127,7 +127,7 @@ def load_tracking(
     --------
     Load from file paths:
 
-    >>> from kloppy_light import signality
+    >>> from fastforward import signality
     >>> dataset = signality.load_tracking(
     ...     meta_data="signality_meta_data.json",
     ...     raw_data_feeds=["signality_p1_raw_data.json", "signality_p2_raw_data.json"],
@@ -135,7 +135,7 @@ def load_tracking(
     ... )
     >>> tracking_df = dataset.tracking
     """
-    from kloppy_light._engine import (
+    from fastforward._engine import (
         validate_engine,
         polars_to_spark,
         get_spark_session,
@@ -145,9 +145,9 @@ def load_tracking(
     engine = validate_engine(engine)
 
     if lazy:
-        raise NotImplementedError("lazy loading is not yet supported in kloppy-light")
+        raise NotImplementedError("lazy loading is not yet supported in fast-forward")
     if from_cache:
-        raise NotImplementedError("cache loading is not yet supported in kloppy-light")
+        raise NotImplementedError("cache loading is not yet supported in fast-forward")
 
     # Wide format doesn't support lazy loading - column names are game-specific
     if lazy and layout == "wide":
@@ -185,7 +185,7 @@ def load_tracking(
         is_local = all(_is_local_file(f) for f in all_files)
 
         if is_local:
-            from kloppy_light._cache import compute_cache_key_fast_multi
+            from fastforward._cache import compute_cache_key_fast_multi
 
             # Include venue_information in file_paths since function only accepts single meta_path
             all_paths = [str(f) for f in raw_data_processed] + [str(venue_information)]
@@ -201,7 +201,7 @@ def load_tracking(
 
         # Check for cache hit if from_cache=True
         if from_cache and cache_key:
-            from kloppy_light._cache import cache_exists, get_cache_path, read_cache
+            from fastforward._cache import cache_exists, get_cache_path, read_cache
 
             cache_path = get_cache_path(cache_key, "signality")
             if cache_exists(cache_path):
@@ -317,7 +317,7 @@ def load_tracking(
     all_files = list(raw_data_list) + [meta_data, venue_information]
     is_local = all(_is_local_file(f) for f in all_files)
     if is_local:
-        from kloppy_light._cache import compute_cache_key_fast_multi
+        from fastforward._cache import compute_cache_key_fast_multi
 
         config_str = (
             f"{layout}|{coordinates}|{orientation}|{only_alive}|"

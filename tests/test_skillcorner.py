@@ -3,7 +3,7 @@
 import pytest
 import polars as pl
 
-from kloppy_light import skillcorner
+from fastforward import skillcorner
 from tests.config import (
     SC_RAW as RAW_DATA_PATH,
     SC_META as META_DATA_PATH,
@@ -15,7 +15,7 @@ class TestLoadTracking:
 
     def test_returns_dataset(self):
         """Test that load_tracking returns a TrackingDataset."""
-        from kloppy_light import TrackingDataset
+        from fastforward import TrackingDataset
 
         dataset = skillcorner.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
 
@@ -167,6 +167,50 @@ class TestPlayerDataFrame:
         }
         positions = set(player_df["position"].to_list())
         assert positions.issubset(valid_positions)
+
+
+class TestPeriodsDataFrame:
+    """Tests for the periods DataFrame."""
+
+    @pytest.fixture
+    def dataset(self):
+        """Load and return the dataset."""
+        return skillcorner.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
+
+    @pytest.fixture
+    def periods_df(self, dataset):
+        """Return the periods DataFrame."""
+        return dataset.periods
+
+    def test_has_two_periods(self, periods_df):
+        """Test that periods_df has 2 periods."""
+        assert periods_df.height == 2
+
+    def test_schema(self, periods_df):
+        """Test that periods_df has expected columns."""
+        expected_columns = {
+            "game_id", "period_id", "start_frame_id", "end_frame_id",
+            "start_timestamp", "end_timestamp", "duration",
+        }
+        assert set(periods_df.columns) == expected_columns
+
+    def test_period_timing(self, periods_df):
+        """Test that all periods have correct timing values."""
+        from datetime import timedelta
+
+        periods = periods_df.sort("period_id")
+
+        # Period 1
+        p1 = periods.row(0, named=True)
+        assert p1["start_timestamp"] == timedelta(milliseconds=0)
+        assert p1["end_timestamp"] == timedelta(milliseconds=8100)
+        assert p1["duration"] == timedelta(milliseconds=8100)
+
+        # Period 2
+        p2 = periods.row(1, named=True)
+        assert p2["start_timestamp"] == timedelta(milliseconds=0)
+        assert p2["end_timestamp"] == timedelta(milliseconds=6500)
+        assert p2["duration"] == timedelta(milliseconds=6500)
 
 
 class TestTrackingDataFrameLong:
@@ -392,7 +436,7 @@ class TestLazyParameter:
 
     def test_lazy_returns_lazyframe(self):
         """Test that lazy=True returns a TrackingDataset with pl.LazyFrame."""
-        from kloppy_light import TrackingDataset
+        from fastforward import TrackingDataset
 
         dataset = skillcorner.load_tracking(
             RAW_DATA_PATH, META_DATA_PATH, lazy=True

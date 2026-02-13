@@ -10,8 +10,8 @@ import datetime
 import pytest
 import polars as pl
 
-from kloppy_light import secondspectrum
-from kloppy_light._dataset import TrackingDataset
+from fastforward import secondspectrum
+from fastforward._dataset import TrackingDataset
 from tests.config import (
     SS_RAW_ANON as ANON_RAW_DATA_PATH,
     SS_META_ANON as ANON_META_DATA_PATH,
@@ -545,6 +545,50 @@ class TestLazyNotImplemented:
     def test_from_cache_raises(self):
         with pytest.raises(NotImplementedError, match="cache loading"):
             secondspectrum.load_tracking(ANON_RAW_DATA_PATH, ANON_META_DATA_PATH, from_cache=True)
+
+
+class TestPeriodsDataFrame:
+    """Tests for the periods DataFrame."""
+
+    @pytest.fixture
+    def dataset(self):
+        """Load dataset."""
+        return secondspectrum.load_tracking(ANON_RAW_DATA_PATH, ANON_META_DATA_PATH, lazy=False)
+
+    @pytest.fixture
+    def periods_df(self, dataset):
+        """Return the periods DataFrame."""
+        return dataset.periods
+
+    def test_has_two_periods(self, periods_df):
+        """Test that periods_df has 2 periods."""
+        assert periods_df.height == 2
+
+    def test_schema(self, periods_df):
+        """Test that periods_df has expected columns."""
+        expected_columns = {
+            "game_id", "period_id", "start_frame_id", "end_frame_id",
+            "start_timestamp", "end_timestamp", "duration",
+        }
+        assert set(periods_df.columns) == expected_columns
+
+    def test_period_timing(self, periods_df):
+        """Test that all periods have correct timing values."""
+        from datetime import timedelta
+
+        periods = periods_df.sort("period_id")
+
+        # Period 1: first alive frame at 40ms (frame 0 is dead), last at 3960ms
+        p1 = periods.row(0, named=True)
+        assert p1["start_timestamp"] == timedelta(milliseconds=40)
+        assert p1["end_timestamp"] == timedelta(milliseconds=3960)
+        assert p1["duration"] == timedelta(milliseconds=3920)
+
+        # Period 2: same pattern
+        p2 = periods.row(1, named=True)
+        assert p2["start_timestamp"] == timedelta(milliseconds=40)
+        assert p2["end_timestamp"] == timedelta(milliseconds=3960)
+        assert p2["duration"] == timedelta(milliseconds=3920)
 
 
 class TestTimestampBehavior:

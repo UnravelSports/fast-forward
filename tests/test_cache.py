@@ -12,7 +12,7 @@ from unittest.mock import patch
 import polars as pl
 import pytest
 
-from kloppy_light._cache import (
+from fastforward._cache import (
     CACHE_DIR_ENV_VAR,
     CACHE_SCHEMA_VERSION,
     cache_exists,
@@ -26,8 +26,8 @@ from kloppy_light._cache import (
     set_cache_dir,
     write_cache,
 )
-from kloppy_light import secondspectrum
-import kloppy_light
+from fastforward import secondspectrum
+import fastforward
 from tests.config import (
     SS_RAW_ANON as RAW_DATA_PATH,
     SS_META_ANON as META_DATA_PATH,
@@ -46,7 +46,7 @@ class TestGetDefaultCacheDir:
         """Test macOS cache path."""
         with patch("platform.system", return_value="Darwin"):
             result = get_default_cache_dir()
-            assert "Library/Caches/kloppy-light" in str(result)
+            assert "Library/Caches/fast-forward" in str(result)
 
     def test_linux_path(self):
         """Test Linux cache path."""
@@ -55,21 +55,21 @@ class TestGetDefaultCacheDir:
                 # Remove XDG_CACHE_HOME if set to test default
                 os.environ.pop("XDG_CACHE_HOME", None)
                 result = get_default_cache_dir()
-                assert ".cache/kloppy-light" in str(result)
+                assert ".cache/fast-forward" in str(result)
 
     def test_linux_xdg_cache_home(self):
         """Test Linux respects XDG_CACHE_HOME."""
         with patch("platform.system", return_value="Linux"):
             with patch.dict(os.environ, {"XDG_CACHE_HOME": "/xdg/cache"}):
                 result = get_default_cache_dir()
-                assert str(result) == "/xdg/cache/kloppy-light"
+                assert str(result) == "/xdg/cache/fast-forward"
 
     def test_windows_path(self):
         """Test Windows cache path."""
         with patch("platform.system", return_value="Windows"):
             with patch.dict(os.environ, {"LOCALAPPDATA": "C:\\Users\\Test\\AppData\\Local"}):
                 result = get_default_cache_dir()
-                assert "kloppy-light" in str(result)
+                assert "fast-forward" in str(result)
                 assert "cache" in str(result)
 
 
@@ -466,7 +466,7 @@ class TestCacheSchemaVersion:
         key1 = compute_cache_key(raw_data=b"raw", meta_data=b"meta", config_str=config_str)
 
         # Temporarily change schema version
-        import kloppy_light._cache as cache_module
+        import fastforward._cache as cache_module
         original_version = cache_module.CACHE_SCHEMA_VERSION
         cache_module.CACHE_SCHEMA_VERSION = "999"
 
@@ -644,10 +644,10 @@ class TestCacheIntegration:
 
     def test_module_level_cache_dir_functions(self):
         """Test that set_cache_dir and get_cache_dir work at module level."""
-        original = kloppy_light.get_cache_dir()
+        original = fastforward.get_cache_dir()
 
-        kloppy_light.set_cache_dir("/test/module/path")
-        assert kloppy_light.get_cache_dir() == Path("/test/module/path")
+        fastforward.set_cache_dir("/test/module/path")
+        assert fastforward.get_cache_dir() == Path("/test/module/path")
 
-        kloppy_light.set_cache_dir(None)
-        assert kloppy_light.get_cache_dir() == original
+        fastforward.set_cache_dir(None)
+        assert fastforward.get_cache_dir() == original

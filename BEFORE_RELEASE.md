@@ -2,8 +2,8 @@
 
 ## ### TODO:
 
-- [ ] Improved periods in dataset.periodsr
-- [ ] Host Docs
+- [ ] Host Docs on readthedocs.io
+- [ ] Reset github repo to completely clean main branch, no commit history
 
 ## Build Matrix (Currently Minimal for Testing)
 

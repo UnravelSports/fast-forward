@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Build and install kloppy-light development environment
+# Build and install fast-forward development environment
 #
 # Usage:
 #   ./build.sh              # Build and install only
@@ -92,8 +92,8 @@ fi
 if [ "$CLEAN_BUILD" = true ]; then
     info "Cleaning build artifacts..."
     rm -rf "$RUST_DIR/target/release" "$RUST_DIR/target/debug"
-    rm -rf "$PROJECT_ROOT"/python/kloppy_light/*.so
-    rm -rf "$PROJECT_ROOT"/python/kloppy_light/*.pyd
+    rm -rf "$PROJECT_ROOT"/python/fastforward/*.so
+    rm -rf "$PROJECT_ROOT"/python/fastforward/*.pyd
     info "Clean complete."
 fi
 
@@ -148,7 +148,7 @@ info "Using Cargo.toml from: $RUST_DIR/Cargo.toml"
 
 # Step 9: Verify installation
 info "Verifying installation..."
-"$PYTHON" -c "from kloppy_light import secondspectrum; print('kloppy_light imported successfully')"
+"$PYTHON" -c "from fastforward import secondspectrum; print('fastforward imported successfully')"
 
 # Step 10: Run Python tests if requested
 if [ "$RUN_TESTS" = true ]; then

@@ -123,7 +123,7 @@ expression variant enum differences. These automatically fall back to Python-sid
 | `src/providers/sportec.rs`         | Added `predicate: Option<PyExpr>` parameter                           |
 | `src/providers/tracab.rs`          | Added `predicate: Option<PyExpr>` parameter                           |
 | `src/providers/hawkeye.rs`         | Added `predicate: Option<PyExpr>` parameter                           |
-| `python/kloppy_light/_lazy.py`     | Pass predicate to Rust with fallback for complex expressions          |
+| `python/fastforward/_lazy.py`     | Pass predicate to Rust with fallback for complex expressions          |
 
 ---
 
@@ -131,14 +131,14 @@ expression variant enum differences. These automatically fall back to Python-sid
 
 | File                                 | Change                                                                             |
 | ------------------------------------ | ---------------------------------------------------------------------------------- |
-| `python/kloppy_light/_schema.py`   | NEW: Schema generation                                                             |
-| `python/kloppy_light/_lazy.py`     | Added `create_lazy_tracking()` and `create_lazy_tracking_hawkeye()`            |
-| `python/kloppy_light/_base.py`     | Updated `load_tracking_impl()` to use new lazy functions                         |
-| `python/kloppy_light/_dataset.py`  | Updated type:`Union[pl.DataFrame, pl.LazyFrame]`                                 |
-| `python/kloppy_light/hawkeye.py`   | Uses `create_lazy_tracking_hawkeye()`                                            |
-| `python/kloppy_light/_lazy.pyi`    | Updated type stub with new functions                                               |
-| `python/kloppy_light/_dataset.pyi` | Updated type stub                                                                  |
-| `python/kloppy_light/__init__.py`  | Updated exports and documentation                                                  |
+| `python/fastforward/_schema.py`   | NEW: Schema generation                                                             |
+| `python/fastforward/_lazy.py`     | Added `create_lazy_tracking()` and `create_lazy_tracking_hawkeye()`            |
+| `python/fastforward/_base.py`     | Updated `load_tracking_impl()` to use new lazy functions                         |
+| `python/fastforward/_dataset.py`  | Updated type:`Union[pl.DataFrame, pl.LazyFrame]`                                 |
+| `python/fastforward/hawkeye.py`   | Uses `create_lazy_tracking_hawkeye()`                                            |
+| `python/fastforward/_lazy.pyi`    | Updated type stub with new functions                                               |
+| `python/fastforward/_dataset.pyi` | Updated type stub                                                                  |
+| `python/fastforward/__init__.py`  | Updated exports and documentation                                                  |
 | `pyproject.toml`                   | Updated Polars dependency to >=1.20.0                                              |
 | `tests/test_dataset.py`            | Added `TestLazyFrameFunctionality` test class                                    |
 | `tests/test_*.py`                  | Updated lazy tests to check for `pl.LazyFrame` instead of `LazyTrackingLoader` |
@@ -148,7 +148,7 @@ expression variant enum differences. These automatically fall back to Python-sid
 ## API After Implementation
 
 ```python
-from kloppy_light import secondspectrum
+from fastforward import secondspectrum
 import polars as pl
 
 # Load dataset (lazy by default)

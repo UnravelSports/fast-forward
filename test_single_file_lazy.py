@@ -1,6 +1,6 @@
 """Test loading a single specific file with lazy=True."""
 
-from kloppy_light import hawkeye
+from fastforward import hawkeye
 import polars as pl
 
 # Single file paths (not directory)

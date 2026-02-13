@@ -3,7 +3,7 @@
 import pytest
 import polars as pl
 
-from kloppy_light import secondspectrum
+from fastforward import secondspectrum
 from tests.config import (
     SS_RAW_ANON as RAW_DATA_PATH,
     SS_META_ANON as META_DATA_PATH,

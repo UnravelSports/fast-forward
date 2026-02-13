@@ -5,7 +5,7 @@ from datetime import date
 
 import polars as pl
 
-from kloppy_light import respovision
+from fastforward import respovision
 from tests.config import RV_RAW as RAW_DATA_SIMPLE
 
 # Test data summary:
@@ -256,7 +256,7 @@ class TestRespovisionColumns:
         )
         periods_df = dataset.periods
 
-        expected_cols = ["game_id", "period_id", "start_frame_id", "end_frame_id"]
+        expected_cols = ["game_id", "period_id", "start_frame_id", "end_frame_id", "start_timestamp", "end_timestamp", "duration"]
         assert all(col in periods_df.columns for col in expected_cols)
 
 
@@ -475,6 +475,30 @@ class TestRespovisionPeriodValues:
         p2 = periods_df.filter(pl.col("period_id") == 2)
         assert p2["start_frame_id"][0] == 101
         assert p2["end_frame_id"][0] == 102
+
+    def test_period_timing(self):
+        """Test that all periods have correct timing values."""
+        from datetime import timedelta
+
+        dataset = respovision.load_tracking(
+            RAW_DATA_SIMPLE,
+            pitch_length=100.0,
+            pitch_width=64.0,
+            only_alive=False,
+        )
+        periods = dataset.periods.sort("period_id")
+
+        # Period 1: 5 frames at 25fps (0, 40, 80, 120, 160ms)
+        p1 = periods.row(0, named=True)
+        assert p1["start_timestamp"] == timedelta(milliseconds=0)
+        assert p1["end_timestamp"] == timedelta(milliseconds=160)
+        assert p1["duration"] == timedelta(milliseconds=160)
+
+        # Period 2: 2 frames at 25fps (0, 40ms)
+        p2 = periods.row(1, named=True)
+        assert p2["start_timestamp"] == timedelta(milliseconds=0)
+        assert p2["end_timestamp"] == timedelta(milliseconds=40)
+        assert p2["duration"] == timedelta(milliseconds=40)
 
 
 class TestRespovisionTrackingValues:

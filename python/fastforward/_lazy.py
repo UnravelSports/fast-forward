@@ -67,7 +67,7 @@ def create_lazy_tracking(
     pl.LazyFrame
         Lazy tracking DataFrame
     """
-    from kloppy_light._base import get_provider
+    from fastforward._base import get_provider
 
     # Get provider config eagerly (small, fast)
     config = get_provider(provider)
@@ -192,8 +192,8 @@ def create_lazy_tracking_hawkeye(
     pl.LazyFrame
         Lazy tracking DataFrame
     """
-    from kloppy_light._base import get_filename_from_filelike
-    from kloppy_light._kloppy_light import hawkeye as _hawkeye
+    from fastforward._base import get_filename_from_filelike
+    from fastforward._fastforward import hawkeye as _hawkeye
 
     # Only convert to lists eagerly (no file reading)
     ball_list = ball_data if isinstance(ball_data, list) else [ball_data]
@@ -328,8 +328,8 @@ def create_lazy_tracking_signality(
     pl.LazyFrame
         Lazy tracking DataFrame
     """
-    from kloppy_light._base import get_filename_from_filelike
-    from kloppy_light._kloppy_light import signality as _signality
+    from fastforward._base import get_filename_from_filelike
+    from fastforward._fastforward import signality as _signality
 
     # Only convert to lists eagerly (no file reading)
     raw_list = raw_data_feeds if isinstance(raw_data_feeds, list) else [raw_data_feeds]

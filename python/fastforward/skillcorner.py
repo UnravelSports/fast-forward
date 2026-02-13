@@ -1,11 +1,11 @@
-"""SecondSpectrum provider wrapper with lazy loading support."""
+"""SkillCorner provider wrapper with lazy loading support."""
 
 from typing import TYPE_CHECKING, Literal, Optional, Union
 
 from kloppy.io import FileLike
 
-from kloppy_light._base import load_tracking_impl as _load_tracking_impl
-from kloppy_light._dataset import TrackingDataset
+from fastforward._base import load_tracking_impl as _load_tracking_impl
+from fastforward._dataset import TrackingDataset
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
@@ -37,7 +37,7 @@ def load_tracking(
         "static_away_home",
     ] = "static_home_away",
     only_alive: bool = True,
-    exclude_missing_ball_frames: bool = True,
+    include_empty_frames: bool = False,
     include_game_id: Union[bool, str] = True,
     *,
     lazy: bool = False,
@@ -46,15 +46,15 @@ def load_tracking(
     spark_session: Optional["SparkSession"] = None,
 ) -> TrackingDataset:
     """
-    Load SecondSpectrum tracking data.
+    Load SkillCorner tracking data.
 
     Parameters
     ----------
     raw_data : FileLike
-        Path to JSONL tracking file, or bytes, or file-like object.
+        Path to JSONL tracking file (e.g., tracking_extrapolated.jsonl), or bytes, or file-like object.
         Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.
     meta_data : FileLike
-        Path to JSON metadata file, or bytes, or file-like object.
+        Path to JSON match file (e.g., match.json), or bytes, or file-like object.
         Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.
     layout : {"long", "long_ball", "wide"}, default "long"
         DataFrame layout:
@@ -73,10 +73,9 @@ def load_tracking(
         - "attack_right": Attacking team always attacks right
         - "attack_left": Attacking team always attacks left
     only_alive : bool, default True
-        If True, only include frames where ball is in play (ball_state == "alive")
-    exclude_missing_ball_frames : bool, default True
-        If True, exclude frames where ball coordinates are missing (ball_z == -10).
-        SecondSpectrum uses ball_z = -10 as a sentinel value for failed ball tracking.
+        If True, only include frames where ball is in play (matches kloppy default)
+    include_empty_frames : bool, default False
+        If True, include frames with no detected players
     include_game_id : bool or str, default True
         If True, add game_id column to tracking_df, team_df, and player_df from metadata.
         If False, no game_id column is added.
@@ -97,7 +96,7 @@ def load_tracking(
         If engine="pyspark", all DataFrames are PySpark DataFrames.
     """
     return _load_tracking_impl(
-        provider_name="secondspectrum",
+        provider_name="skillcorner",
         raw_data=raw_data,
         meta_data=meta_data,
         layout=layout,
@@ -109,5 +108,5 @@ def load_tracking(
         from_cache=from_cache,
         engine=engine,
         spark_session=spark_session,
-        exclude_missing_ball_frames=exclude_missing_ball_frames,
+        include_empty_frames=include_empty_frames,
     )

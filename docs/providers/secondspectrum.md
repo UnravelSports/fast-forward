@@ -5,7 +5,7 @@ Load tracking data from **SecondSpectrum** JSONL format.
 ## Function Signature
 
 ```python
-from kloppy_light import secondspectrum
+from fastforward import secondspectrum
 
 dataset = secondspectrum.load_tracking(
     raw_data="tracking.jsonl",
@@ -36,7 +36,7 @@ dataset = secondspectrum.load_tracking(
 ## Example
 
 ```python
-from kloppy_light import secondspectrum
+from fastforward import secondspectrum
 
 dataset = secondspectrum.load_tracking(
     raw_data="secondspectrum_tracking.jsonl",

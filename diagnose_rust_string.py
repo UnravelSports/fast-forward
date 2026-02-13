@@ -7,11 +7,11 @@ by checking what pushdown filters Rust detects.
 import polars as pl
 
 # Import the sportec module to test with
-from kloppy_light._kloppy_light import sportec
+from fastforward._fastforward import sportec
 
 # Define test data paths
-ST_META = "/Users/jbekkers/PycharmProjects/kloppy-light/data/sportec/MLS-MAT-0005WA_match_info.xml"
-ST_TRACKING = "/Users/jbekkers/PycharmProjects/kloppy-light/data/sportec/MLS-MAT-0005WA_tracking.xml"
+ST_META = "/Users/jbekkers/PycharmProjects/fast-forward/data/sportec/MLS-MAT-0005WA_match_info.xml"
+ST_TRACKING = "/Users/jbekkers/PycharmProjects/fast-forward/data/sportec/MLS-MAT-0005WA_tracking.xml"
 
 def test_filter_extraction():
     """Test whether Rust correctly extracts string filters."""

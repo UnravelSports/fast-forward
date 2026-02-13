@@ -1,6 +1,6 @@
 """IO tests for FileLike integration.
 
-Tests verify that kloppy-light correctly handles different input types
+Tests verify that fast-forward correctly handles different input types
 via kloppy's FileLike abstraction: string paths, Path objects, bytes, and file handles.
 """
 
@@ -9,7 +9,7 @@ import pytest
 import polars as pl
 from pathlib import Path
 
-from kloppy_light import (
+from fastforward import (
     secondspectrum,
     sportec,
     skillcorner,
@@ -302,14 +302,14 @@ class TestFileLikeTypeExport:
     """Test FileLike type is exported."""
 
     def test_filelike_import(self):
-        """Verify `from kloppy_light import FileLike` works."""
+        """Verify `from fastforward import FileLike` works."""
         # Already imported at top of file
         assert FileLike is not None
 
     def test_filelike_in_all(self):
         """Check FileLike is in __all__."""
-        import kloppy_light
-        assert "FileLike" in kloppy_light.__all__
+        import fastforward
+        assert "FileLike" in fastforward.__all__
 
 
 class TestErrorHandling:
@@ -639,14 +639,14 @@ class TestInputTypeConsistency:
         assert tracking_string.schema == tracking_handle.schema
 
 
-@pytest.mark.skipif(not S3_AVAILABLE, reason="S3 test dependencies not installed (pip install 'kloppy-light[test-s3]')")
+@pytest.mark.skipif(not S3_AVAILABLE, reason="S3 test dependencies not installed (pip install 'fast-forward[test-s3]')")
 class TestS3Adapter:
     """Test S3 integration via kloppy's FileLike infrastructure.
 
-    This test verifies that kloppy-light can load tracking data from S3 paths
+    This test verifies that fast-forward can load tracking data from S3 paths
     using kloppy's s3fs adapter. Uses moto to mock S3 locally.
 
-    Install test dependencies: pip install 'kloppy-light[test-s3]'
+    Install test dependencies: pip install 'fast-forward[test-s3]'
     """
 
     endpoint_uri = "http://127.0.0.1:5555"

@@ -12,8 +12,8 @@ from typing import TYPE_CHECKING, Literal, Optional, Union
 
 from kloppy.io import FileLike, open_as_file
 
-from kloppy_light._base import get_filename_from_filelike
-from kloppy_light._dataset import TrackingDataset
+from fastforward._base import get_filename_from_filelike
+from fastforward._dataset import TrackingDataset
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
@@ -130,7 +130,7 @@ def load_tracking(
     --------
     Load from file path:
 
-    >>> from kloppy_light import respovision
+    >>> from fastforward import respovision
     >>> dataset = respovision.load_tracking(
     ...     "20240714-Argentina-Colombia-2d_tracking-tactical.jsonl",
     ...     pitch_length=105.0,
@@ -145,12 +145,12 @@ def load_tracking(
     ...     include_joint_angles=False,
     ... )
     """
-    from kloppy_light._engine import (
+    from fastforward._engine import (
         validate_engine,
         polars_to_spark,
         get_spark_session,
     )
-    from kloppy_light._kloppy_light import respovision as _respovision
+    from fastforward._fastforward import respovision as _respovision
 
     # Validate engine parameter
     engine = validate_engine(engine)

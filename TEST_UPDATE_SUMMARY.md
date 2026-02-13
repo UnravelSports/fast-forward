@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document summarizes the work completed to migrate kloppy-light tests from the old tuple unpacking API to the new `TrackingDataset` API.
+This document summarizes the work completed to migrate fast-forward tests from the old tuple unpacking API to the new `TrackingDataset` API.
 
 ## Completed Work
 

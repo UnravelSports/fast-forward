@@ -1,12 +1,13 @@
-site_name: kloppy-light
+site_name: fast-forward
 site_description: Fast Rust-powered tracking data loader for soccer analytics
-site_url: https://unravelsports.github.io/kloppy-light/
+site_url: https://unravelsports.github.io/fast-forward/
 
-repo_url: https://github.com/UnravelSports/kloppy-light
-repo_name: UnravelSports/kloppy-light
+repo_url: https://github.com/UnravelSports/fast-forward
+repo_name: UnravelSports/fast-forward
 
 theme:
   name: material
+  logo: assets/logos/fastforward-white-logo.png
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
@@ -65,7 +66,7 @@ markdown_extensions:
       permalink: true
 
 nav:
-  - Home: index.md
+  - "": index.md
   - Getting Started: getting-started.md
   - Concepts:
     - TrackingDataset: concepts/dataset.md

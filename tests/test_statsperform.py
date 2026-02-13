@@ -3,7 +3,7 @@
 import pytest
 import polars as pl
 
-from kloppy_light import statsperform
+from fastforward import statsperform
 from tests.config import (
     STP_RAW_MA25 as MA25_DATA_PATH,
     STP_META_JSON as MA1_JSON_PATH,
@@ -16,7 +16,7 @@ class TestLoadTrackingWithJSON:
 
     def test_returns_tracking_dataset(self):
         """Test that load_tracking returns a TrackingDataset object."""
-        from kloppy_light._dataset import TrackingDataset
+        from fastforward._dataset import TrackingDataset
 
         result = statsperform.load_tracking(
             MA25_DATA_PATH, MA1_JSON_PATH, lazy=False
@@ -35,7 +35,7 @@ class TestLoadTrackingWithXML:
 
     def test_returns_tracking_dataset(self):
         """Test that load_tracking with XML returns a TrackingDataset object."""
-        from kloppy_light._dataset import TrackingDataset
+        from fastforward._dataset import TrackingDataset
 
         result = statsperform.load_tracking(
             MA25_DATA_PATH, MA1_XML_PATH, lazy=False
@@ -746,6 +746,9 @@ class TestPeriodsDataFrame:
             "period_id",
             "start_frame_id",
             "end_frame_id",
+            "start_timestamp",
+            "end_timestamp",
+            "duration",
         }
         assert set(periods_df.columns) == expected_columns
 
@@ -755,6 +758,24 @@ class TestPeriodsDataFrame:
         assert period_1["start_frame_id"][0] == 0
         # Period 1 has 26 frames (0-25)
         assert period_1["end_frame_id"][0] == 25
+
+    def test_period_timing(self, periods_df):
+        """Test that all periods have correct timing values."""
+        from datetime import timedelta
+
+        periods = periods_df.sort("period_id")
+
+        # Period 1
+        p1 = periods.row(0, named=True)
+        assert p1["start_timestamp"] == timedelta(milliseconds=0)
+        assert p1["end_timestamp"] == timedelta(milliseconds=2500)
+        assert p1["duration"] == timedelta(milliseconds=2500)
+
+        # Period 2
+        p2 = periods.row(1, named=True)
+        assert p2["start_timestamp"] == timedelta(milliseconds=0)
+        assert p2["end_timestamp"] == timedelta(milliseconds=6600)
+        assert p2["duration"] == timedelta(milliseconds=6600)
 
 
 class TestPitchDimensions:

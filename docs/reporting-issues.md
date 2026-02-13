@@ -6,16 +6,16 @@ Found a bug or have a feature request? We'd love to hear from you.
 
 File bug reports on GitHub Issues:
 
-**[https://github.com/UnravelSports/kloppy-light/issues](https://github.com/UnravelSports/kloppy-light/issues)**
+**[https://github.com/UnravelSports/fast-forward/issues](https://github.com/UnravelSports/fast-forward/issues)**
 
 ### What to Include
 
 Please include the following in your bug report:
 
-1. **kloppy-light version**
+1. **fast-forward version**
    ```python
-   import kloppy_light
-   print(kloppy_light.__version__)
+   import fastforward
+   print(fastforward.__version__)
    ```
 
 2. **Python version**
@@ -37,7 +37,7 @@ Please include the following in your bug report:
 ### Example Bug Report
 
 ```
-**kloppy-light version:** 0.1.0
+**fast-forward version:** 0.1.0
 **Python version:** 3.12.1
 **OS:** macOS 14.2
 
@@ -46,7 +46,7 @@ Loading Tracab data with `layout="wide"` raises a KeyError.
 
 **Code to reproduce:**
 ```python
-from kloppy_light import tracab
+from fastforward import tracab
 
 dataset = tracab.load_tracking(
     raw_data="tracking.dat",

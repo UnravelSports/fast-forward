@@ -21,13 +21,18 @@
   --md-accent-fg-color--transparent: #f7258526;
 }
 
-/* Header gradient */
-.md-header {
-  background: linear-gradient(135deg, #3a0ca3, #4361ee, #4cc9f0);
+/* Header + tabs gradient - matches logo colors (sky blue → purple → hot pink) */
+/* background-attachment: fixed makes both elements share one continuous gradient */
+.md-header,
+.md-tabs {
+  background: linear-gradient(135deg, #4cc9f0, #7209b7, #f72585);
+  background-attachment: fixed;
 }
 
-[data-md-color-scheme="slate"] .md-header {
-  background: linear-gradient(135deg, #7209b7, #3a0ca3, #4361ee);
+[data-md-color-scheme="slate"] .md-header,
+[data-md-color-scheme="slate"] .md-tabs {
+  background: linear-gradient(135deg, #4cc9f0, #7209b7, #f72585);
+  background-attachment: fixed;
 }
 
 /* Tab indicator */
@@ -81,6 +86,17 @@
 .md-typeset .warning > .admonition-title,
 .md-typeset .warning > summary {
   background-color: #f725851a;
+}
+
+/* Hide site name text next to logo in header */
+.md-header__topic .md-ellipsis {
+  display: none;
+}
+
+/* Hide auto-generated page title on home page (the logo is sufficient) */
+/* Targets only the h1 that precedes the centered logo image */
+.md-content__inner > h1:has(+ p[align="center"]) {
+  display: none;
 }
 
 /* Hide redundant mkdocstrings TOC entries on API Reference page */

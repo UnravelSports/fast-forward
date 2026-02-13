@@ -11,8 +11,8 @@ pyspark = pytest.importorskip("pyspark")
 
 from pyspark.sql import SparkSession, DataFrame as SparkDataFrame
 
-from kloppy_light import secondspectrum
-from kloppy_light._dataset import TrackingDataset
+from fastforward import secondspectrum
+from fastforward._dataset import TrackingDataset
 from tests.config import (
     SS_RAW_ANON as RAW_DATA_PATH,
     SS_META_ANON as META_DATA_PATH,
@@ -25,7 +25,7 @@ def spark():
     return (
         SparkSession.builder
         .master("local[2]")
-        .appName("kloppy-light-test")
+        .appName("fast-forward-test")
         .config("spark.sql.execution.arrow.pyspark.enabled", "true")
         .config("spark.driver.memory", "1g")
         .getOrCreate()

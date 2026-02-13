@@ -63,7 +63,7 @@ The attacking (ball-owning) team always attacks towards negative x (-x, left).
 
 ## How Detection Works
 
-kloppy-light automatically detects the attacking direction from the data. It calculates the average x-position of home team players in the first frame of each period:
+fast-forward automatically detects the attacking direction from the data. It calculates the average x-position of home team players in the first frame of each period:
 
 - If the average is **negative** (left side of pitch), the home team is attacking **right** (left-to-right)
 - If the average is **positive** (right side of pitch), the home team is attacking **left** (right-to-left)

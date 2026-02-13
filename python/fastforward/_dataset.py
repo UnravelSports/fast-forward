@@ -136,7 +136,7 @@ class TrackingDataset:
 
     Examples
     --------
-    >>> from kloppy_light import secondspectrum
+    >>> from fastforward import secondspectrum
     >>> dataset = secondspectrum.load_tracking("tracking.jsonl", "meta.json")
     >>> dataset.tracking  # pl.DataFrame
     >>> dataset.metadata  # pl.DataFrame (1 row)
@@ -364,7 +364,7 @@ class TrackingDataset:
         if self._engine == "polars":
             return self
 
-        from kloppy_light._engine import spark_to_polars
+        from fastforward._engine import spark_to_polars
 
         return TrackingDataset(
             tracking=spark_to_polars(self._tracking),
@@ -406,7 +406,7 @@ class TrackingDataset:
         if self._engine == "pyspark":
             return self
 
-        from kloppy_light._engine import polars_to_spark, get_spark_session
+        from fastforward._engine import polars_to_spark, get_spark_session
 
         if spark is None:
             spark = get_spark_session()
@@ -431,7 +431,7 @@ class TrackingDataset:
         """Write tracking data to cache.
 
         Caches the original (unmodified) tracking data to the global cache directory.
-        The cache directory is configured via kloppy_light.set_cache_dir() or
+        The cache directory is configured via fastforward.set_cache_dir() or
         the KLOPPY_LIGHT_CACHE_DIR environment variable.
 
         This method:
@@ -450,7 +450,7 @@ class TrackingDataset:
         >>> dataset = tracab.load_tracking("raw.dat", "meta.xml")
         >>> dataset.write_cache()  # Writes to global cache directory
         """
-        from kloppy_light._cache import (
+        from fastforward._cache import (
             get_cache_path,
             write_cache as cache_write,
         )
@@ -565,7 +565,7 @@ class TrackingDataset:
                 "transform() is currently only supported for Polars DataFrames"
             )
 
-        from kloppy_light._transforms import (
+        from fastforward._transforms import (
             transform_coordinates as _coord,
             transform_dimensions as _dim,
             transform_orientation as _orient,

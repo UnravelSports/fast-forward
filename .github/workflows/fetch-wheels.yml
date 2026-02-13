@@ -79,12 +79,12 @@ jobs:
         run: pip install "kloppy @ git+https://github.com/PySport/kloppy.git" pyarrow
 
       - name: Install wheel
-        run: pip install --find-links wheels/ kloppy-light
+        run: pip install --find-links wheels/ fast-forward
 
       - name: Verify installation
         run: |
-          pip show kloppy-light
-          python -c "from kloppy_light import secondspectrum; print('kloppy_light imported successfully')"
+          pip show fast-forward
+          python -c "from fastforward import secondspectrum; print('fastforward imported successfully')"
 
       - name: Install test dependencies
         run: pip install pytest
