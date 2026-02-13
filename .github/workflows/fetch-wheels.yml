@@ -91,7 +91,7 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest tests/ -v
+          pytest tests/ -v -o "pythonpath="
 
   create-release:
     needs: run-tests
