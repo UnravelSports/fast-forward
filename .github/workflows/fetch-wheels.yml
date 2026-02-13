@@ -51,7 +51,7 @@ jobs:
       - name: Checkout public repo
         uses: actions/checkout@v4
         with:
-          ref: feat/separate-rust
+          ref: main
 
       - name: Clean old wheels
         run: rm -f wheels/*.whl
