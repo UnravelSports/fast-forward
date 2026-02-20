@@ -33,11 +33,10 @@ dataset = secondspectrum.load_tracking(
     coordinates="cdf",       # Coordinate system
     orientation="static_home_away",
     only_alive=True,
-    lazy=False,
 )
 
 # Access data via properties
-tracking_df = dataset.tracking    # pl.DataFrame or pl.LazyFrame
+tracking_df = dataset.tracking    # pl.DataFrame 
 metadata_df = dataset.metadata    # Match metadata
 teams_df = dataset.teams          # Team info
 players_df = dataset.players      # Player info
