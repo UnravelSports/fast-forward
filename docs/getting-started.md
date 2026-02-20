@@ -3,13 +3,13 @@
 ## Installation
 
 ```bash
-pip install fast-forward
+pip install fast-forward-football
 ```
 
 For PySpark support:
 
 ```bash
-pip install fast-forward[pyspark]
+pip install fast-forward-football[pyspark]
 ```
 
 !!! note "Requirements"

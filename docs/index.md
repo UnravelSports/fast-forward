@@ -10,7 +10,7 @@ hide:
 
 fast-forward loads tracking data from all major providers into [Polars](https://pola.rs/) DataFrames with a unified API. Built on a Rust core for speed, it handles parsing, coordinate transformations, and orientation normalization out of the box.
 
-``pip install fast-forward``
+``pip install fast-forward-football``
 
 ## Key Features
 

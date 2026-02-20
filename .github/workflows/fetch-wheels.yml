@@ -72,11 +72,11 @@ jobs:
         run: pip install "kloppy>=3.18.0" pyarrow
 
       - name: Install wheel
-        run: pip install --find-links wheels/ fast-forward
+        run: pip install --find-links wheels/ fast-forward-football
 
       - name: Verify installation
         run: |
-          pip show fast-forward
+          pip show fast-forward-football
           python -c "from fastforward import secondspectrum; print('fastforward imported successfully')"
 
       - name: Install test dependencies
