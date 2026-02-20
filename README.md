@@ -18,10 +18,6 @@ This project owes a depth of gratitude to [Kloppy](https://kloppy.pysport.org/) 
 pip install fast-forward-football
 ```
 
-```
-pip install fast-forward-football --find-links https://github.com/UnravelSports/fast-forward/releases/latest
-```
-
 ## Usage
 
 ```python
