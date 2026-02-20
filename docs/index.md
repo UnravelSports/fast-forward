@@ -71,3 +71,7 @@ transformed = dataset.transform(
 - [TrackingDataset](concepts/dataset.md) - Understand the data structure
 - [Coordinate Systems](concepts/coordinate-systems.md) - How coordinates work
 - [Providers](providers/index.md) - Detailed provider documentation
+
+## Credit
+
+This project owes a depth of gratitude to [Kloppy](https://kloppy.pysport.org/) and the hard work put into that project by all its contributors. Without their dedication and commitment this project would not exist. 💙
