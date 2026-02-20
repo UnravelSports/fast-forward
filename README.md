@@ -2,7 +2,7 @@
   <img src="docs/assets/logos/fastforward-gradient-logo.png" alt="fast-forward logo" width="400">
 </p>
 
-**Fast, robust, Rust-powered positional tracking data loading for football analytics**
+## Fast, Robust, Rust-powered Positional Tracking Data Loading for Football Analytics
 
 FAST<i>FORWARD</i> Supports 10 positional tracking data providers: SecondSpectrum, SkillCorner, Sportec, Tracab, HawkEye, GradientSports, Signality, StatsPerform, RespoVision. Additionally, it supports the [Common Data Format](https://www.cdf.football).
 
