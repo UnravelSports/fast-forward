@@ -1,0 +1,5794 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Fast Rust-powered tracking data loader for soccer analytics">
+      
+      
+      
+        <link rel="canonical" href="https://unravelsports.github.io/fast-forward/api/">
+      
+      
+        <link rel="prev" href="../benchmarks/">
+      
+      
+        <link rel="next" href="../reporting-issues/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>API Reference - fast-forward</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#api-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="fast-forward" class="md-header__button md-logo" aria-label="fast-forward" data-md-component="logo">
+      
+  <img src="../assets/logos/fastforward-white-logo.png" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            fast-forward
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              API Reference
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/UnravelSports/fast-forward" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    UnravelSports/fast-forward
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../getting-started/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Getting Started
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../concepts/dataset/" class="md-tabs__link">
+          
+  
+  
+  Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../providers/" class="md-tabs__link">
+          
+  
+  
+  Providers
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../benchmarks/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Benchmarks
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  API Reference
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../reporting-issues/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Reporting Issues
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="fast-forward" class="md-nav__button md-logo" aria-label="fast-forward" data-md-component="logo">
+      
+  <img src="../assets/logos/fastforward-white-logo.png" alt="logo">
+
+    </a>
+    fast-forward
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/UnravelSports/fast-forward" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    UnravelSports/fast-forward
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/dataset/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TrackingDataset
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/filelike/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FileLike (IO)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/layouts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Layouts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/coordinate-systems/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Coordinate Systems
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/orientations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Orientations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/transformations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transformations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Providers
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Providers
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../providers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../providers/cdf/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CDF
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../providers/gradientsports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GradientSports
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../providers/hawkeye/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HawkEye
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../providers/respovision/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Respovision
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../providers/secondspectrum/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SecondSpectrum
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../providers/signality/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Signality
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../providers/skillcorner/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SkillCorner
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../providers/sportec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sportec
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../providers/statsperform/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    StatsPerform
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../providers/tracab/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tracab
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benchmarks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Benchmarks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#trackingdataset" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TrackingDataset
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="TrackingDataset">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._dataset.TrackingDataset" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TrackingDataset
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._dataset.TrackingDataset.tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tracking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._dataset.TrackingDataset.metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        metadata
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._dataset.TrackingDataset.teams" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        teams
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._dataset.TrackingDataset.players" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        players
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._dataset.TrackingDataset.periods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        periods
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._dataset.TrackingDataset.engine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        engine
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._dataset.TrackingDataset.coordinate_system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        coordinate_system
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._dataset.TrackingDataset.orientation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        orientation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._dataset.TrackingDataset.pitch_dimensions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pitch_dimensions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._dataset.TrackingDataset.to_polars" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_polars
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._dataset.TrackingDataset.to_pyspark" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_pyspark
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._dataset.TrackingDataset.transform" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        transform
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#providers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Providers
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Providers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cdf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CDF
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward.cdf.load_tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        load_tracking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secondspectrum" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecondSpectrum
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward.secondspectrum.load_tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        load_tracking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#skillcorner" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SkillCorner
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward.skillcorner.load_tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        load_tracking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sportec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sportec
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward.sportec.load_tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        load_tracking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tracab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tracab
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward.tracab.load_tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        load_tracking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hawkeye" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HawkEye
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward.hawkeye.load_tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        load_tracking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#signality" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Signality
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward.signality.load_tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        load_tracking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#statsperform" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        StatsPerform
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward.statsperform.load_tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        load_tracking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gradientsports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GradientSports
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward.gradientsports.load_tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        load_tracking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#respovision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Respovision
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward.respovision.load_tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        load_tracking
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#transforms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transforms
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Transforms">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#transform_coordinates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        transform_coordinates
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._transforms.transform_coordinates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        transform_coordinates
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#transform_dimensions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        transform_dimensions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._transforms.transform_dimensions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        transform_dimensions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#transform_orientation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        transform_orientation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._transforms.transform_orientation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        transform_orientation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reporting-issues/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reporting Issues
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#trackingdataset" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TrackingDataset
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="TrackingDataset">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._dataset.TrackingDataset" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TrackingDataset
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._dataset.TrackingDataset.tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        tracking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._dataset.TrackingDataset.metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        metadata
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._dataset.TrackingDataset.teams" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        teams
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._dataset.TrackingDataset.players" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        players
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._dataset.TrackingDataset.periods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        periods
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._dataset.TrackingDataset.engine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        engine
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._dataset.TrackingDataset.coordinate_system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        coordinate_system
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._dataset.TrackingDataset.orientation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        orientation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._dataset.TrackingDataset.pitch_dimensions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        pitch_dimensions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._dataset.TrackingDataset.to_polars" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_polars
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._dataset.TrackingDataset.to_pyspark" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        to_pyspark
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._dataset.TrackingDataset.transform" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        transform
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#providers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Providers
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Providers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cdf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CDF
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward.cdf.load_tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        load_tracking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secondspectrum" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SecondSpectrum
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward.secondspectrum.load_tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        load_tracking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#skillcorner" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SkillCorner
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward.skillcorner.load_tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        load_tracking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sportec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sportec
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward.sportec.load_tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        load_tracking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tracab" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tracab
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward.tracab.load_tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        load_tracking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hawkeye" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HawkEye
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward.hawkeye.load_tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        load_tracking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#signality" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Signality
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward.signality.load_tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        load_tracking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#statsperform" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        StatsPerform
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward.statsperform.load_tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        load_tracking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gradientsports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GradientSports
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward.gradientsports.load_tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        load_tracking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#respovision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Respovision
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward.respovision.load_tracking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        load_tracking
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#transforms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transforms
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Transforms">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#transform_coordinates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        transform_coordinates
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._transforms.transform_coordinates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        transform_coordinates
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#transform_dimensions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        transform_dimensions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._transforms.transform_dimensions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        transform_dimensions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#transform_orientation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        transform_orientation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastforward._transforms.transform_orientation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        transform_orientation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h1>
+<h2 id="trackingdataset">TrackingDataset<a class="headerlink" href="#trackingdataset" title="Permanent link">&para;</a></h2>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<a id="fastforward._dataset.TrackingDataset"></a>
+    <div class="doc doc-contents first">
+
+
+
+        <p>Container for tracking data and associated metadata.</p>
+<p>Supports multiple DataFrame backends:
+- Polars (default): pl.DataFrame
+- PySpark: pyspark.sql.DataFrame</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="tracking
+
+
+  
+      property
+   (fastforward._dataset.TrackingDataset.tracking)" href="#fastforward._dataset.TrackingDataset.tracking">tracking</a></code></td>
+            <td>
+                  <code><span title="polars.DataFrame">DataFrame</span> or <span title="pyspark.sql.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Tracking data. DataFrame type depends on engine parameter.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="metadata
+
+
+  
+      property
+   (fastforward._dataset.TrackingDataset.metadata)" href="#fastforward._dataset.TrackingDataset.metadata">metadata</a></code></td>
+            <td>
+                  <code><span title="polars.DataFrame">DataFrame</span> or <span title="pyspark.sql.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Single-row DataFrame with match-level metadata.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="teams
+
+
+  
+      property
+   (fastforward._dataset.TrackingDataset.teams)" href="#fastforward._dataset.TrackingDataset.teams">teams</a></code></td>
+            <td>
+                  <code><span title="polars.DataFrame">DataFrame</span> or <span title="pyspark.sql.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Team information (2 rows: home and away).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="players
+
+
+  
+      property
+   (fastforward._dataset.TrackingDataset.players)" href="#fastforward._dataset.TrackingDataset.players">players</a></code></td>
+            <td>
+                  <code><span title="polars.DataFrame">DataFrame</span> or <span title="pyspark.sql.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Player information with team associations.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="periods
+
+
+  
+      property
+   (fastforward._dataset.TrackingDataset.periods)" href="#fastforward._dataset.TrackingDataset.periods">periods</a></code></td>
+            <td>
+                  <code><span title="polars.DataFrame">DataFrame</span> or <span title="pyspark.sql.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Period information with period_id, start_frame_id, end_frame_id.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><a class="autorefs autorefs-internal" title="engine
+
+
+  
+      property
+   (fastforward._dataset.TrackingDataset.engine)" href="#fastforward._dataset.TrackingDataset.engine">engine</a></code></td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The DataFrame engine being used ('polars' or 'pyspark').</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">fastforward</span><span class="w"> </span><span class="kn">import</span> <span class="n">secondspectrum</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">secondspectrum</span><span class="o">.</span><span class="n">load_tracking</span><span class="p">(</span><span class="s2">&quot;tracking.jsonl&quot;</span><span class="p">,</span> <span class="s2">&quot;meta.json&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span><span class="o">.</span><span class="n">tracking</span>  <span class="c1"># pl.DataFrame</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span><span class="o">.</span><span class="n">metadata</span>  <span class="c1"># pl.DataFrame (1 row)</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span><span class="o">.</span><span class="n">periods</span>   <span class="c1"># pl.DataFrame (2+ rows)</span>
+</code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="fastforward._dataset.TrackingDataset.tracking" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">tracking</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#fastforward._dataset.TrackingDataset.tracking" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">tracking</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Get tracking data as a DataFrame.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="fastforward._dataset.TrackingDataset.metadata" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">metadata</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#fastforward._dataset.TrackingDataset.metadata" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">metadata</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Get metadata DataFrame (single row).</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="fastforward._dataset.TrackingDataset.teams" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">teams</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#fastforward._dataset.TrackingDataset.teams" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">teams</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Get teams DataFrame.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="fastforward._dataset.TrackingDataset.players" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">players</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#fastforward._dataset.TrackingDataset.players" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">players</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Get players DataFrame.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="fastforward._dataset.TrackingDataset.periods" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">periods</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#fastforward._dataset.TrackingDataset.periods" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">periods</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Get periods DataFrame with period_id, start_frame_id, end_frame_id.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="fastforward._dataset.TrackingDataset.engine" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">engine</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#fastforward._dataset.TrackingDataset.engine" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">engine</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Get the DataFrame engine ('polars' or 'pyspark').</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="fastforward._dataset.TrackingDataset.coordinate_system" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">coordinate_system</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#fastforward._dataset.TrackingDataset.coordinate_system" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">coordinate_system</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Get the current coordinate system.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="fastforward._dataset.TrackingDataset.orientation" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">orientation</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#fastforward._dataset.TrackingDataset.orientation" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">orientation</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Get the current orientation.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="fastforward._dataset.TrackingDataset.pitch_dimensions" class="doc doc-heading">
+            <span class="doc doc-object-name doc-attribute-name">pitch_dimensions</span>
+
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#fastforward._dataset.TrackingDataset.pitch_dimensions" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">pitch_dimensions</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Get current pitch dimensions (length, width) in meters.</p>
+
+    </div>
+
+</div>
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fastforward._dataset.TrackingDataset.to_polars" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">to_polars</span>
+
+
+<a href="#fastforward._dataset.TrackingDataset.to_polars" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">to_polars</span><span class="p">()</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Convert all DataFrames to Polars.</p>
+<p>If already using Polars engine, returns self unchanged.
+For PySpark DataFrames, converts via Arrow/pandas interchange.</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="fastforward._dataset.TrackingDataset" href="#fastforward._dataset.TrackingDataset">TrackingDataset</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>New TrackingDataset with all Polars DataFrames,
+or self if already Polars.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset_spark</span> <span class="o">=</span> <span class="n">secondspectrum</span><span class="o">.</span><span class="n">load_tracking</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;pyspark&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset_polars</span> <span class="o">=</span> <span class="n">dataset_spark</span><span class="o">.</span><span class="n">to_polars</span><span class="p">()</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset_polars</span><span class="o">.</span><span class="n">engine</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="go">&#39;polars&#39;</span>
+</code></pre></div>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fastforward._dataset.TrackingDataset.to_pyspark" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">to_pyspark</span>
+
+
+<a href="#fastforward._dataset.TrackingDataset.to_pyspark" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">to_pyspark</span><span class="p">(</span><span class="n">spark</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Convert all DataFrames to PySpark.</p>
+<p>If already using PySpark engine, returns self unchanged.
+For Polars DataFrames, converts via Arrow interchange.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>spark</code>
+            </td>
+            <td>
+                  <code><span title="pyspark.sql.SparkSession">SparkSession</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>SparkSession to use. If None, gets or creates one.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="fastforward._dataset.TrackingDataset" href="#fastforward._dataset.TrackingDataset">TrackingDataset</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>New TrackingDataset with all PySpark DataFrames,
+or self if already PySpark.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset_polars</span> <span class="o">=</span> <span class="n">secondspectrum</span><span class="o">.</span><span class="n">load_tracking</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset_spark</span> <span class="o">=</span> <span class="n">dataset_polars</span><span class="o">.</span><span class="n">to_pyspark</span><span class="p">()</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset_spark</span><span class="o">.</span><span class="n">engine</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="go">&#39;pyspark&#39;</span>
+</code></pre></div>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="fastforward._dataset.TrackingDataset.transform" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">transform</span>
+
+
+<a href="#fastforward._dataset.TrackingDataset.transform" class="headerlink" title="Permanent link">&para;</a></h3>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">transform</span><span class="p">(</span><span class="n">to_orientation</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">to_dimensions</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">to_coordinates</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>Transform tracking data to different orientation, dimensions, and/or coordinates.</p>
+<p>Transformations are applied in the correct order internally:
+1. Orientation (flip) - while in CDF/meters
+2. Dimensions (zone-based scaling) - while in CDF/meters
+3. Coordinates (unit/origin conversion) - last step</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>to_orientation</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Target orientation. Options include:
+- "static_home_away": Home team attacks left-to-right in both halves
+- "static_away_home": Away team attacks left-to-right in both halves
+Note: Orientation transforms flip x and y around the center.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>to_dimensions</code>
+            </td>
+            <td>
+                  <code>tuple of (float, float)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Target pitch dimensions (length, width) in meters.
+Uses zone-based scaling to preserve IFAB pitch feature proportions.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>to_coordinates</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Target coordinate system. Options include:
+- "cdf": Center origin, meters (default)
+- "tracab": Center origin, centimeters
+- "opta": Bottom-left origin, 0-100 scale
+- "kloppy": Top-left origin, 0-1 scale
+- "sportvu": Top-left origin, meters</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="fastforward._dataset.TrackingDataset" href="#fastforward._dataset.TrackingDataset">TrackingDataset</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>New dataset with transformed data, or self if no changes needed.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">secondspectrum</span><span class="o">.</span><span class="n">load_tracking</span><span class="p">(</span><span class="s2">&quot;tracking.jsonl&quot;</span><span class="p">,</span> <span class="s2">&quot;meta.json&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Single transformation</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">tracab</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span><span class="n">to_coordinates</span><span class="o">=</span><span class="s2">&quot;tracab&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Multiple transformations (order handled internally)</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="gp">... </span>    <span class="n">to_orientation</span><span class="o">=</span><span class="s2">&quot;static_away_home&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="gp">... </span>    <span class="n">to_dimensions</span><span class="o">=</span><span class="p">(</span><span class="mf">105.0</span><span class="p">,</span> <span class="mf">68.0</span><span class="p">),</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="gp">... </span>    <span class="n">to_coordinates</span><span class="o">=</span><span class="s2">&quot;tracab&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="gp">... </span><span class="p">)</span>
+</code></pre></div>
+
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div><h2 id="providers">Providers<a class="headerlink" href="#providers" title="Permanent link">&para;</a></h2>
+<p>Each provider module exposes a <code>load_tracking()</code> function that returns a <code>TrackingDataset</code>.</p>
+<h3 id="cdf">CDF<a class="headerlink" href="#cdf" title="Permanent link">&para;</a></h3>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="fastforward.cdf.load_tracking"></a>
+    <div class="doc doc-contents first">
+
+        <p>Load CDF (Common Data Format) tracking data.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>raw_data</code>
+            </td>
+            <td>
+                  <code><span title="kloppy.io.FileLike">FileLike</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to JSONL tracking file, or bytes, or file-like object.
+Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>meta_data</code>
+            </td>
+            <td>
+                  <code><span title="kloppy.io.FileLike">FileLike</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to JSON metadata file, or bytes, or file-like object.
+Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>layout</code>
+            </td>
+            <td>
+                  <code>(<span title="long">long</span>, <span title="long_ball">long_ball</span>, <span title="wide">wide</span>)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataFrame layout:
+- "long": Ball as row with team_id="ball", player_id="ball"
+- "long_ball": Ball in separate columns, only player rows
+- "wide": One row per frame, player_id in column names</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;long&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>coordinates</code>
+            </td>
+            <td>
+                  <code><span title="fastforward.cdf">cdf</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coordinate system:
+- "cdf": Common Data Format (origin at center)</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;cdf&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>orientation</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coordinate orientation:
+- "static_home_away": Home attacks right (+x) entire match
+- "static_away_home": Away attacks right (+x) entire match
+- "home_away": Home attacks right 1st half, left 2nd half
+- "away_home": Away attacks right 1st half, left 2nd half
+- "attack_right": Attacking team always attacks right
+- "attack_left": Attacking team always attacks left</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;static_home_away&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>only_alive</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, only include frames where ball is in play (ball_state == "alive")</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>exclude_missing_ball_frames</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, exclude frames where ball coordinates are missing (null).</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>include_game_id</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span> or <span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, add game_id column to tracking_df, team_df, and player_df from metadata.
+If False, no game_id column is added.
+If str, use the provided string as the game_id value.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>engine</code>
+            </td>
+            <td>
+                  <code>(<span title="polars">polars</span>, <span title="pyspark">pyspark</span>)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataFrame engine to use:
+- "polars": Return Polars DataFrames (default)
+- "pyspark": Return PySpark DataFrames</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;polars&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>spark_session</code>
+            </td>
+            <td>
+                  <code><span title="pyspark.sql.SparkSession">SparkSession</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>PySpark SparkSession to use. If None and engine="pyspark",
+will get or create a session automatically.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="fastforward._dataset.TrackingDataset" href="#fastforward._dataset.TrackingDataset">TrackingDataset</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Object with .tracking, .metadata, .teams, .players, .periods properties.
+If engine="polars", .tracking returns pl.DataFrame.
+If engine="pyspark", all DataFrames are PySpark DataFrames.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div><h3 id="secondspectrum">SecondSpectrum<a class="headerlink" href="#secondspectrum" title="Permanent link">&para;</a></h3>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="fastforward.secondspectrum.load_tracking"></a>
+    <div class="doc doc-contents first">
+
+        <p>Load SecondSpectrum tracking data.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>raw_data</code>
+            </td>
+            <td>
+                  <code><span title="kloppy.io.FileLike">FileLike</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to JSONL tracking file, or bytes, or file-like object.
+Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>meta_data</code>
+            </td>
+            <td>
+                  <code><span title="kloppy.io.FileLike">FileLike</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to JSON metadata file, or bytes, or file-like object.
+Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>layout</code>
+            </td>
+            <td>
+                  <code>(<span title="long">long</span>, <span title="long_ball">long_ball</span>, <span title="wide">wide</span>)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataFrame layout:
+- "long": Ball as row with team_id="ball", player_id="ball"
+- "long_ball": Ball in separate columns, only player rows
+- "wide": One row per frame, player_id in column names</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;long&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>coordinates</code>
+            </td>
+            <td>
+                  <code><span title="fastforward.cdf">cdf</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coordinate system:
+- "cdf": Common Data Format (origin at center)</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;cdf&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>orientation</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coordinate orientation:
+- "static_home_away": Home attacks right (+x) entire match
+- "static_away_home": Away attacks right (+x) entire match
+- "home_away": Home attacks right 1st half, left 2nd half
+- "away_home": Away attacks right 1st half, left 2nd half
+- "attack_right": Attacking team always attacks right
+- "attack_left": Attacking team always attacks left</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;static_home_away&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>only_alive</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, only include frames where ball is in play (ball_state == "alive")</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>exclude_missing_ball_frames</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, exclude frames where ball coordinates are missing (ball_z == -10).
+SecondSpectrum uses ball_z = -10 as a sentinel value for failed ball tracking.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>include_game_id</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span> or <span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, add game_id column to tracking_df, team_df, and player_df from metadata.
+If False, no game_id column is added.
+If str, use the provided string as the game_id value.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>engine</code>
+            </td>
+            <td>
+                  <code>(<span title="polars">polars</span>, <span title="pyspark">pyspark</span>)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataFrame engine to use:
+- "polars": Return Polars DataFrames (default)
+- "pyspark": Return PySpark DataFrames</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;polars&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>spark_session</code>
+            </td>
+            <td>
+                  <code><span title="pyspark.sql.SparkSession">SparkSession</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>PySpark SparkSession to use. If None and engine="pyspark",
+will get or create a session automatically.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="fastforward._dataset.TrackingDataset" href="#fastforward._dataset.TrackingDataset">TrackingDataset</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Object with .tracking, .metadata, .teams, .players, .periods properties.
+If engine="polars", .tracking returns pl.DataFrame.
+If engine="pyspark", all DataFrames are PySpark DataFrames.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div><h3 id="skillcorner">SkillCorner<a class="headerlink" href="#skillcorner" title="Permanent link">&para;</a></h3>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="fastforward.skillcorner.load_tracking"></a>
+    <div class="doc doc-contents first">
+
+        <p>Load SkillCorner tracking data.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>raw_data</code>
+            </td>
+            <td>
+                  <code><span title="kloppy.io.FileLike">FileLike</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to JSONL tracking file (e.g., tracking_extrapolated.jsonl), or bytes, or file-like object.
+Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>meta_data</code>
+            </td>
+            <td>
+                  <code><span title="kloppy.io.FileLike">FileLike</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to JSON match file (e.g., match.json), or bytes, or file-like object.
+Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>layout</code>
+            </td>
+            <td>
+                  <code>(<span title="long">long</span>, <span title="long_ball">long_ball</span>, <span title="wide">wide</span>)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataFrame layout:
+- "long": Ball as row with team_id="ball", player_id="ball"
+- "long_ball": Ball in separate columns, only player rows
+- "wide": One row per frame, player_id in column names</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;long&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>coordinates</code>
+            </td>
+            <td>
+                  <code><span title="fastforward.cdf">cdf</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coordinate system:
+- "cdf": Common Data Format (origin at center)</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;cdf&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>orientation</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coordinate orientation:
+- "static_home_away": Home attacks right (+x) entire match
+- "static_away_home": Away attacks right (+x) entire match
+- "home_away": Home attacks right 1st half, left 2nd half
+- "away_home": Away attacks right 1st half, left 2nd half
+- "attack_right": Attacking team always attacks right
+- "attack_left": Attacking team always attacks left</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;static_home_away&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>only_alive</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, only include frames where ball is in play (matches kloppy default)</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>include_empty_frames</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, include frames with no detected players</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>include_game_id</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span> or <span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, add game_id column to tracking_df, team_df, and player_df from metadata.
+If False, no game_id column is added.
+If str, use the provided string as the game_id value.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>engine</code>
+            </td>
+            <td>
+                  <code>(<span title="polars">polars</span>, <span title="pyspark">pyspark</span>)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataFrame engine to use:
+- "polars": Return Polars DataFrames (default)
+- "pyspark": Return PySpark DataFrames</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;polars&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>spark_session</code>
+            </td>
+            <td>
+                  <code><span title="pyspark.sql.SparkSession">SparkSession</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>PySpark SparkSession to use. If None and engine="pyspark",
+will get or create a session automatically.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="fastforward._dataset.TrackingDataset" href="#fastforward._dataset.TrackingDataset">TrackingDataset</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Object with .tracking, .metadata, .teams, .players, .periods properties.
+If engine="polars", .tracking returns pl.DataFrame.
+If engine="pyspark", all DataFrames are PySpark DataFrames.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div><h3 id="sportec">Sportec<a class="headerlink" href="#sportec" title="Permanent link">&para;</a></h3>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="fastforward.sportec.load_tracking"></a>
+    <div class="doc doc-contents first">
+
+        <p>Load Sportec tracking data from XML files.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>raw_data</code>
+            </td>
+            <td>
+                  <code><span title="kloppy.io.FileLike">FileLike</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to tracking XML file (e.g., *_tracking.xml), or bytes, or file-like object.
+Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>meta_data</code>
+            </td>
+            <td>
+                  <code><span title="kloppy.io.FileLike">FileLike</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to match info XML file (e.g., *_match_info.xml), or bytes, or file-like object.
+Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>layout</code>
+            </td>
+            <td>
+                  <code>(<span title="long">long</span>, <span title="long_ball">long_ball</span>, <span title="wide">wide</span>)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataFrame layout:
+- "long": Ball as row with team_id="ball", player_id="ball"
+- "long_ball": Ball in separate columns, only player rows
+- "wide": One row per frame, player_id in column names</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;long&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>coordinates</code>
+            </td>
+            <td>
+                  <code><span title="fastforward.cdf">cdf</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coordinate system:
+- "cdf": Common Data Format (origin at center)</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;cdf&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>orientation</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coordinate orientation:
+- "static_home_away": Home attacks right (+x) entire match
+- "static_away_home": Away attacks right (+x) entire match
+- "home_away": Home attacks right 1st half, left 2nd half
+- "away_home": Away attacks right 1st half, left 2nd half
+- "attack_right": Attacking team always attacks right
+- "attack_left": Attacking team always attacks left</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;static_home_away&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>only_alive</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, only include frames where ball is in play (matches kloppy default)</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>include_game_id</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span> or <span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, add game_id column to tracking_df, team_df, and player_df from metadata.
+If False, no game_id column is added.
+If str, use the provided string as the game_id value.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>include_officials</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, include officials in player_df with team_id="officials" and position codes:
+REF (Main Referee), AREF (Assistant Referee), VAR (Video Assistant Referee),
+AVAR (Assistant VAR), 4TH (Fourth Official)</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>engine</code>
+            </td>
+            <td>
+                  <code>(<span title="polars">polars</span>, <span title="pyspark">pyspark</span>)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataFrame engine to use:
+- "polars": Return Polars DataFrames (default)
+- "pyspark": Return PySpark DataFrames</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;polars&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>spark_session</code>
+            </td>
+            <td>
+                  <code><span title="pyspark.sql.SparkSession">SparkSession</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>PySpark SparkSession to use. If None and engine="pyspark",
+will get or create a session automatically.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="fastforward._dataset.TrackingDataset" href="#fastforward._dataset.TrackingDataset">TrackingDataset</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Object with .tracking, .metadata, .teams, .players, .periods properties.
+If engine="polars", .tracking returns pl.DataFrame.
+If engine="pyspark", all DataFrames are PySpark DataFrames.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div><h3 id="tracab">Tracab<a class="headerlink" href="#tracab" title="Permanent link">&para;</a></h3>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="fastforward.tracab.load_tracking"></a>
+    <div class="doc doc-contents first">
+
+        <p>Load Tracab tracking data.</p>
+<p>Supports multiple file formats:
+- Metadata: XML (hierarchical or flat format), JSON
+- Raw data: DAT (text/binary), JSON</p>
+<p>The native Tracab coordinate system uses centimeters with origin at center.
+Coordinates are automatically converted to CDF (meters) internally and then
+transformed to the target coordinate system.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>raw_data</code>
+            </td>
+            <td>
+                  <code><span title="kloppy.io.FileLike">FileLike</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to tracking data file (.dat or .json), bytes, or file-like object.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>meta_data</code>
+            </td>
+            <td>
+                  <code><span title="kloppy.io.FileLike">FileLike</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to metadata file (.xml or .json), bytes, or file-like object.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>layout</code>
+            </td>
+            <td>
+                  <code>(<span title="long">long</span>, <span title="long_ball">long_ball</span>, <span title="wide">wide</span>)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataFrame layout:
+- "long": Ball as separate rows with team_id="ball"
+- "long_ball": Ball in separate columns (ball_x, ball_y, ball_z)
+- "wide": One row per frame, player columns as {player_id}_x, _y, _z</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;long&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>coordinates</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Target coordinate system.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;cdf&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>orientation</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Target orientation.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;static_home_away&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>only_alive</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, only include frames where ball is in play.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>include_game_id</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span> or <span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, add game_id column from metadata.
+If False, no game_id column is added.
+If str, use the provided string as the game_id value.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>engine</code>
+            </td>
+            <td>
+                  <code>(<span title="polars">polars</span>, <span title="pyspark">pyspark</span>)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataFrame engine to use:
+- "polars": Return Polars DataFrames (default)
+- "pyspark": Return PySpark DataFrames</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;polars&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>spark_session</code>
+            </td>
+            <td>
+                  <code><span title="pyspark.sql.SparkSession">SparkSession</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>PySpark SparkSession to use. If None and engine="pyspark",
+will get or create a session automatically.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="fastforward._dataset.TrackingDataset" href="#fastforward._dataset.TrackingDataset">TrackingDataset</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Object with .tracking, .metadata, .teams, .players, .periods properties.
+If engine="polars", .tracking returns pl.DataFrame.
+If engine="pyspark", all DataFrames are PySpark DataFrames.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">fastforward</span><span class="w"> </span><span class="kn">import</span> <span class="n">tracab</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">tracab</span><span class="o">.</span><span class="n">load_tracking</span><span class="p">(</span><span class="s2">&quot;tracking.dat&quot;</span><span class="p">,</span> <span class="s2">&quot;meta.xml&quot;</span><span class="p">)</span>
+</code></pre></div>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Using different formats</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">tracab</span><span class="o">.</span><span class="n">load_tracking</span><span class="p">(</span><span class="s2">&quot;tracking.json&quot;</span><span class="p">,</span> <span class="s2">&quot;meta.json&quot;</span><span class="p">)</span>
+</code></pre></div>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Get tracab coordinates (centimeters)</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">tracab</span><span class="o">.</span><span class="n">load_tracking</span><span class="p">(</span><span class="s2">&quot;tracking.dat&quot;</span><span class="p">,</span> <span class="s2">&quot;meta.xml&quot;</span><span class="p">,</span> <span class="n">coordinates</span><span class="o">=</span><span class="s2">&quot;tracab&quot;</span><span class="p">)</span>
+</code></pre></div>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="c1"># PySpark engine</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">tracab</span><span class="o">.</span><span class="n">load_tracking</span><span class="p">(</span><span class="s2">&quot;tracking.dat&quot;</span><span class="p">,</span> <span class="s2">&quot;meta.xml&quot;</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;pyspark&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span><span class="o">.</span><span class="n">tracking</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+</code></pre></div>
+
+
+    </div>
+
+</div><h3 id="hawkeye">HawkEye<a class="headerlink" href="#hawkeye" title="Permanent link">&para;</a></h3>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="fastforward.hawkeye.load_tracking"></a>
+    <div class="doc doc-contents first">
+
+        <p>Load HawkEye tracking data.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>ball_data</code>
+            </td>
+            <td>
+                  <code><span title="kloppy.io.FileLike">FileLike</span> or <span title="typing.List">List</span>[<span title="kloppy.io.FileLike">FileLike</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Ball tracking file(s). Can be:
+- Single FileLike: Path, bytes, or file-like object
+- List[FileLike]: Multiple ball files (one per minute)
+Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>player_data</code>
+            </td>
+            <td>
+                  <code><span title="kloppy.io.FileLike">FileLike</span> or <span title="typing.List">List</span>[<span title="kloppy.io.FileLike">FileLike</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Player tracking file(s). Can be:
+- Single FileLike: Path, bytes, or file-like object
+- List[FileLike]: Multiple player files (one per minute)
+Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>meta_data</code>
+            </td>
+            <td>
+                  <code><span title="kloppy.io.FileLike">FileLike</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to metadata file (JSON or XML), or bytes, or file-like object.
+Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>layout</code>
+            </td>
+            <td>
+                  <code><span title="long">long</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataFrame layout. Currently only "long" is supported.
+- "long": Ball as row with team_id="ball", player_id="ball"
+(TODO: "long_ball" and "wide" layouts)</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;long&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>coordinates</code>
+            </td>
+            <td>
+                  <code><span title="fastforward.cdf">cdf</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coordinate system. Currently only "cdf" is supported.
+- "cdf": Common Data Format (origin at center, meters)
+(TODO: Other coordinate systems)</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;cdf&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>orientation</code>
+            </td>
+            <td>
+                  <code><span title="static_home_away">static_home_away</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coordinate orientation. Currently only "static_home_away" is supported.
+- "static_home_away": Home attacks right (+x) entire match
+(TODO: Other orientations)</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;static_home_away&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>only_alive</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, only include frames where ball is in play (play field == "In").
+Uses HawkEye's "play" field instead of typical "live" field.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>pitch_length</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Pitch length in meters. Used as fallback if not in metadata.
+Metadata values take precedence if present.</p>
+              </div>
+            </td>
+            <td>
+                  <code>105.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>pitch_width</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Pitch width in meters. Used as fallback if not in metadata.
+Metadata values take precedence if present.</p>
+              </div>
+            </td>
+            <td>
+                  <code>68.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>object_id</code>
+            </td>
+            <td>
+                  <code>(<span title="fifa">fifa</span>, <span title="uefa">uefa</span>, <span title="he">he</span>, <span title="auto">auto</span>)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Object ID preference for team and player identification:
+- "fifa": Use FIFA IDs (error if not present)
+- "uefa": Use UEFA IDs (error if not present)
+- "he": Use HawkEye IDs
+- "auto": Prefer FIFA &gt; UEFA &gt; HawkEye (automatic fallback)
+- Custom string: Use custom ID field (error if not found)</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;fifa&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>include_game_id</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span> or <span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, add game_id column to tracking_df, team_df, and player_df from metadata.
+If False, no game_id column is added.
+If str, use the provided string as the game_id value.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>include_officials</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, include officials in player_df and tracking data with team_id="officials"
+and position codes: REF (Main Referee), AREF (Assistant Referee).</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>engine</code>
+            </td>
+            <td>
+                  <code>(<span title="polars">polars</span>, <span title="pyspark">pyspark</span>)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataFrame engine to use:
+- "polars": Return Polars DataFrames (default)
+- "pyspark": Return PySpark DataFrames</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;polars&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>spark_session</code>
+            </td>
+            <td>
+                  <code><span title="pyspark.sql.SparkSession">SparkSession</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>PySpark SparkSession to use. If None and engine="pyspark",
+will get or create a session automatically.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="fastforward._dataset.TrackingDataset" href="#fastforward._dataset.TrackingDataset">TrackingDataset</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Object with .tracking, .metadata, .teams, .players, .periods properties.
+If engine="polars", .tracking returns pl.DataFrame.
+If engine="pyspark", all DataFrames are PySpark DataFrames.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Notes</summary>
+  <ul>
+<li>Officials are excluded by default; set include_officials=True to include them</li>
+<li>Period and minute are extracted from filename patterns like hawkeye_1_1.ball</li>
+</ul>
+</details>
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <p>Load from file paths:</p>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">ball_files</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;hawkeye_1_1.ball&quot;</span><span class="p">,</span> <span class="s2">&quot;hawkeye_1_2.ball&quot;</span><span class="p">]</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">player_files</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;hawkeye_1_1.centroids&quot;</span><span class="p">,</span> <span class="s2">&quot;hawkeye_1_2.centroids&quot;</span><span class="p">]</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">load_tracking</span><span class="p">(</span><span class="n">ball_files</span><span class="p">,</span> <span class="n">player_files</span><span class="p">,</span> <span class="s2">&quot;hawkeye_meta.json&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">tracking_df</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">tracking</span>
+</code></pre></div>
+    <p>Load with specific object ID preference:</p>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">load_tracking</span><span class="p">(</span><span class="n">ball_files</span><span class="p">,</span> <span class="n">player_files</span><span class="p">,</span> <span class="s2">&quot;hawkeye_meta.json&quot;</span><span class="p">,</span> <span class="n">object_id</span><span class="o">=</span><span class="s2">&quot;fifa&quot;</span><span class="p">)</span>
+</code></pre></div>
+    <p>PySpark engine:</p>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">load_tracking</span><span class="p">(</span><span class="n">ball_files</span><span class="p">,</span> <span class="n">player_files</span><span class="p">,</span> <span class="s2">&quot;hawkeye_meta.json&quot;</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;pyspark&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span><span class="o">.</span><span class="n">tracking</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+</code></pre></div>
+
+
+    </div>
+
+</div><h3 id="signality">Signality<a class="headerlink" href="#signality" title="Permanent link">&para;</a></h3>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="fastforward.signality.load_tracking"></a>
+    <div class="doc doc-contents first">
+
+        <p>Load Signality tracking data.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>meta_data</code>
+            </td>
+            <td>
+                  <code><span title="kloppy.io.FileLike">FileLike</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to metadata file (JSON), or bytes, or file-like object.
+Contains team names, player info, lineups, and match timestamp.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>raw_data_feeds</code>
+            </td>
+            <td>
+                  <code><span title="kloppy.io.FileLike">FileLike</span> or <span title="typing.List">List</span>[<span title="kloppy.io.FileLike">FileLike</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Raw tracking data file(s). Can be:
+- Single FileLike: Path, bytes, or file-like object
+- List[FileLike]: Multiple files (one per period)
+Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>venue_information</code>
+            </td>
+            <td>
+                  <code><span title="kloppy.io.FileLike">FileLike</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to venue information file (JSON) containing pitch dimensions.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>layout</code>
+            </td>
+            <td>
+                  <code>(<span title="long">long</span>, <span title="long_ball">long_ball</span>, <span title="wide">wide</span>)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataFrame layout:
+- "long": Ball as row with team_id="ball", player_id="ball"
+- "long_ball": Ball in separate columns, only player rows
+- "wide": One row per frame, player_id in column names</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;long&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>coordinates</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coordinate system. Options:
+- "cdf": Common Data Format (origin at center, meters)
+- "signality": Native coordinates (same as CDF)
+- Other provider coordinate systems</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;cdf&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>orientation</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coordinate orientation:
+- "static_home_away": Home attacks right (+x) entire match
+- Other orientations available</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;static_home_away&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>only_alive</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, only include frames where ball is in play ("running" state).</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>include_game_id</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span> or <span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, add game_id column from metadata.
+If False, no game_id column is added.
+If str, use the provided string as the game_id value.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>include_officials</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, include officials in player_df and tracking data with team_id="officials"
+and position codes: REF (Main Referee), AREF (Assistant Referee), FOURTH (4th Official).</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>parallel</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, process multiple files in parallel using rayon.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>engine</code>
+            </td>
+            <td>
+                  <code>(<span title="polars">polars</span>, <span title="pyspark">pyspark</span>)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataFrame engine to use:
+- "polars": Return Polars DataFrames (default)
+- "pyspark": Return PySpark DataFrames</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;polars&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>spark_session</code>
+            </td>
+            <td>
+                  <code><span title="pyspark.sql.SparkSession">SparkSession</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>PySpark SparkSession to use. If None and engine="pyspark",
+will get or create a session automatically.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="fastforward._dataset.TrackingDataset" href="#fastforward._dataset.TrackingDataset">TrackingDataset</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Object with .tracking, .metadata, .teams, .players, .periods properties.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Notes</summary>
+  <ul>
+<li>Signality uses center-origin coordinates in meters (same as CDF)</li>
+<li>Period is extracted from filename patterns like signality_p1_raw_data.json</li>
+<li>Frame rate is typically 25 Hz (40ms between frames)</li>
+</ul>
+</details>
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <p>Load from file paths:</p>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">fastforward</span><span class="w"> </span><span class="kn">import</span> <span class="n">signality</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">signality</span><span class="o">.</span><span class="n">load_tracking</span><span class="p">(</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">... </span>    <span class="n">meta_data</span><span class="o">=</span><span class="s2">&quot;signality_meta_data.json&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="gp">... </span>    <span class="n">raw_data_feeds</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;signality_p1_raw_data.json&quot;</span><span class="p">,</span> <span class="s2">&quot;signality_p2_raw_data.json&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="gp">... </span>    <span class="n">venue_information</span><span class="o">=</span><span class="s2">&quot;signality_venue_information.json&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="gp">... </span><span class="p">)</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">tracking_df</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">tracking</span>
+</code></pre></div>
+
+
+    </div>
+
+</div><h3 id="statsperform">StatsPerform<a class="headerlink" href="#statsperform" title="Permanent link">&para;</a></h3>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="fastforward.statsperform.load_tracking"></a>
+    <div class="doc doc-contents first">
+
+        <p>Load StatsPerform tracking data.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>ma25_data</code>
+            </td>
+            <td>
+                  <code><span title="kloppy.io.FileLike">FileLike</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to MA25 tracking data file (text format).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>ma1_data</code>
+            </td>
+            <td>
+                  <code><span title="kloppy.io.FileLike">FileLike</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to MA1 metadata file (JSON or XML format, auto-detected).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>pitch_length</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Length of the pitch in meters. StatsPerform data does not include
+pitch dimensions, so this must be provided. Default: 105.0m.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>pitch_width</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Width of the pitch in meters. StatsPerform data does not include
+pitch dimensions, so this must be provided. Default: 68.0m.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>layout</code>
+            </td>
+            <td>
+                  <code>(<span title="long">long</span>, <span title="long_ball">long_ball</span>, <span title="wide">wide</span>)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataFrame layout:
+- "long": Ball as row with team_id="ball", player_id="ball"
+- "long_ball": Ball in separate columns, only player rows
+- "wide": One row per frame, player_id in column names</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;long&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>coordinates</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coordinate system for output. Options:
+- "cdf": Center origin, meters (default)
+- "statsperform" / "sportvu": Native top-left origin, y-down, meters
+- Other provider coordinate systems</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;cdf&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>orientation</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coordinate orientation</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;static_home_away&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>only_alive</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, only include frames where ball is in play</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>include_game_id</code>
+            </td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="bool">bool</span>, <span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, add game_id column from metadata.
+If False, no game_id column is added.
+If str, use the provided string as the game_id value.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>include_officials</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, include match officials (referees) in the players DataFrame
+with team_id="officials" and appropriate position codes (REF, AREF, 4TH).</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="fastforward._dataset.TrackingDataset" href="#fastforward._dataset.TrackingDataset">TrackingDataset</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Object with .tracking, .metadata, .teams, .players, .periods properties.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Notes</summary>
+  <p>StatsPerform uses the SportVU coordinate system:
+- Origin at top-left corner of the pitch
+- X increases left to right (0 to ~105m)
+- Y increases top to bottom (0 to ~68m) - inverted from standard
+- Units are meters
+- Frame rate is typically 10 Hz (100ms between frames)</p>
+<p>The MA1 metadata format is auto-detected (JSON or XML) based on content.</p>
+</details>
+
+    </div>
+
+</div><h3 id="gradientsports">GradientSports<a class="headerlink" href="#gradientsports" title="Permanent link">&para;</a></h3>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="fastforward.gradientsports.load_tracking"></a>
+    <div class="doc doc-contents first">
+
+        <p>Load GradientSports (PFF) tracking data.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>raw_data</code>
+            </td>
+            <td>
+                  <code><span title="kloppy.io.FileLike">FileLike</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to JSONL tracking file</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>meta_data</code>
+            </td>
+            <td>
+                  <code><span title="kloppy.io.FileLike">FileLike</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to JSON metadata file</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>roster_data</code>
+            </td>
+            <td>
+                  <code><span title="kloppy.io.FileLike">FileLike</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to JSON roster file</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>layout</code>
+            </td>
+            <td>
+                  <code>(<span title="long">long</span>, <span title="long_ball">long_ball</span>, <span title="wide">wide</span>)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataFrame layout:
+- "long": Ball as row with team_id="ball", player_id="ball"
+- "long_ball": Ball in separate columns, only player rows
+- "wide": One row per frame, player_id in column names</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;long&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>coordinates</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coordinate system (gradientsports uses CDF format natively)</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;gradientsports&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>orientation</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coordinate orientation</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;static_home_away&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>only_alive</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, only include frames where ball is in play</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>include_incomplete_frames</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, include frames with null ball coordinates or null player arrays.
+If False (default), only include frames with complete data.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>include_game_id</code>
+            </td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="bool">bool</span>, <span title="str">str</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, add game_id column from metadata.
+If False, no game_id column is added.
+If str, use the provided string as the game_id value.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="fastforward._dataset.TrackingDataset" href="#fastforward._dataset.TrackingDataset">TrackingDataset</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Object with .tracking, .metadata, .teams, .players, .periods properties.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div><h3 id="respovision">Respovision<a class="headerlink" href="#respovision" title="Permanent link">&para;</a></h3>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="fastforward.respovision.load_tracking"></a>
+    <div class="doc doc-contents first">
+
+        <p>Load Respovision tracking data.</p>
+<p>Respovision data comes in a single JSONL file containing all tracking frames
+with embedded metadata. Team names are extracted from the filename pattern
+YYYYMMDD-HomeTeam-AwayTeam-*.jsonl.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>raw_data</code>
+            </td>
+            <td>
+                  <code><span title="kloppy.io.FileLike">FileLike</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to JSONL tracking file, or bytes, or file-like object.
+Filename pattern: YYYYMMDD-HomeTeam-AwayTeam-*.jsonl
+Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>layout</code>
+            </td>
+            <td>
+                  <code>(<span title="long">long</span>, <span title="long_ball">long_ball</span>, <span title="wide">wide</span>)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataFrame layout:
+- "long": Ball as row with team_id="ball", player_id="ball"
+- "long_ball": Ball in separate columns, only player rows
+- "wide": One row per frame, player_id in column names
+Note: Wide layout does not include joint angles.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;long&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>coordinates</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coordinate system. Options:
+- "cdf": Common Data Format (origin at center, meters)
+- "respovision": Native coordinates (origin at bottom-left corner, meters)
+- Other provider coordinate systems</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;cdf&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>orientation</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Coordinate orientation:
+- "static_home_away": Home attacks right (+x) entire match
+- Other orientations available</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;static_home_away&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>only_alive</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, only include frames where ball_possession is not null.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>exclude_missing_ball_frames</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, exclude frames where ball coordinates are missing (null).
+Respovision data may have frames where ball tracking failed.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>pitch_length</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Pitch length in meters. Used for coordinate transformation.</p>
+              </div>
+            </td>
+            <td>
+                  <code>105.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>pitch_width</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Pitch width in meters. Used for coordinate transformation.</p>
+              </div>
+            </td>
+            <td>
+                  <code>68.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>include_game_id</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span> or <span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, add game_id column (auto-generated from filename).
+If False, no game_id column is added.
+If str, use the provided string as the game_id value.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>include_joint_angles</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, include head_angle, shoulders_angle, hips_angle columns.
+Only applies to long and long_ball layouts.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>include_officials</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, include referees in tracking data with team_id="officials".</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>engine</code>
+            </td>
+            <td>
+                  <code>(<span title="polars">polars</span>, <span title="pyspark">pyspark</span>)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataFrame engine to use:
+- "polars": Return Polars DataFrames (default)
+- "pyspark": Return PySpark DataFrames</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;polars&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>spark_session</code>
+            </td>
+            <td>
+                  <code><span title="pyspark.sql.SparkSession">SparkSession</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>PySpark SparkSession to use. If None and engine="pyspark",
+will get or create a session automatically.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="fastforward._dataset.TrackingDataset" href="#fastforward._dataset.TrackingDataset">TrackingDataset</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Object with .tracking, .metadata, .teams, .players, .periods properties.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Notes</summary>
+  <ul>
+<li>Native coordinate system (respovision): origin at bottom-left corner, meters
+  X in [0, pitch_length], Y in [0, pitch_width]</li>
+<li>Home/away team designation is extracted from filename</li>
+<li>Player IDs are formatted as {team_name_lower}_{jersey_number}</li>
+<li>Team IDs are lowercase team names with spaces replaced by underscores</li>
+<li>Game ID default format: YYYYMMDD-{home_prefix}-{away_prefix}</li>
+<li>Frame rate is typically 25 Hz</li>
+<li>Ball state: alive if ball_possession is not null, dead otherwise</li>
+<li>Joint angles may contain null values (especially for goalkeepers)</li>
+</ul>
+</details>
+
+<p><span class="doc-section-title">Examples:</span></p>
+    <p>Load from file path:</p>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">fastforward</span><span class="w"> </span><span class="kn">import</span> <span class="n">respovision</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">respovision</span><span class="o">.</span><span class="n">load_tracking</span><span class="p">(</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">... </span>    <span class="s2">&quot;20240714-Argentina-Colombia-2d_tracking-tactical.jsonl&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="gp">... </span>    <span class="n">pitch_length</span><span class="o">=</span><span class="mf">105.0</span><span class="p">,</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="gp">... </span>    <span class="n">pitch_width</span><span class="o">=</span><span class="mf">68.0</span><span class="p">,</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="gp">... </span><span class="p">)</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">tracking_df</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">tracking</span>
+</code></pre></div>
+    <p>Load without joint angles:</p>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">respovision</span><span class="o">.</span><span class="n">load_tracking</span><span class="p">(</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">... </span>    <span class="s2">&quot;tracking.jsonl&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">... </span>    <span class="n">include_joint_angles</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="gp">... </span><span class="p">)</span>
+</code></pre></div>
+
+
+    </div>
+
+</div><h2 id="transforms">Transforms<a class="headerlink" href="#transforms" title="Permanent link">&para;</a></h2>
+<h3 id="transform_coordinates">transform_coordinates<a class="headerlink" href="#transform_coordinates" title="Permanent link">&para;</a></h3>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="fastforward._transforms.transform_coordinates"></a>
+    <div class="doc doc-contents first">
+
+        <p>Transform DataFrame coordinates between coordinate systems.</p>
+<p>Uses CDF as intermediate format: source -&gt; CDF -&gt; target.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>df</code>
+            </td>
+            <td>
+                  <code><span title="polars.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataFrame with x, y columns (and optionally z)</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>from_system</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Source coordinate system (e.g., "cdf", "tracab", "opta")</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>to_system</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Target coordinate system</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>pitch_length</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Pitch length in meters</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>pitch_width</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Pitch width in meters</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="polars.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataFrame with transformed x, y, z columns</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div><h3 id="transform_dimensions">transform_dimensions<a class="headerlink" href="#transform_dimensions" title="Permanent link">&para;</a></h3>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="fastforward._transforms.transform_dimensions"></a>
+    <div class="doc doc-contents first">
+
+        <p>Transform DataFrame to different pitch dimensions using zone-based scaling.</p>
+<p>Uses IFAB standard zone boundaries to preserve pitch feature proportions
+(penalty area, six-yard box, center circle, etc.).</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>df</code>
+            </td>
+            <td>
+                  <code><span title="polars.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataFrame with x, y columns (must be in CDF format: center origin, meters)</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>from_length</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Source pitch length in meters</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>from_width</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Source pitch width in meters</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>to_length</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Target pitch length in meters</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>to_width</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Target pitch width in meters</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="polars.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataFrame with zone-scaled x, y coordinates</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div><h3 id="transform_orientation">transform_orientation<a class="headerlink" href="#transform_orientation" title="Permanent link">&para;</a></h3>
+
+
+<div class="doc doc-object doc-function">
+
+
+
+<a id="fastforward._transforms.transform_orientation"></a>
+    <div class="doc doc-contents first">
+
+        <p>Transform DataFrame orientation by flipping coordinates.</p>
+<p>Orientation flipping negates x and y coordinates around the center (0, 0).
+This is used to ensure consistent attacking direction.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>df</code>
+            </td>
+            <td>
+                  <code><span title="polars.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataFrame with x, y columns (must be in CDF format: center origin)</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>flip</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, flip the coordinates (negate x and y)</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="polars.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataFrame with flipped x, y coordinates (if flip=True)</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "content.code.copy", "content.tabs.link", "search.highlight", "search.suggest"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
