@@ -54,6 +54,7 @@ jobs:
           ref: main
 
       - name: Clean old wheels
+        shell: bash
         run: rm -f wheels/*.whl
 
       - name: Download wheels artifact
