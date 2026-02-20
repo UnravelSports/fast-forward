@@ -25,7 +25,7 @@ classifiers = [
 ]
 dependencies = [
     "polars>=1.0.0",
-    "kloppy @ git+https://github.com/PySport/kloppy.git",
+    "kloppy>=3.18.0",
 ]
 
 [project.optional-dependencies]
