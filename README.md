@@ -10,7 +10,7 @@ This project owes a depth of gratitude to [Kloppy](https://kloppy.pysport.org/) 
 
 > ⚠️ **STATUS**: This project is currently in Beta. Only the Python bindings are available (not the Rust code). Please try it, and report any issues [here](https://github.com/UnravelSports/fast-forward/issues).
 
-> ❓ **ENQUIRIES**: If you work for a (skeletal) tracking provider, or have access to (skeletal) tracking data from an unsupported provider and would like to see support for your data, please contact me at joris <at> unravelsports <dot> com.
+> ❓ **ENQUIRIES**: If you work for a (skeletal) tracking provider, or have access to (skeletal) tracking data from an unsupported provider and would like to see support for your data, please contact me at joris at unravelsports dot com.
 
 ## Installation
 
