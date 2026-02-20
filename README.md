@@ -6,7 +6,7 @@
 
 ## Fast, Robust, Rust-powered Positional Tracking Data Loading for Football Analytics
 
-FAST`<i>`FORWARD`</i>` Supports 10 positional tracking data providers: SecondSpectrum, SkillCorner, Sportec, Tracab, HawkEye, GradientSports, Signality, StatsPerform, RespoVision. Additionally, it supports the [Common Data Format](https://www.cdf.football).
+FAST<i>FORWARD</i> Supports 10 positional tracking data providers: SecondSpectrum, SkillCorner, Sportec, Tracab, HawkEye, GradientSports, Signality, StatsPerform, RespoVision. Additionally, it supports the [Common Data Format](https://www.cdf.football).
 
 This project owes a depth of gratitude to [Kloppy](https://kloppy.pysport.org/) and all its contributors.
 
