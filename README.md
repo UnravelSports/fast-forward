@@ -2,9 +2,11 @@
   <img src="docs/assets/logos/fastforward-gradient-logo.png" alt="fast-forward logo" width="400">
 </p>
 
+[![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue)](https://pypi.org/project/fast-forward-football/)
+
 ## Fast, Robust, Rust-powered Positional Tracking Data Loading for Football Analytics
 
-FAST<i>FORWARD</i> Supports 10 positional tracking data providers: SecondSpectrum, SkillCorner, Sportec, Tracab, HawkEye, GradientSports, Signality, StatsPerform, RespoVision. Additionally, it supports the [Common Data Format](https://www.cdf.football).
+FAST`<i>`FORWARD`</i>` Supports 10 positional tracking data providers: SecondSpectrum, SkillCorner, Sportec, Tracab, HawkEye, GradientSports, Signality, StatsPerform, RespoVision. Additionally, it supports the [Common Data Format](https://www.cdf.football).
 
 This project owes a depth of gratitude to [Kloppy](https://kloppy.pysport.org/) and all its contributors.
 
@@ -44,18 +46,22 @@ periods_df = dataset.periods      # Period info
 
 ## Provider Support
 
-| Provider                      | Tracking Data |      Public Data      |          Docs          | Notes                                              |
-| ----------------------------- | :-----------: | :--------------------: | :--------------------: | :------------------------------------------------- |
-| [CDF][cdf]                    |      ✓      |                        |      [↗][cdf-doc]      |                                                    |
-| [GradientSports][gradientsports] |   ✓      |     [↗][pff-data]     | [↗][gradientsports-doc] | Formerly PFF                                      |
-| [Hawkeye (2D)][hawkeye]       |      ✓      |                        |   [↗][hawkeye-doc]   | Joint tracking data is not yet supported           |
-| [RespoVision][respovision]    |      ✓      |                        |  [↗][respovision-doc]  | Includes support for v1 data                       |
-| [SecondSpectrum][ss]          |      ✓      |                        |      [↗][ss-doc]      |                                                    |
-| [Signality][signality]        |      ✓      |                        |  [↗][signality-doc]  |                                                    |
-| [SkillCorner][skillcorner]    |      ✓      | [↗][skillcorner-data] | [↗][skillcorner-doc] | Includes support for v3 data                       |
-| [Sportec][sportec]            |      ✓      |   [↗][sportec-data]   |   [↗][sportec-doc]   |                                                    |
-| [Stats Perform][statsperform] |      ✓      |                        | [↗][statsperform-doc] | Includes support for MA1, MA3, and MA25 data feeds |
-| [Tracab][tracab]              |      ✓      |                        |    [↗][tracab-doc]    |                                                    |
+| Provider                         | Tracking Data |      Public Data      |           Docs           | Notes                                              |
+| -------------------------------- | :-----------: | :--------------------: | :----------------------: | :------------------------------------------------- |
+| [CDF][cdf]                       |      ✓      |                        |      [↗][cdf-doc]      |                                                    |
+| [GradientSports][gradientsports] |      ✓      |     [↗][pff-data]     | [↗][gradientsports-doc] | Formerly PFF                                       |
+| [Hawkeye (2D)][hawkeye]          |      ✓      |                        |    [↗][hawkeye-doc]    | Joint tracking data is not yet supported           |
+| [RespoVision][respovision]       |      ✓      |                        |  [↗][respovision-doc]  | Includes support for v1 data                       |
+| [SecondSpectrum][ss]             |      ✓      |                        |       [↗][ss-doc]       |                                                    |
+| [Signality][signality]           |      ✓      |                        |   [↗][signality-doc]   |                                                    |
+| [SkillCorner][skillcorner]       |      ✓      | [↗][skillcorner-data] |  [↗][skillcorner-doc]  | Includes support for v3 data                       |
+| [Sportec][sportec]               |      ✓      |   [↗][sportec-data]   |    [↗][sportec-doc]    |                                                    |
+| [Stats Perform][statsperform]    |      ✓      |                        |  [↗][statsperform-doc]  | Includes support for MA1, MA3, and MA25 data feeds |
+| [Tracab][tracab]                 |      ✓      |                        |     [↗][tracab-doc]     |                                                    |
+
+## Benchmarks
+
+![Load Time](docs/assets/images/benchmark_load_time.png)
 
 [cdf]: https://www.cdf.football
 [cdf-doc]: https://kloppy.pysport.org/user-guide/loading-data/cdf
@@ -83,7 +89,3 @@ periods_df = dataset.periods      # Period info
 [hawkeye]: https://www.hawkeyeinnovations.com/data
 [hawkeye-doc]: https://kloppy.pysport.org/user-guide/loading-data/hawkeye
 [metrica]: https://www.metrica-sports.com/
-
-## Benchmarks
-
-![Load Time](docs/assets/images/benchmark_load_time.png)
