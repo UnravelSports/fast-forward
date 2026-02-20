@@ -1,0 +1,114 @@
+name: Fetch Wheels and Run Tests
+
+# NOTE: This is a minimal test configuration (Ubuntu, Python 3.12 only)
+# Before release, expand to full matrix - see BEFORE_RELEASE.md
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag to fetch (e.g., v0.1.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-wheels:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ inputs.version }}
+    steps:
+      - name: Download wheels from private repo release
+        env:
+          GH_TOKEN: ${{ secrets.PRIVATE_REPO_PAT }}
+        run: |
+          mkdir -p wheels
+
+          gh release download ${{ inputs.version }} \
+            --repo UnravelSports/fast-forward-rs \
+            --pattern "*.whl" \
+            --dir wheels/ \
+            --clobber
+
+          echo "Downloaded wheels:"
+          ls -la wheels/
+
+      - name: Upload wheels as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels
+          path: wheels/*.whl
+          retention-days: 1
+
+  # TEMPORARY: Only testing on Ubuntu + Python 3.12
+  # TODO: Before release, expand to full matrix (see BEFORE_RELEASE.md)
+  run-tests:
+    needs: fetch-wheels
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout public repo
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Clean old wheels
+        run: rm -f wheels/*.whl
+
+      - name: Download wheels artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: wheels
+          path: wheels/
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Inspect wheel contents
+        run: |
+          ls -la wheels/
+          for whl in wheels/*.whl; do
+            echo "=== $whl ==="
+            python3 -m zipfile -l "$whl"
+          done
+
+      - name: Install dependencies
+        run: pip install "kloppy @ git+https://github.com/PySport/kloppy.git" pyarrow
+
+      - name: Install wheel
+        run: pip install --find-links wheels/ fast-forward
+
+      - name: Verify installation
+        run: |
+          pip show fast-forward
+          python -c "from fastforward import secondspectrum; print('fastforward imported successfully')"
+
+      - name: Install test dependencies
+        run: pip install pytest
+
+      - name: Run tests
+        run: |
+          pytest tests/ -v -o "pythonpath="
+
+  create-release:
+    needs: run-tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download wheels artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: wheels
+          path: wheels/
+
+      - name: Create release with wheels
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create ${{ inputs.version }} \
+            wheels/*.whl \
+            --repo ${{ github.repository }} \
+            --title "Release ${{ inputs.version }}" \
+            --generate-notes

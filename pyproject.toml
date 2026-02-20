@@ -1,0 +1,59 @@
+[build-system]
+requires = ["maturin>=1.7,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "fast-forward"
+version = "0.1.4"
+description = "Fast SecondSpectrum tracking data loader using Rust"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+keywords = ["sports", "tracking", "soccer", "football", "polars"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Rust",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "polars>=1.0.0",
+    "kloppy @ git+https://github.com/PySport/kloppy.git",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "maturin>=1.7",
+]
+pyspark = [
+    "pyspark>=3.4.0",
+    "pyarrow>=12.0.0",
+    "pandas>=2.0.0",
+]
+test-s3 = [
+    "moto[server]>=5.0.0",   # Mock AWS services
+    "s3fs>=2024.0.0",         # S3 filesystem for kloppy
+    "boto3>=1.35.0",          # AWS SDK
+]
+all = [
+    "pyspark>=3.4.0",
+    "pyarrow>=12.0.0",
+    "pandas>=2.0.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["python"]
+
+[tool.maturin]
+python-source = "python"
+module-name = "fastforward._fastforward"
+features = ["pyo3/extension-module"]
+manifest-path = "rust/Cargo.toml"

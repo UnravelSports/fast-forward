@@ -1,0 +1,108 @@
+/* Futuristic color palette */
+/* #f72585 - Hot Pink (accent) */
+/* #7209b7 - Deep Purple */
+/* #3a0ca3 - Royal Blue (primary) */
+/* #4361ee - Bright Blue */
+/* #4cc9f0 - Sky Blue */
+
+:root {
+  --md-primary-fg-color: #3a0ca3;
+  --md-primary-fg-color--light: #4361ee;
+  --md-primary-fg-color--dark: #7209b7;
+  --md-accent-fg-color: #f72585;
+  --md-accent-fg-color--transparent: #f7258526;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #4361ee;
+  --md-primary-fg-color--light: #4cc9f0;
+  --md-primary-fg-color--dark: #3a0ca3;
+  --md-accent-fg-color: #f72585;
+  --md-accent-fg-color--transparent: #f7258526;
+}
+
+/* Header + tabs gradient - matches logo colors (sky blue → purple → hot pink) */
+/* background-attachment: fixed makes both elements share one continuous gradient */
+.md-header,
+.md-tabs {
+  background: linear-gradient(135deg, #4cc9f0, #7209b7, #f72585);
+  background-attachment: fixed;
+}
+
+[data-md-color-scheme="slate"] .md-header,
+[data-md-color-scheme="slate"] .md-tabs {
+  background: linear-gradient(135deg, #4cc9f0, #7209b7, #f72585);
+  background-attachment: fixed;
+}
+
+/* Tab indicator */
+.md-tabs__link--active,
+.md-tabs__link:hover {
+  color: #4cc9f0 !important;
+}
+
+/* Links */
+.md-typeset a {
+  color: #4361ee;
+}
+
+.md-typeset a:hover {
+  color: #f72585;
+}
+
+[data-md-color-scheme="slate"] .md-typeset a {
+  color: #4cc9f0;
+}
+
+[data-md-color-scheme="slate"] .md-typeset a:hover {
+  color: #f72585;
+}
+
+/* Code highlighting accent */
+.md-typeset code {
+  border-bottom: 2px solid transparent;
+}
+
+.md-typeset a code {
+  color: #4361ee;
+}
+
+/* Admonition custom colors */
+.md-typeset .admonition.tip,
+.md-typeset details.tip {
+  border-color: #4cc9f0;
+}
+
+.md-typeset .tip > .admonition-title,
+.md-typeset .tip > summary {
+  background-color: #4cc9f01a;
+}
+
+.md-typeset .admonition.warning,
+.md-typeset details.warning {
+  border-color: #f72585;
+}
+
+.md-typeset .warning > .admonition-title,
+.md-typeset .warning > summary {
+  background-color: #f725851a;
+}
+
+/* Hide site name text next to logo in header */
+.md-header__topic .md-ellipsis {
+  display: none;
+}
+
+/* Hide auto-generated page title on home page (the logo is sufficient) */
+/* Targets only the h1 that precedes the centered logo image */
+.md-content__inner > h1:has(+ p[align="center"]) {
+  display: none;
+}
+
+/* Hide redundant mkdocstrings TOC entries on API Reference page */
+/* mkdocstrings injects TOC entries for functions even with show_root_heading: false */
+.md-nav__item:has(> .md-nav__link[href*="load_tracking"]),
+.md-nav__item:has(> .md-nav__link[href$="_dataset.TrackingDataset"]),
+.md-nav__item:has(> .md-nav__link[href*="_transforms.transform_"]) {
+  display: none;
+}

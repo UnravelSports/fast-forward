@@ -1,0 +1,92 @@
+site_name: fast-forward
+site_description: Fast Rust-powered tracking data loader for soccer analytics
+site_url: https://unravelsports.github.io/fast-forward/
+
+repo_url: https://github.com/UnravelSports/fast-forward
+repo_name: UnravelSports/fast-forward
+
+theme:
+  name: material
+  logo: assets/logos/fastforward-white-logo.png
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - content.code.copy
+    - content.tabs.link
+    - search.highlight
+    - search.suggest
+  icon:
+    repo: fontawesome/brands/github
+
+extra_css:
+  - stylesheets/extra.css
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [python]
+          options:
+            show_source: false
+            show_root_heading: true
+            show_root_full_path: false
+            heading_level: 3
+            members_order: source
+            show_signature_annotations: true
+            separate_signature: true
+            docstring_style: numpy
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - tables
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+nav:
+  - "": index.md
+  - Getting Started: getting-started.md
+  - Concepts:
+    - TrackingDataset: concepts/dataset.md
+    - FileLike (IO): concepts/filelike.md
+    - Layouts: concepts/layouts.md
+    - Coordinate Systems: concepts/coordinate-systems.md
+    - Orientations: concepts/orientations.md
+    - Transformations: concepts/transformations.md
+  - Providers:
+    - Overview: providers/index.md
+    - CDF: providers/cdf.md
+    - GradientSports: providers/gradientsports.md
+    - HawkEye: providers/hawkeye.md
+    - Respovision: providers/respovision.md
+    - SecondSpectrum: providers/secondspectrum.md
+    - Signality: providers/signality.md
+    - SkillCorner: providers/skillcorner.md
+    - Sportec: providers/sportec.md
+    - StatsPerform: providers/statsperform.md
+    - Tracab: providers/tracab.md
+  - Benchmarks: benchmarks.md
+  - API Reference: api/index.md
+  - Reporting Issues: reporting-issues.md

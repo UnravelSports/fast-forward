@@ -1,0 +1,57 @@
+{
+  "id": 9999999,
+  "home_team_score": 0,
+  "away_team_score": 0,
+  "date_time": "2025-01-01T12:00:00Z",
+  "stadium": {
+    "id": 1,
+    "name": "Test Stadium",
+    "city": "Test City",
+    "capacity": 50000
+  },
+  "home_team": {
+    "id": 9001,
+    "name": "Home",
+    "short_name": "H",
+    "acronym": "HOM"
+  },
+  "away_team": {
+    "id": 9002,
+    "name": "Away",
+    "short_name": "A",
+    "acronym": "AWY"
+  },
+  "pitch_length": 105,
+  "pitch_width": 68,
+  "match_periods": [
+    {
+      "period": 1,
+      "name": "period_1",
+      "start_frame": 1,
+      "end_frame": 4,
+      "duration_frames": 4,
+      "duration_minutes": 0.01
+    }
+  ],
+  "home_team_side": ["left_to_right"],
+  "players": [
+    {
+      "id": 90001,
+      "first_name": "Player1",
+      "last_name": "Home",
+      "short_name": "P. Home",
+      "number": 1,
+      "team_id": 9001,
+      "trackable_object": 1,
+      "player_role": {
+        "id": 1,
+        "position_group": "Goalkeeper",
+        "name": "Goalkeeper",
+        "acronym": "GK"
+      },
+      "start_time": "00:00:00",
+      "birthday": "2000-01-01",
+      "gender": "male"
+    }
+  ]
+}

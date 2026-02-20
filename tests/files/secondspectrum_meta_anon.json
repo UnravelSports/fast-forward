@@ -1,0 +1,359 @@
+{
+  "venueId": "venue_anon",
+  "description": "HOME - AWAY : 2025-01-01",
+  "startTime": 0,
+  "year": 2025,
+  "month": 1,
+  "day": 1,
+  "pitchLength": 104.9,
+  "pitchWidth": 68.0,
+  "fps": 25.0,
+  "periods": [
+    {
+      "number": 1,
+      "startFrameClock": 0,
+      "endFrameClock": 3960,
+      "startFrameIdx": 0,
+      "endFrameIdx": 99,
+      "homeAttPositive": true
+    },
+    {
+      "number": 2,
+      "startFrameClock": 0,
+      "endFrameClock": 3960,
+      "startFrameIdx": 78510,
+      "endFrameIdx": 78609,
+      "homeAttPositive": false
+    }
+  ],
+  "homePlayers": [
+    {
+      "name": "Test WXU",
+      "number": 6,
+      "position": "SUB",
+      "ssiId": "player_1000",
+      "optaId": "opt_player_1000",
+      "optaUuid": "uuid_player_1000"
+    },
+    {
+      "name": "Demo QZQ",
+      "number": 33,
+      "position": "SUB",
+      "ssiId": "player_1001",
+      "optaId": "opt_player_1001",
+      "optaUuid": "uuid_player_1001"
+    },
+    {
+      "name": "Player SHT",
+      "number": 16,
+      "position": "SUB",
+      "ssiId": "player_1002",
+      "optaId": "opt_player_1002",
+      "optaUuid": "uuid_player_1002"
+    },
+    {
+      "name": "Sample NLH",
+      "number": 10,
+      "position": "RAM",
+      "ssiId": "player_1003",
+      "optaId": "opt_player_1003",
+      "optaUuid": "uuid_player_1003"
+    },
+    {
+      "name": "Player UWI",
+      "number": 5,
+      "position": "RCB",
+      "ssiId": "player_1004",
+      "optaId": "opt_player_1004",
+      "optaUuid": "uuid_player_1004"
+    },
+    {
+      "name": "Anonymous BTJ",
+      "number": 27,
+      "position": "SUB",
+      "ssiId": "player_1005",
+      "optaId": "opt_player_1005",
+      "optaUuid": "uuid_player_1005"
+    },
+    {
+      "name": "Test GJI",
+      "number": 82,
+      "position": "RB",
+      "ssiId": "player_1006",
+      "optaId": "opt_player_1006",
+      "optaUuid": "uuid_player_1006"
+    },
+    {
+      "name": "Demo HXA",
+      "number": 3,
+      "position": "LCB",
+      "ssiId": "player_1007",
+      "optaId": "opt_player_1007",
+      "optaUuid": "uuid_player_1007"
+    },
+    {
+      "name": "Demo IGY",
+      "number": 1,
+      "position": "GK",
+      "ssiId": "player_1008",
+      "optaId": "opt_player_1008",
+      "optaUuid": "uuid_player_1008"
+    },
+    {
+      "name": "Test JYC",
+      "number": 31,
+      "position": "SUB",
+      "ssiId": "player_1009",
+      "optaId": "opt_player_1009",
+      "optaUuid": "uuid_player_1009"
+    },
+    {
+      "name": "Test UMZ",
+      "number": 47,
+      "position": "SUB",
+      "ssiId": "player_1010",
+      "optaId": "opt_player_1010",
+      "optaUuid": "uuid_player_1010"
+    },
+    {
+      "name": "Demo NMW",
+      "number": 52,
+      "position": "RW",
+      "ssiId": "player_1011",
+      "optaId": "opt_player_1011",
+      "optaUuid": "uuid_player_1011"
+    },
+    {
+      "name": "Demo ASZ",
+      "number": 45,
+      "position": "SUB",
+      "ssiId": "player_1012",
+      "optaId": "opt_player_1012",
+      "optaUuid": "uuid_player_1012"
+    },
+    {
+      "name": "Sample GWJ",
+      "number": 7,
+      "position": "LW",
+      "ssiId": "player_1013",
+      "optaId": "opt_player_1013",
+      "optaUuid": "uuid_player_1013"
+    },
+    {
+      "name": "Demo UAI",
+      "number": 9,
+      "position": "ST",
+      "ssiId": "player_1014",
+      "optaId": "opt_player_1014",
+      "optaUuid": "uuid_player_1014"
+    },
+    {
+      "name": "Anonymous RUL",
+      "number": 4,
+      "position": "LAM",
+      "ssiId": "player_1015",
+      "optaId": "opt_player_1015",
+      "optaUuid": "uuid_player_1015"
+    },
+    {
+      "name": "Test ZKG",
+      "number": 20,
+      "position": "SUB",
+      "ssiId": "player_1016",
+      "optaId": "opt_player_1016",
+      "optaUuid": "uuid_player_1016"
+    },
+    {
+      "name": "Demo VAB",
+      "number": 21,
+      "position": "LB",
+      "ssiId": "player_1017",
+      "optaId": "opt_player_1017",
+      "optaUuid": "uuid_player_1017"
+    },
+    {
+      "name": "Player MQO",
+      "number": 14,
+      "position": "CDM",
+      "ssiId": "player_1018",
+      "optaId": "opt_player_1018",
+      "optaUuid": "uuid_player_1018"
+    },
+    {
+      "name": "Player NWO",
+      "number": 11,
+      "position": "SUB",
+      "ssiId": "player_1019",
+      "optaId": "opt_player_1019",
+      "optaUuid": "uuid_player_1019"
+    }
+  ],
+  "awayPlayers": [
+    {
+      "name": "Sample UXH",
+      "number": 37,
+      "position": "LCB",
+      "ssiId": "player_1020",
+      "optaId": "opt_player_1020",
+      "optaUuid": "uuid_player_1020"
+    },
+    {
+      "name": "Test YAN",
+      "number": 33,
+      "position": "SUB",
+      "ssiId": "player_1021",
+      "optaId": "opt_player_1021",
+      "optaUuid": "uuid_player_1021"
+    },
+    {
+      "name": "Demo XHU",
+      "number": 31,
+      "position": "SUB",
+      "ssiId": "player_1022",
+      "optaId": "opt_player_1022",
+      "optaUuid": "uuid_player_1022"
+    },
+    {
+      "name": "Sample OFK",
+      "number": 4,
+      "position": "SUB",
+      "ssiId": "player_1023",
+      "optaId": "opt_player_1023",
+      "optaUuid": "uuid_player_1023"
+    },
+    {
+      "name": "Test SMC",
+      "number": 14,
+      "position": "SUB",
+      "ssiId": "player_1024",
+      "optaId": "opt_player_1024",
+      "optaUuid": "uuid_player_1024"
+    },
+    {
+      "name": "Demo DRF",
+      "number": 9,
+      "position": "CF",
+      "ssiId": "player_1025",
+      "optaId": "opt_player_1025",
+      "optaUuid": "uuid_player_1025"
+    },
+    {
+      "name": "Test EMW",
+      "number": 28,
+      "position": "SUB",
+      "ssiId": "player_1026",
+      "optaId": "opt_player_1026",
+      "optaUuid": "uuid_player_1026"
+    },
+    {
+      "name": "Demo HDX",
+      "number": 11,
+      "position": "SUB",
+      "ssiId": "player_1027",
+      "optaId": "opt_player_1027",
+      "optaUuid": "uuid_player_1027"
+    },
+    {
+      "name": "Sample DOH",
+      "number": 30,
+      "position": "LCM",
+      "ssiId": "player_1028",
+      "optaId": "opt_player_1028",
+      "optaUuid": "uuid_player_1028"
+    },
+    {
+      "name": "Test ILI",
+      "number": 6,
+      "position": "CDM",
+      "ssiId": "player_1029",
+      "optaId": "opt_player_1029",
+      "optaUuid": "uuid_player_1029"
+    },
+    {
+      "name": "Demo OWH",
+      "number": 29,
+      "position": "RCM",
+      "ssiId": "player_1030",
+      "optaId": "opt_player_1030",
+      "optaUuid": "uuid_player_1030"
+    },
+    {
+      "name": "Test YMG",
+      "number": 20,
+      "position": "RW",
+      "ssiId": "player_1031",
+      "optaId": "opt_player_1031",
+      "optaUuid": "uuid_player_1031"
+    },
+    {
+      "name": "Test WSL",
+      "number": 1,
+      "position": "GK",
+      "ssiId": "player_1032",
+      "optaId": "opt_player_1032",
+      "optaUuid": "uuid_player_1032"
+    },
+    {
+      "name": "Test NIV",
+      "number": 17,
+      "position": "RCB",
+      "ssiId": "player_1033",
+      "optaId": "opt_player_1033",
+      "optaUuid": "uuid_player_1033"
+    },
+    {
+      "name": "Demo QDH",
+      "number": 15,
+      "position": "SUB",
+      "ssiId": "player_1034",
+      "optaId": "opt_player_1034",
+      "optaUuid": "uuid_player_1034"
+    },
+    {
+      "name": "Test HFJ",
+      "number": 16,
+      "position": "SUB",
+      "ssiId": "player_1035",
+      "optaId": "opt_player_1035",
+      "optaUuid": "uuid_player_1035"
+    },
+    {
+      "name": "Demo DCH",
+      "number": 23,
+      "position": "RB",
+      "ssiId": "player_1036",
+      "optaId": "opt_player_1036",
+      "optaUuid": "uuid_player_1036"
+    },
+    {
+      "name": "Test MZT",
+      "number": 24,
+      "position": "LB",
+      "ssiId": "player_1037",
+      "optaId": "opt_player_1037",
+      "optaUuid": "uuid_player_1037"
+    },
+    {
+      "name": "Sample VWT",
+      "number": 19,
+      "position": "SUB",
+      "ssiId": "player_1038",
+      "optaId": "opt_player_1038",
+      "optaUuid": "uuid_player_1038"
+    },
+    {
+      "name": "Player YAR",
+      "number": 22,
+      "position": "LW",
+      "ssiId": "player_1039",
+      "optaId": "opt_player_1039",
+      "optaUuid": "uuid_player_1039"
+    }
+  ],
+  "homeScore": 0,
+  "awayScore": 0,
+  "ssiId": "test_game_001",
+  "optaId": "opta_test_001",
+  "homeSsiId": "home_team_001",
+  "awaySsiId": "away_team_001"
+}
