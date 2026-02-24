@@ -15,6 +15,7 @@ from fastforward._dataset import TrackingDataset
 from tests.config import (
     SS_RAW_ANON as ANON_RAW_DATA_PATH,
     SS_META_ANON as ANON_META_DATA_PATH,
+    SS_RAW_NULL_BALL as NULL_BALL_RAW_DATA_PATH,
     SS_RAW_FAKE as KLOPPY_RAW_DATA_PATH,
     SS_RAW_FAKE_UTF8SIG as KLOPPY_RAW_DATA_UTF8SIG_PATH,
     SS_META_FAKE as KLOPPY_META_DATA_PATH,
@@ -1066,3 +1067,65 @@ class TestXMLMetadata:
         )
         game_date = dataset.metadata["game_date"][0]
         assert game_date == datetime.date(1900, 2, 1)
+
+
+class TestNullBallXyz:
+    """Tests for handling null ball xyz coordinates (GitHub issue #2).
+
+    SecondSpectrum data can contain frames where ball.xyz is null
+    (e.g., when ball tracking is lost). These should be handled
+    gracefully instead of crashing with a schema mismatch error.
+    """
+
+    def test_null_ball_xyz_excluded_by_default(self):
+        """Test that frames with null ball xyz are excluded when exclude_missing_ball_frames=True."""
+        dataset = secondspectrum.load_tracking(
+            NULL_BALL_RAW_DATA_PATH,
+            ANON_META_DATA_PATH,
+            only_alive=False,
+            exclude_missing_ball_frames=True,
+        )
+        # 3 frames total, 1 has null ball xyz → 2 frames remain
+        # In long format: 2 frames * 23 rows each (11 home + 11 away + 1 ball)
+        assert dataset.tracking.height == 46
+
+    def test_null_ball_xyz_included_when_not_excluded(self):
+        """Test that frames with null ball xyz are included when exclude_missing_ball_frames=False."""
+        dataset = secondspectrum.load_tracking(
+            NULL_BALL_RAW_DATA_PATH,
+            ANON_META_DATA_PATH,
+            only_alive=False,
+            exclude_missing_ball_frames=False,
+        )
+        # All 3 frames included: 3 * 23 = 69 rows
+        assert dataset.tracking.height == 69
+
+    def test_null_ball_xyz_produces_nan_coordinates(self):
+        """Test that null ball xyz results in NaN ball_x/ball_y/ball_z values."""
+        import math
+
+        dataset = secondspectrum.load_tracking(
+            NULL_BALL_RAW_DATA_PATH,
+            ANON_META_DATA_PATH,
+            only_alive=False,
+            exclude_missing_ball_frames=False,
+        )
+        # Frame 1 (frameIdx=1) has null ball xyz
+        frame_1_ball = dataset.tracking.filter(
+            (pl.col("frame_id") == 1) & (pl.col("player_id") == "ball")
+        )
+        assert frame_1_ball.height == 1
+        assert math.isnan(frame_1_ball["x"][0])
+        assert math.isnan(frame_1_ball["y"][0])
+        assert math.isnan(frame_1_ball["z"][0])
+
+    def test_null_ball_xyz_does_not_crash(self):
+        """Test that loading data with null ball xyz does not raise an error."""
+        # This is the core regression test for GitHub issue #2
+        dataset = secondspectrum.load_tracking(
+            NULL_BALL_RAW_DATA_PATH,
+            ANON_META_DATA_PATH,
+            only_alive=True,
+            exclude_missing_ball_frames=True,
+        )
+        assert dataset.tracking.height > 0

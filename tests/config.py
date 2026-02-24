@@ -14,6 +14,7 @@ DATA_DIR = Path(__file__).parent / "files"
 # =============================================================================
 SS_RAW_ANON = str(DATA_DIR / "secondspectrum_tracking_anon.jsonl")
 SS_META_ANON = str(DATA_DIR / "secondspectrum_meta_anon.json")
+SS_RAW_NULL_BALL = str(DATA_DIR / "secondspectrum_tracking_null_ball.jsonl")
 SS_RAW_FAKE = str(DATA_DIR / "second_spectrum_fake_data.jsonl")
 SS_RAW_FAKE_UTF8SIG = str(DATA_DIR / "second_spectrum_fake_data_utf8sig.jsonl")
 SS_META_FAKE = str(DATA_DIR / "second_spectrum_fake_metadata.json")
