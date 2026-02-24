@@ -28,9 +28,11 @@ from kloppy.io import FileLike, open_as_file
 
 from fastforward._fastforward import statsperform as _statsperform
 from fastforward._dataset import TrackingDataset
+from fastforward._errors import with_error_handler
 from fastforward._schema import get_tracking_schema
 
 
+@with_error_handler
 def load_tracking(
     ma25_data: FileLike,
     ma1_data: FileLike,
@@ -238,6 +240,7 @@ def load_tracking(
         )
 
 
+@with_error_handler
 def load_metadata_only(
     ma1_data: FileLike,
     pitch_length: Optional[float] = None,

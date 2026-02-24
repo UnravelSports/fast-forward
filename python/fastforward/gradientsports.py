@@ -7,6 +7,7 @@ from kloppy.io import FileLike, open_as_file
 
 from fastforward._fastforward import gradientsports as _gradientsports
 from fastforward._dataset import TrackingDataset
+from fastforward._errors import with_error_handler
 from fastforward._schema import get_tracking_schema
 
 
@@ -61,6 +62,7 @@ def _create_lazy_tracking_gradientsports(
     ).map_batches(lambda _: load_fn(), schema=schema)
 
 
+@with_error_handler
 def load_tracking(
     raw_data: FileLike,
     meta_data: FileLike,

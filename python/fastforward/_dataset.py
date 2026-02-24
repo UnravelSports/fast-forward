@@ -3,6 +3,8 @@
 from typing import TYPE_CHECKING, Optional, Tuple, Union
 import polars as pl
 
+from fastforward._errors import error_handler
+
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame as SparkDataFrame, SparkSession
 
@@ -403,29 +405,30 @@ class TrackingDataset:
         >>> dataset_spark.engine
         'pyspark'
         """
-        if self._engine == "pyspark":
-            return self
+        with error_handler():
+            if self._engine == "pyspark":
+                return self
 
-        from fastforward._engine import polars_to_spark, get_spark_session
+            from fastforward._engine import polars_to_spark, get_spark_session
 
-        if spark is None:
-            spark = get_spark_session()
+            if spark is None:
+                spark = get_spark_session()
 
-        # For Polars LazyFrame, collect first
-        tracking = self._tracking
-        if isinstance(tracking, pl.LazyFrame):
-            tracking = tracking.collect()
+            # For Polars LazyFrame, collect first
+            tracking = self._tracking
+            if isinstance(tracking, pl.LazyFrame):
+                tracking = tracking.collect()
 
-        return TrackingDataset(
-            tracking=polars_to_spark(tracking, spark),
-            metadata=polars_to_spark(self._metadata, spark),
-            teams=polars_to_spark(self._teams, spark),
-            players=polars_to_spark(self._players, spark),
-            periods=polars_to_spark(self._periods, spark),
-            _engine="pyspark",
-            _provider=self._provider,
-            _cache_key=self._cache_key,
-        )
+            return TrackingDataset(
+                tracking=polars_to_spark(tracking, spark),
+                metadata=polars_to_spark(self._metadata, spark),
+                teams=polars_to_spark(self._teams, spark),
+                players=polars_to_spark(self._players, spark),
+                periods=polars_to_spark(self._periods, spark),
+                _engine="pyspark",
+                _provider=self._provider,
+                _cache_key=self._cache_key,
+            )
 
     def write_cache(self) -> None:
         """Write tracking data to cache.
@@ -450,6 +453,10 @@ class TrackingDataset:
         >>> dataset = tracab.load_tracking("raw.dat", "meta.xml")
         >>> dataset.write_cache()  # Writes to global cache directory
         """
+        with error_handler():
+            self._write_cache_impl()
+
+    def _write_cache_impl(self) -> None:
         from fastforward._cache import (
             get_cache_path,
             write_cache as cache_write,
@@ -560,6 +567,15 @@ class TrackingDataset:
         ...     to_coordinates="tracab",
         ... )
         """
+        with error_handler():
+            return self._transform_impl(to_orientation, to_dimensions, to_coordinates)
+
+    def _transform_impl(
+        self,
+        to_orientation: Optional[str] = None,
+        to_dimensions: Optional[Tuple[float, float]] = None,
+        to_coordinates: Optional[str] = None,
+    ) -> "TrackingDataset":
         if self._engine != "polars":
             raise NotImplementedError(
                 "transform() is currently only supported for Polars DataFrames"

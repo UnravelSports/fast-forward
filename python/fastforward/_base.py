@@ -8,6 +8,7 @@ import polars as pl
 from kloppy.io import FileLike, open_as_file
 
 from fastforward._dataset import TrackingDataset
+from fastforward._errors import with_error_handler
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
@@ -146,6 +147,7 @@ def discover_files_in_directory(
     return sorted(files, key=sort_key)
 
 
+@with_error_handler
 def load_tracking_impl(
     provider_name: str,
     raw_data: FileLike,

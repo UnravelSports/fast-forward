@@ -19,6 +19,7 @@ from fastforward._base import (
     discover_files_in_directory,
     get_filename_from_filelike,
 )
+from fastforward._errors import with_error_handler
 from fastforward._fastforward import signality as _signality
 from fastforward._lazy import create_lazy_tracking_signality, _is_local_file
 from fastforward._schema import get_tracking_schema
@@ -28,6 +29,7 @@ if TYPE_CHECKING:
     from pyspark.sql import SparkSession
 
 
+@with_error_handler
 def load_tracking(
     meta_data: FileLike,
     raw_data_feeds: Union[FileLike, List[FileLike]],
@@ -361,6 +363,7 @@ def load_tracking(
     )
 
 
+@with_error_handler
 def load_metadata_only(
     meta_data: FileLike,
     venue_information: FileLike,

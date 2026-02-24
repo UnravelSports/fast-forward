@@ -18,6 +18,7 @@ from fastforward._base import (
     discover_files_in_directory,
     get_filename_from_filelike,
 )
+from fastforward._errors import with_error_handler
 from fastforward._fastforward import hawkeye as _hawkeye
 from fastforward._lazy import create_lazy_tracking_hawkeye, _is_local_file
 from fastforward._schema import get_tracking_schema
@@ -27,6 +28,7 @@ if TYPE_CHECKING:
     from pyspark.sql import SparkSession
 
 
+@with_error_handler
 def load_tracking(
     ball_data: Union[FileLike, List[FileLike]],
     player_data: Union[FileLike, List[FileLike]],
@@ -413,6 +415,7 @@ def load_tracking(
     )
 
 
+@with_error_handler
 def load_metadata_only(
     meta_data: FileLike,
     player_data: Optional[Union[FileLike, List[FileLike]]] = None,

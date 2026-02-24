@@ -14,11 +14,13 @@ from kloppy.io import FileLike, open_as_file
 
 from fastforward._base import get_filename_from_filelike
 from fastforward._dataset import TrackingDataset
+from fastforward._errors import with_error_handler
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
 
 
+@with_error_handler
 def load_tracking(
     raw_data: FileLike,
     layout: Literal["long", "long_ball", "wide"] = "long",
