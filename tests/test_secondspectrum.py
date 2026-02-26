@@ -20,6 +20,7 @@ from tests.config import (
     SS_RAW_FAKE_UTF8SIG as KLOPPY_RAW_DATA_UTF8SIG_PATH,
     SS_META_FAKE as KLOPPY_META_DATA_PATH,
     SS_META_FAKE_XML as KLOPPY_XML_META_DATA_PATH,
+    SS_META_FAKE_XML_BOM as KLOPPY_XML_BOM_META_DATA_PATH,
 )
 
 
@@ -1129,3 +1130,26 @@ class TestNullBallXyz:
             exclude_missing_ball_frames=True,
         )
         assert dataset.tracking.height > 0
+
+
+class TestBomHandling:
+    """Tests for UTF-8 BOM handling in SecondSpectrum XML metadata."""
+
+    def test_bom_xml_metadata_loads(self):
+        """Test that BOM-prefixed XML metadata loads without error."""
+        dataset = secondspectrum.load_tracking(
+            KLOPPY_RAW_DATA_PATH, KLOPPY_XML_BOM_META_DATA_PATH, only_alive=False, lazy=False
+        )
+        assert dataset.tracking.height > 0
+
+    def test_bom_xml_matches_non_bom(self):
+        """Test that BOM-prefixed XML metadata produces same results as non-BOM."""
+        dataset_normal = secondspectrum.load_tracking(
+            KLOPPY_RAW_DATA_PATH, KLOPPY_XML_META_DATA_PATH, only_alive=False, lazy=False
+        )
+        dataset_bom = secondspectrum.load_tracking(
+            KLOPPY_RAW_DATA_PATH, KLOPPY_XML_BOM_META_DATA_PATH, only_alive=False, lazy=False
+        )
+
+        assert dataset_bom.tracking.height == dataset_normal.tracking.height
+        assert dataset_bom.players.height == dataset_normal.players.height

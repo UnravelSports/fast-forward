@@ -7,6 +7,7 @@ import datetime
 from fastforward import tracab
 from tests.config import (
     TR_META_XML as META_XML_PATH,
+    TR_META_XML_BOM as META_XML_BOM_PATH,
     TR_META_JSON as META_JSON_PATH,
     TR_META_XML_2 as META_XML_2_PATH,
     TR_META_XML_3 as META_XML_3_PATH,
@@ -512,3 +513,25 @@ class TestRawDataFormats:
         # Should have similar number of frames (may differ due to parsing differences)
         # Allow 10% tolerance
         assert abs(dat_frames - json_frames) / max(dat_frames, json_frames) < 0.1
+
+
+class TestBomHandling:
+    """Tests for UTF-8 BOM (Byte Order Mark) handling in metadata files.
+
+    Related to kloppy issue #539 / PR #540: XML files with a BOM prefix
+    should be detected and parsed correctly.
+    """
+
+    def test_bom_xml_metadata_loads(self):
+        """Test that XML metadata with UTF-8 BOM loads without error."""
+        dataset = tracab.load_tracking(RAW_DAT_PATH, META_XML_BOM_PATH, lazy=False)
+        assert dataset.tracking.height > 0
+
+    def test_bom_xml_matches_non_bom(self):
+        """Test that BOM-prefixed XML produces same results as non-BOM XML."""
+        dataset_normal = tracab.load_tracking(RAW_DAT_PATH, META_XML_PATH, lazy=False, only_alive=False)
+        dataset_bom = tracab.load_tracking(RAW_DAT_PATH, META_XML_BOM_PATH, lazy=False, only_alive=False)
+
+        assert dataset_bom.tracking.height == dataset_normal.tracking.height
+        assert dataset_bom.metadata["game_id"][0] == dataset_normal.metadata["game_id"][0]
+        assert dataset_bom.players.height == dataset_normal.players.height

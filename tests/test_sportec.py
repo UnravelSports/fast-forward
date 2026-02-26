@@ -6,7 +6,9 @@ import polars as pl
 from fastforward import sportec
 from tests.config import (
     SP_META as META_DATA_PATH,
+    SP_META_BOM as META_DATA_BOM_PATH,
     SP_RAW as RAW_DATA_PATH,
+    SP_RAW_BOM as RAW_DATA_BOM_PATH,
     SP_RAW_W_REF as RAW_DATA_W_REF_PATH,
 )
 
@@ -748,3 +750,25 @@ class TestTimestampBehavior:
     def test_metadata_fps_value(self, metadata_df):
         """Test that FPS is correctly reported as 25."""
         assert metadata_df["fps"][0] == pytest.approx(25.0, rel=0.01)
+
+
+class TestBomHandling:
+    """Tests for UTF-8 BOM handling in Sportec XML files."""
+
+    def test_bom_metadata_loads(self):
+        """Test that BOM-prefixed metadata XML loads without error."""
+        dataset = sportec.load_tracking(RAW_DATA_PATH, META_DATA_BOM_PATH, lazy=False)
+        assert dataset.tracking.height > 0
+
+    def test_bom_tracking_loads(self):
+        """Test that BOM-prefixed tracking XML loads without error."""
+        dataset = sportec.load_tracking(RAW_DATA_BOM_PATH, META_DATA_PATH, lazy=False)
+        assert dataset.tracking.height > 0
+
+    def test_bom_matches_non_bom(self):
+        """Test that BOM-prefixed files produce same results as non-BOM."""
+        dataset_normal = sportec.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False, only_alive=False)
+        dataset_bom = sportec.load_tracking(RAW_DATA_BOM_PATH, META_DATA_BOM_PATH, lazy=False, only_alive=False)
+
+        assert dataset_bom.tracking.height == dataset_normal.tracking.height
+        assert dataset_bom.players.height == dataset_normal.players.height

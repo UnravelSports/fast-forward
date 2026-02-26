@@ -19,6 +19,7 @@ SS_RAW_FAKE = str(DATA_DIR / "second_spectrum_fake_data.jsonl")
 SS_RAW_FAKE_UTF8SIG = str(DATA_DIR / "second_spectrum_fake_data_utf8sig.jsonl")
 SS_META_FAKE = str(DATA_DIR / "second_spectrum_fake_metadata.json")
 SS_META_FAKE_XML = str(DATA_DIR / "second_spectrum_fake_metadata.xml")
+SS_META_FAKE_XML_BOM = str(DATA_DIR / "second_spectrum_fake_metadata_bom.xml")
 
 # =============================================================================
 # SkillCorner
@@ -32,7 +33,9 @@ SC_META_BOUNDARY = str(DATA_DIR / "skillcorner_boundary_meta.json")
 # Sportec
 # =============================================================================
 SP_META = str(DATA_DIR / "sportec_meta.xml")
+SP_META_BOM = str(DATA_DIR / "sportec_meta_bom.xml")
 SP_RAW = str(DATA_DIR / "sportec_positional.xml")
+SP_RAW_BOM = str(DATA_DIR / "sportec_positional_bom.xml")
 SP_RAW_W_REF = str(DATA_DIR / "sportec_positional_w_referee.xml")
 
 # =============================================================================
@@ -40,6 +43,7 @@ SP_RAW_W_REF = str(DATA_DIR / "sportec_positional_w_referee.xml")
 # =============================================================================
 HE_META_JSON = str(DATA_DIR / "hawkeye_meta.json")
 HE_META_XML = str(DATA_DIR / "hawkeye_meta.xml")
+HE_META_XML_BOM = str(DATA_DIR / "hawkeye_meta_bom.xml")
 HE_BALL_1 = str(DATA_DIR / "hawkeye_1_1.football.samples.ball")
 HE_BALL_2 = str(DATA_DIR / "hawkeye_2_46.football.samples.ball")
 HE_PLAYER_1 = str(DATA_DIR / "hawkeye_1_1.football.samples.centroids")
@@ -65,6 +69,7 @@ RV_RAW = str(DATA_DIR / "respovision_tracking.jsonl")
 # Tracab
 # =============================================================================
 TR_META_XML = str(DATA_DIR / "tracab_meta.xml")
+TR_META_XML_BOM = str(DATA_DIR / "tracab_meta_bom.xml")
 TR_META_JSON = str(DATA_DIR / "tracab_meta.json")
 TR_META_XML_2 = str(DATA_DIR / "tracab_meta_2.xml")
 TR_META_XML_3 = str(DATA_DIR / "tracab_meta_3.xml")
@@ -78,6 +83,7 @@ TR_RAW_JSON = str(DATA_DIR / "tracab_raw.json")
 STP_RAW_MA25 = str(DATA_DIR / "statsperform_tracking_ma25.txt")
 STP_META_JSON = str(DATA_DIR / "statsperform_tracking_ma1.json")
 STP_META_XML = str(DATA_DIR / "statsperform_tracking_ma1.xml")
+STP_META_XML_BOM = str(DATA_DIR / "statsperform_tracking_ma1_bom.xml")
 
 # =============================================================================
 # CDF (Common Data Format)

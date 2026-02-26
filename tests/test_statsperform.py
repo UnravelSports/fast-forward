@@ -8,6 +8,7 @@ from tests.config import (
     STP_RAW_MA25 as MA25_DATA_PATH,
     STP_META_JSON as MA1_JSON_PATH,
     STP_META_XML as MA1_XML_PATH,
+    STP_META_XML_BOM as MA1_XML_BOM_PATH,
 )
 
 
@@ -890,3 +891,20 @@ class TestOfficials:
         # 40 players + 4 officials = 44
         assert dataset_without.players.height == 40
         assert dataset_with.players.height == 44
+
+
+class TestBomHandling:
+    """Tests for UTF-8 BOM handling in StatsPerform XML metadata."""
+
+    def test_bom_xml_metadata_loads(self):
+        """Test that BOM-prefixed XML metadata loads without error."""
+        dataset = statsperform.load_tracking(MA25_DATA_PATH, MA1_XML_BOM_PATH, lazy=False)
+        assert dataset.tracking.height > 0
+
+    def test_bom_xml_matches_non_bom(self):
+        """Test that BOM-prefixed XML metadata produces same results as non-BOM."""
+        dataset_normal = statsperform.load_tracking(MA25_DATA_PATH, MA1_XML_PATH, only_alive=False, lazy=False)
+        dataset_bom = statsperform.load_tracking(MA25_DATA_PATH, MA1_XML_BOM_PATH, only_alive=False, lazy=False)
+
+        assert dataset_bom.tracking.height == dataset_normal.tracking.height
+        assert dataset_bom.players.height == dataset_normal.players.height

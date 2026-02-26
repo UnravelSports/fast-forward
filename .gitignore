@@ -229,3 +229,7 @@ rust/
 **/__pycache__/
 **/*.pyc
 *.ipynb
+dev.py
+
+ISSUES.md
+LATEST_RELEASE.md

@@ -8,6 +8,7 @@ from tests.config import (
     HE_BALL_FILES as BALL_FILES,
     HE_PLAYER_FILES as PLAYER_FILES,
     HE_META_JSON as META_JSON,
+    HE_META_XML_BOM as META_XML_BOM,
 )
 
 
@@ -1083,3 +1084,20 @@ class TestHawkEyeOfficials:
         tracking_df = dataset.tracking.collect()
         officials_tracking = tracking_df.filter(pl.col('team_id') == 'officials')
         assert len(officials_tracking) > 0
+
+
+class TestBomHandling:
+    """Tests for UTF-8 BOM handling in HawkEye XML metadata."""
+
+    def test_bom_xml_metadata_loads(self):
+        """Test that BOM-prefixed XML metadata loads without error."""
+        dataset = hawkeye.load_tracking(BALL_FILES, PLAYER_FILES, META_XML_BOM, lazy=False)
+        assert dataset.tracking.height > 0
+
+    def test_bom_xml_matches_json(self):
+        """Test that BOM-prefixed XML metadata produces same results as JSON."""
+        dataset_json = hawkeye.load_tracking(BALL_FILES, PLAYER_FILES, META_JSON, lazy=False, only_alive=False)
+        dataset_bom = hawkeye.load_tracking(BALL_FILES, PLAYER_FILES, META_XML_BOM, lazy=False, only_alive=False)
+
+        assert dataset_bom.tracking.height == dataset_json.tracking.height
+        assert dataset_bom.players.height == dataset_json.players.height
