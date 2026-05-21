@@ -492,7 +492,11 @@ def _register_standard_providers() -> None:
         name="skillcorner",
         rust_module=_sc,
         metadata_params=[],
-        tracking_params=["include_empty_frames"],
+        tracking_params=[
+            "include_empty_frames",
+            "include_ball_owning_player",
+            "include_is_detected",
+        ],
     )
 
     register_provider(
