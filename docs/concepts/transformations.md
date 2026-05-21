@@ -12,15 +12,15 @@ transformed = dataset.transform(
 )
 ```
 
-All three parameters are optional — you can transform any combination.
+All three parameters are optional; you can transform any combination.
 
 ## Transform Order
 
 When multiple transforms are applied in a single call, they are always executed in this order:
 
-1. **Orientation** — flip coordinates if needed
-2. **Dimensions** — scale to new pitch dimensions
-3. **Coordinates** — convert between coordinate systems
+1. **Orientation**: flip coordinates if needed
+2. **Dimensions**: scale to new pitch dimensions
+3. **Coordinates**: convert between coordinate systems
 
 This order is enforced internally to ensure correct results.
 

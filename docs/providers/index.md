@@ -1,6 +1,6 @@
 # Providers
 
-fast-forward supports 10 tracking data providers. Each provider has a `load_tracking()` function that returns a [`TrackingDataset`](../concepts/dataset.md).
+fast-forward supports 11 tracking data providers. Each provider has a `load_tracking()` function that returns a [`TrackingDataset`](../concepts/dataset.md).
 
 ## Comparison Table
 
@@ -9,13 +9,14 @@ fast-forward supports 10 tracking data providers. Each provider has a `load_trac
 | [CDF](cdf.md) | 2 | JSONL + JSON | CDF | long, long_ball, wide | `exclude_missing_ball_frames` |
 | [GradientSports](gradientsports.md) | 3 | JSONL + JSON | CDF | long, long_ball, wide | `include_incomplete_frames`, `roster_data` |
 | [HawkEye](hawkeye.md) | Multi | Text + JSON/XML | CDF | long | `pitch_length`, `pitch_width`, `object_id`, `include_officials`, `parallel` |
+| [OptaVision](optavision.md) | 2 | Text + XML | CDF | long, long_ball, wide | `include_ball_owning_player` |
 | [Respovision](respovision.md) | 1 | JSONL | Sportec Event | long, long_ball, wide | `pitch_length`, `pitch_width`, `include_joint_angles`, `include_officials` |
 | [SecondSpectrum](secondspectrum.md) | 2 | JSONL + JSON | CDF | long, long_ball, wide | `exclude_missing_ball_frames` |
 | [Signality](signality.md) | 3+ | JSON | CDF | long, long_ball, wide | `include_officials`, `parallel`, `venue_information` |
 | [SkillCorner](skillcorner.md) | 2 | JSONL + JSON | CDF | long, long_ball, wide | `include_empty_frames` |
 | [Sportec](sportec.md) | 2 | XML | CDF | long, long_ball, wide | `include_officials` |
 | [StatsPerform](statsperform.md) | 2 | MA25 + MA1 | SportVU | long, long_ball, wide | `pitch_length`, `pitch_width`, `include_officials` |
-| [Tracab](tracab.md) | 2 | DAT/JSON + XML/JSON | Tracab (cm) | long, long_ball, wide | — |
+| [Tracab](tracab.md) | 2 | DAT/JSON + XML/JSON | Tracab (cm) | long, long_ball, wide | none |
 
 ## Common Parameters
 

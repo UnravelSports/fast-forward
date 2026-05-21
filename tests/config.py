@@ -30,6 +30,12 @@ SC_RAW_BOUNDARY = str(DATA_DIR / "skillcorner_boundary_tracking.jsonl")
 SC_META_BOUNDARY = str(DATA_DIR / "skillcorner_boundary_meta.json")
 
 # =============================================================================
+# OptaVision (StatsPerform FIFA EPTS)
+# =============================================================================
+OV_META = str(DATA_DIR / "optavision_meta.xml")
+OV_RAW = str(DATA_DIR / "optavision_tracking.txt")
+
+# =============================================================================
 # Sportec
 # =============================================================================
 SP_META = str(DATA_DIR / "sportec_meta.xml")

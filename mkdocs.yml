@@ -80,6 +80,7 @@ nav:
     - CDF: providers/cdf.md
     - GradientSports: providers/gradientsports.md
     - HawkEye: providers/hawkeye.md
+    - OptaVision: providers/optavision.md
     - Respovision: providers/respovision.md
     - SecondSpectrum: providers/secondspectrum.md
     - Signality: providers/signality.md

@@ -30,13 +30,13 @@ dataset = tracab.load_tracking(
 
 **Tracking data**: Supported formats are auto-detected:
 
-- `.dat` — Tracab DAT text format (or binary DAT)
-- `.json` — JSON format
+- `.dat`: Tracab DAT text format (or binary DAT)
+- `.json`: JSON format
 
 **Metadata**: Supported formats are auto-detected:
 
-- `.xml` — XML (hierarchical or flat structure)
-- `.json` — JSON
+- `.xml`: XML (hierarchical or flat structure)
+- `.json`: JSON
 
 ## Example
 

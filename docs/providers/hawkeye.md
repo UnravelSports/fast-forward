@@ -35,7 +35,7 @@ dataset = hawkeye.load_tracking(
 
 ## File Format
 
-HawkEye uses **per-minute files** — separate files for each minute of each period:
+HawkEye uses **per-minute files**: separate files for each minute of each period:
 
 - **Ball files**: `hawkeye_{period}_{minute}.football.samples.ball`
 - **Player files**: `hawkeye_{period}_{minute}.football.samples.centroids`
