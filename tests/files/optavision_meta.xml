@@ -1,0 +1,410 @@
+<?xml version="1.1" encoding="UTF-8"?>
+<tns:FIFADataTransferFormatEPTS xmlns:tns="FIFADataTransferFormatEPTSNamespace/FIFADataTransferFormatEPTS" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="FIFADataTransferFormatEPTSNamespace/FIFADataTransferFormatEPTS FIFADataTransferFormatEPTS.xsd">
+  <Metadata>
+    <GlobalConfig>
+      <FileDate>2026-03-01T11:29:28Z</FileDate>
+      <ProviderName>StatsPerform</ProviderName>
+      <FrameRate>25</FrameRate>
+      <FileName>swyrn1j6ovvowhnpeuza3xu27_epts_format_specification</FileName>
+      <Version>2.2.0</Version>
+      <TrackingType>Optical</TrackingType>
+      <ProviderGlobalParameters>
+        <ProviderParameter>
+          <Name>match_uuid</Name>
+          <Value>swyrn1j6ovvowhnpeuza3xu27</Value>
+        </ProviderParameter>
+      </ProviderGlobalParameters>
+    </GlobalConfig>
+    <Sessions>
+      <Session id="matchsession">
+        <Start>2026-02-28T20:05:14Z</Start>
+        <End>2026-02-28T21:59:33Z</End>
+        <MatchParameters>
+          <FieldSize>
+            <Width>68.0</Width>
+            <Length>105.0</Length>
+          </FieldSize>
+        </MatchParameters>
+      </Session>
+    </Sessions>
+    <Teams>
+      <Team id="hpvjeond44ey0isf0arwr9w6d"/>
+      <Team id="sxfdkddi5le7xqgqwxosc5evs"/>
+    </Teams>
+    <DirectionsOfPlay>
+      <Period id="1">
+        <Team id="hpvjeond44ey0isf0arwr9w6d">
+          <DirectionOfPlay>LeftToRight</DirectionOfPlay>
+        </Team>
+        <Team id="sxfdkddi5le7xqgqwxosc5evs">
+          <DirectionOfPlay>RightToLeft</DirectionOfPlay>
+        </Team>
+      </Period>
+      <Period id="2">
+        <Team id="hpvjeond44ey0isf0arwr9w6d">
+          <DirectionOfPlay>RightToLeft</DirectionOfPlay>
+        </Team>
+        <Team id="sxfdkddi5le7xqgqwxosc5evs">
+          <DirectionOfPlay>LeftToRight</DirectionOfPlay>
+        </Team>
+      </Period>
+    </DirectionsOfPlay>
+    <Players>
+      <Player id="nbc27o5h4ieixtea35oiiyhk1" teamId="sxfdkddi5le7xqgqwxosc5evs">
+        <ShirtNumber>4</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>1</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="ancjfx1xw09cu1z1lhpuepj7r" teamId="sxfdkddi5le7xqgqwxosc5evs">
+        <ShirtNumber>49</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>1</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="yg7j1pi8brj13854oxwtbwfo8" teamId="sxfdkddi5le7xqgqwxosc5evs">
+        <ShirtNumber>27</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>1</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="pd44nptvr94f34r6sx0kddzw0" teamId="sxfdkddi5le7xqgqwxosc5evs">
+        <ShirtNumber>89</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>1</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="ndm5okv1yv61pr2z5evz1f6t6" teamId="sxfdkddi5le7xqgqwxosc5evs">
+        <ShirtNumber>29</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>1</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="x2d8c3wyj52a983efn7mtpimf" teamId="sxfdkddi5le7xqgqwxosc5evs">
+        <ShirtNumber>19</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>1</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="9q0fv4doios80v2ben0q7htab" teamId="sxfdkddi5le7xqgqwxosc5evs">
+        <ShirtNumber>17</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>1</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="qv41ovcx0ddd07xhg5cm0zwl3" teamId="sxfdkddi5le7xqgqwxosc5evs">
+        <ShirtNumber>21</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>1</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="ejddp1tk2ufgkbm1kbf71wfls" teamId="sxfdkddi5le7xqgqwxosc5evs">
+        <ShirtNumber>33</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>1</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="2tumsxeuzqe9dm9q0w9ax2k56" teamId="sxfdkddi5le7xqgqwxosc5evs">
+        <ShirtNumber>30</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>1</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="qiilxfcs8c3qhuj1u7r3ug8jd" teamId="sxfdkddi5le7xqgqwxosc5evs">
+        <ShirtNumber>9</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>1</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="xs89o21rqyb1ire9dmvrjgx0d" teamId="sxfdkddi5le7xqgqwxosc5evs">
+        <ShirtNumber>25</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>1</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="skgkpy6iwjvnpoks9jib19pmh" teamId="sxfdkddi5le7xqgqwxosc5evs">
+        <ShirtNumber>51</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>1</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="357zud2puxd0p5hquubp4mr5t" teamId="sxfdkddi5le7xqgqwxosc5evs">
+        <ShirtNumber>2</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>1</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="iglljwkzx25fs8kqwhuhmvhph" teamId="sxfdkddi5le7xqgqwxosc5evs">
+        <ShirtNumber>14</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>1</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="9fldq3d5tkhi2iqnr19tsoxj0" teamId="sxfdkddi5le7xqgqwxosc5evs">
+        <ShirtNumber>6</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>1</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="rme0o4p8zrbqrui0at3j66n3w" teamId="sxfdkddi5le7xqgqwxosc5evs">
+        <ShirtNumber>7</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>1</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="gfz9ji3g0auijl4vxw9ume0pq" teamId="sxfdkddi5le7xqgqwxosc5evs">
+        <ShirtNumber>39</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>4</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="szljyh0qym2a8qc78n8hq86x1" teamId="sxfdkddi5le7xqgqwxosc5evs">
+        <ShirtNumber>5</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>1</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="fxjb8q7z8zfj6h744ibq6ro7l" teamId="hpvjeond44ey0isf0arwr9w6d">
+        <ShirtNumber>17</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>0</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="1xwia0yi4fugl7b8femzzk5ir" teamId="hpvjeond44ey0isf0arwr9w6d">
+        <ShirtNumber>33</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>0</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="7inndh8kos2okjlcf1ipaj8d1" teamId="hpvjeond44ey0isf0arwr9w6d">
+        <ShirtNumber>29</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>0</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="adlugyze9g6a7aeco45dgpoh9" teamId="hpvjeond44ey0isf0arwr9w6d">
+        <ShirtNumber>26</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>0</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="25cuyqgt91o0s3w7py5dqfguy" teamId="hpvjeond44ey0isf0arwr9w6d">
+        <ShirtNumber>27</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>0</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="95mbi1lf2ujp50apx0smnnx94" teamId="hpvjeond44ey0isf0arwr9w6d">
+        <ShirtNumber>13</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>0</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="zud8a7dkyagz1f8cwuf318208" teamId="hpvjeond44ey0isf0arwr9w6d">
+        <ShirtNumber>25</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>0</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="ys9v7rjk0or4g3j6xrrx6jdw5" teamId="hpvjeond44ey0isf0arwr9w6d">
+        <ShirtNumber>77</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>0</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="15c30g67fwca723zlgk67agbb" teamId="hpvjeond44ey0isf0arwr9w6d">
+        <ShirtNumber>99</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>3</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="9qp67xsm3htfu40f50bvwduuw" teamId="hpvjeond44ey0isf0arwr9w6d">
+        <ShirtNumber>10</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>0</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="kd7pj7mh4csp20upu3yn3hh2y" teamId="hpvjeond44ey0isf0arwr9w6d">
+        <ShirtNumber>18</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>0</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="82cq4s1mzw9wialvavmsf3wx8" teamId="hpvjeond44ey0isf0arwr9w6d">
+        <ShirtNumber>78</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>0</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="2sf5s682jveyx7iec0j0lqlgb" teamId="hpvjeond44ey0isf0arwr9w6d">
+        <ShirtNumber>15</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>0</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="30y4g9022r0211uypyh2ipqko" teamId="hpvjeond44ey0isf0arwr9w6d">
+        <ShirtNumber>19</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>0</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="zxgk3bnr36ayla6rytgjd9ln1" teamId="hpvjeond44ey0isf0arwr9w6d">
+        <ShirtNumber>45</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>0</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="ns8hn80kg47i0daepotacl0b1" teamId="hpvjeond44ey0isf0arwr9w6d">
+        <ShirtNumber>6</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>0</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="688uy82qsdil0pax1jhs8v916" teamId="hpvjeond44ey0isf0arwr9w6d">
+        <ShirtNumber>8</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>0</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="p2lfgyqcqjaffiiu2hsl4y65q" teamId="hpvjeond44ey0isf0arwr9w6d">
+        <ShirtNumber>32</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>0</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="7bovkrx2bwxeggtumey5gxlyj" teamId="hpvjeond44ey0isf0arwr9w6d">
+        <ShirtNumber>14</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>0</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+      <Player id="kd6p33gkl8k4r65ygn63be4np" teamId="hpvjeond44ey0isf0arwr9w6d">
+        <ShirtNumber>4</ShirtNumber>
+        <ProviderPlayerParameters>
+          <ProviderParameter>
+            <Name>type</Name>
+            <Value>0</Value>
+          </ProviderParameter>
+        </ProviderPlayerParameters>
+      </Player>
+    </Players>
+    <FrameCountToVideoTimeMsMapping/>
+    <Devices/>
+    <PlayerChannels/>
+  </Metadata>
+  <DataFormatSpecifications/>
+</tns:FIFADataTransferFormatEPTS>

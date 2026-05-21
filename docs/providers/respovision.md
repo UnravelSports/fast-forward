@@ -65,7 +65,7 @@ print(dataset.metadata)
 
 ## Notes
 
-- **Single file provider** — no separate metadata file needed
+- **Single file provider**: no separate metadata file needed
 - Native coordinates use bottom-left origin in meters (`sportec:event`/`respovision` coordinate system)
 - The `"respovision"` coordinate system name is an alias for `sportec:event`
 - Game ID is auto-generated from the filename pattern (`YYYYMMDD-xxx-xxx`)

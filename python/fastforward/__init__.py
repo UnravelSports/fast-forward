@@ -3,6 +3,7 @@
 from fastforward._fastforward import __version__
 from fastforward import cdf
 from fastforward import gradientsports
+from fastforward import optavision
 from fastforward import respovision
 from fastforward import secondspectrum
 from fastforward import signality
@@ -18,6 +19,7 @@ __all__ = [
     "__version__",
     "cdf",
     "gradientsports",
+    "optavision",
     "respovision",
     "secondspectrum",
     "signality",

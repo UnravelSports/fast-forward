@@ -6,7 +6,7 @@
 
 ## Fast, Robust, Rust-powered Positional Tracking Data Loading for Football Analytics
 
-FAST<i>FORWARD</i> Supports 10 positional tracking data providers: SecondSpectrum, SkillCorner, Sportec, Tracab, HawkEye, GradientSports, Signality, StatsPerform, RespoVision. Additionally, it supports the [Common Data Format](https://www.cdf.football).
+FAST<i>FORWARD</i> Supports 11 positional tracking data providers: SecondSpectrum, SkillCorner, Sportec, Tracab, HawkEye, GradientSports, Signality, StatsPerform, RespoVision, OptaVision. Additionally, it supports the [Common Data Format](https://www.cdf.football).
 
 This project owes a depth of gratitude to [Kloppy](https://kloppy.pysport.org/) and all its contributors.
 
@@ -23,7 +23,7 @@ pip install fast-forward-football
 ## Usage
 
 ```python
-from fastforward import secondspectrum, skillcorner, sportec, tracab, hawkeye, cdf, gradientsports, signality, statsperform, respovision
+from fastforward import secondspectrum, skillcorner, sportec, tracab, hawkeye, cdf, gradientsports, signality, statsperform, respovision, optavision
 
 # Load tracking data (example with SecondSpectrum)
 dataset = secondspectrum.load_tracking(
@@ -50,6 +50,7 @@ periods_df = dataset.periods      # Period info
 | [CDF][cdf]                       |      ✓      |                        |      [↗][cdf-doc]      |                                                    |
 | [GradientSports][gradientsports] |      ✓      |     [↗][pff-data]     | [↗][gradientsports-doc] | Formerly PFF                                       |
 | [Hawkeye (2D)][hawkeye]          |      ✓      |                        |    [↗][hawkeye-doc]    | Joint tracking data is not yet supported           |
+| [OptaVision][optavision]         |      ✓      |                        |                          | StatsPerform FIFA EPTS format                      |
 | [RespoVision][respovision]       |      ✓      |                        |  [↗][respovision-doc]  | Includes support for v1 data                       |
 | [SecondSpectrum][ss]             |      ✓      |                        |       [↗][ss-doc]       |                                                    |
 | [Signality][signality]           |      ✓      |                        |   [↗][signality-doc]   |                                                    |
@@ -68,6 +69,7 @@ periods_df = dataset.periods      # Period info
 [gradientsports-doc]: https://kloppy.pysport.org/user-guide/loading-data/gradientsports
 [metrica-data]: https://github.com/metrica-sports/sample-data
 [metrica-doc]: https://kloppy.pysport.org/user-guide/loading-data/metrica
+[optavision]: https://www.statsperform.com/opta-vision/
 [pff-data]: https://drive.google.com/drive/u/0/folders/1_a_q1e9CXeEPJ3GdCv_3-rNO3gPqacfa
 [respovision]: https://respo.vision/
 [respovision-doc]: https://kloppy.pysport.org/user-guide/loading-data/respovision
@@ -88,3 +90,7 @@ periods_df = dataset.periods      # Period info
 [hawkeye]: https://www.hawkeyeinnovations.com/data
 [hawkeye-doc]: https://kloppy.pysport.org/user-guide/loading-data/hawkeye
 [metrica]: https://www.metrica-sports.com/
+
+## Repository conventions
+
+- `/internal_docs/` is a working-drafts directory. It is gitignored and never published to the docs site. Put any in-progress notes or analyses there instead of under `docs/`.

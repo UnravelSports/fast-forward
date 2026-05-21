@@ -14,7 +14,7 @@ fast-forward loads tracking data from all major providers into [Polars](https://
 
 ## Key Features
 
-- **10 providers** supported with a consistent `load_tracking()` interface
+- **11 providers** supported with a consistent `load_tracking()` interface
 - **Polars DataFrame** and **PySpark DataFrame** support for fast, memory-efficient data processing
 - **Coordinate transformations** between all major coordinate systems
 - **Orientation normalization** to ensure consistent attacking directions
@@ -57,6 +57,7 @@ transformed = dataset.transform(
 | [CDF](providers/cdf.md)                       | JSONL + JSON               | 2              |
 | [GradientSports](providers/gradientsports.md) | JSONL + JSON               | 3              |
 | [HawkEye](providers/hawkeye.md)               | Per-minute text + JSON/XML | Multiple       |
+| [OptaVision](providers/optavision.md)         | Text + XML                 | 2              |
 | [Respovision](providers/respovision.md)       | JSONL (embedded metadata)  | 1              |
 | [SecondSpectrum](providers/secondspectrum.md) | JSONL + JSON               | 2              |
 | [Signality](providers/signality.md)           | JSON (per-period)          | 3+             |

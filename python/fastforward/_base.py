@@ -454,6 +454,7 @@ def _register_standard_providers() -> None:
     """Register the standard providers at module load time."""
     from fastforward._fastforward import cdf as _cdf
     from fastforward._fastforward import gradientsports as _gs
+    from fastforward._fastforward import optavision as _ov
     from fastforward._fastforward import secondspectrum as _ss
     from fastforward._fastforward import skillcorner as _sc
     from fastforward._fastforward import sportec as _sp
@@ -471,6 +472,13 @@ def _register_standard_providers() -> None:
         rust_module=_gs,
         metadata_params=["roster_data"],
         tracking_params=["roster_data"],
+    )
+
+    register_provider(
+        name="optavision",
+        rust_module=_ov,
+        metadata_params=[],
+        tracking_params=["include_ball_owning_player"],
     )
 
     register_provider(

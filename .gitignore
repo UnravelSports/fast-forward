@@ -81,6 +81,8 @@ target/
 # IPython
 profile_default/
 ipython_config.py
+.claude/
+fast-forward-crate-plan.md
 
 # pyenv
 #   For a library or package, you might want to ignore these files since the code is
@@ -226,6 +228,8 @@ rust/
 /log/
 /wheels/
 /helpers/
+# Working drafts and notes; never published to the docs site, never committed.
+/internal_docs/
 **/__pycache__/
 **/*.pyc
 *.ipynb
@@ -233,3 +237,7 @@ dev.py
 
 ISSUES.md
 LATEST_RELEASE.md
+
+/paper
+
+

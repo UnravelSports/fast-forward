@@ -28,11 +28,11 @@ Please include the following in your bug report:
 
 4. **Provider** you're using (e.g., SecondSpectrum, Tracab, etc.)
 
-5. **Full error traceback** — copy the complete error message
+5. **Full error traceback**: copy the complete error message
 
-6. **Minimal reproducible example** — the smallest code that triggers the bug
+6. **Minimal reproducible example**: the smallest code that triggers the bug
 
-7. **Anonymized data sample** (if possible) — the first 5-10 lines of your tracking/metadata files with sensitive data removed
+7. **Anonymized data sample** (if possible): the first 5-10 lines of your tracking/metadata files with sensitive data removed
 
 ### Example Bug Report
 
@@ -72,7 +72,7 @@ For feature requests, open an issue with the `enhancement` label and describe:
 
 ## Schema Mismatch Errors
 
-If you see a `SchemaMismatch` error, it means the data file doesn't match the expected format. This is especially helpful to report — please include:
+If you see a `SchemaMismatch` error, it means the data file doesn't match the expected format. This is especially helpful to report. Please include:
 
 - The error message (it will contain a link to file an issue)
 - The provider you're using
