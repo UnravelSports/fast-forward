@@ -1,6 +1,7 @@
 """SkillCorner provider wrapper with lazy loading support."""
 
-from typing import TYPE_CHECKING, Literal, Optional, Union
+import warnings
+from typing import TYPE_CHECKING, Any, Literal, Optional, Union
 
 from kloppy.io import FileLike
 
@@ -9,6 +10,12 @@ from fastforward._dataset import TrackingDataset
 
 if TYPE_CHECKING:
     from pyspark.sql import SparkSession
+
+
+# Sentinel for "kwarg was not passed by the caller". Used to distinguish an
+# explicit False from the default in load_tracking, so we only emit the
+# FutureWarning when the user didn't specify the kwarg. See the bodies below.
+_UNSET: Any = object()
 
 
 def load_tracking(
@@ -39,6 +46,8 @@ def load_tracking(
     only_alive: bool = True,
     include_empty_frames: bool = False,
     include_game_id: Union[bool, str] = True,
+    include_ball_owning_player: Union[bool, Any] = _UNSET,
+    include_is_detected: Union[bool, Any] = _UNSET,
     *,
     lazy: bool = False,
     from_cache: bool = False,
@@ -80,6 +89,21 @@ def load_tracking(
         If True, add game_id column to tracking_df, team_df, and player_df from metadata.
         If False, no game_id column is added.
         If str, use the provided string as the game_id value.
+    include_ball_owning_player : bool, default False (will become True in fastforward 0.2.0)
+        If True, attach a ``ball_owning_player_id`` column to the tracking
+        DataFrame carrying the player UUID currently in possession on each
+        frame (null when SkillCorner did not record one). Omitting the kwarg
+        currently behaves as False but emits a ``FutureWarning``; pass an
+        explicit value to silence the warning.
+    include_is_detected : bool, default False (will become True in fastforward 0.2.0)
+        If True, attach an ``is_detected`` column to the tracking DataFrame
+        (long / long_ball layouts) indicating whether each player position
+        was camera-detected (True) or imputed/extrapolated (False). Ball
+        rows in long layout receive null since the concept doesn't apply.
+        Wide layout doesn't surface the flag yet; long or long_ball is
+        recommended for detection-aware analyses. Omitting the kwarg
+        currently behaves as False but emits a ``FutureWarning``; pass an
+        explicit value to silence the warning.
     engine : {"polars", "pyspark"}, default "polars"
         DataFrame engine to use:
         - "polars": Return Polars DataFrames (default)
@@ -95,6 +119,30 @@ def load_tracking(
         If engine="polars", .tracking returns pl.DataFrame.
         If engine="pyspark", all DataFrames are PySpark DataFrames.
     """
+    # TODO(0.2.0): flip these defaults to True and drop both warning blocks.
+    if include_ball_owning_player is _UNSET:
+        warnings.warn(
+            "skillcorner.load_tracking will default `include_ball_owning_player=True` "
+            "in fastforward 0.2.0, adding a `ball_owning_player_id` column to the "
+            "tracking DataFrame. Pass `include_ball_owning_player=False` (current "
+            "behaviour) or `True` (future behaviour) explicitly to silence this warning.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        include_ball_owning_player = False
+
+    if include_is_detected is _UNSET:
+        warnings.warn(
+            "skillcorner.load_tracking will default `include_is_detected=True` in "
+            "fastforward 0.2.0, adding an `is_detected` column (long/long_ball layouts) "
+            "indicating whether each player position was camera-detected (True) or "
+            "imputed (False). Pass `include_is_detected=False` (current behaviour) or "
+            "`True` (future behaviour) explicitly to silence this warning.",
+            FutureWarning,
+            stacklevel=2,
+        )
+        include_is_detected = False
+
     return _load_tracking_impl(
         provider_name="skillcorner",
         raw_data=raw_data,
@@ -109,4 +157,6 @@ def load_tracking(
         engine=engine,
         spark_session=spark_session,
         include_empty_frames=include_empty_frames,
+        include_ball_owning_player=include_ball_owning_player,
+        include_is_detected=include_is_detected,
     )

@@ -539,3 +539,239 @@ class TestTimestampBehavior:
     def test_metadata_fps_value(self, metadata_df):
         """Test that FPS is correctly reported as 10."""
         assert metadata_df["fps"][0] == pytest.approx(10.0, rel=0.01)
+
+
+# ----------------------------------------------------------------------------
+# Expected values precomputed from the fixture by an offline developer tool
+# (scripts/precompute_skillcorner_extras_expected.py, gitignored so it doesn't
+# ship). The script parses the fixture without importing fastforward, so the
+# values below are an independent reference, not a self-consistency check.
+#
+# Regenerate after any fixture change:
+#     python scripts/precompute_skillcorner_extras_expected.py
+# ----------------------------------------------------------------------------
+
+EXPECTED_ROSTER_SIZE = 36
+EXPECTED_ALIVE_FRAMES = 148
+EXPECTED_FRAMES_WITH_POSSESSION_PLAYER = 36
+# All possession.player_id values in the fixture must resolve to a roster
+# player. If this drops below the total, the fixture has the partial-
+# anonymization bug back (stale possession refs to ids outside the roster).
+EXPECTED_FRAMES_WITH_RESOLVED_POSSESSION = 36
+
+EXPECTED_LONG_ROWS = 3404
+EXPECTED_LONG_BALL_ROWS = 3256
+EXPECTED_BALL_ROWS = 148
+
+EXPECTED_IS_DETECTED_TRUE = 2862
+EXPECTED_IS_DETECTED_FALSE = 394
+EXPECTED_IS_DETECTED_NULL_LONG = 148  # one per ball row
+
+EXPECTED_BALL_OWNING_PLAYER_NON_NULL_LONG = 828
+EXPECTED_BALL_OWNING_PLAYER_NON_NULL_LONG_BALL = 792
+EXPECTED_BALL_OWNING_PLAYER_NON_NULL_WIDE = 36
+
+
+class TestSkillCornerExtras:
+    """Tests for the staged-rollout extras: `include_ball_owning_player` and
+    `include_is_detected`. Both default to False in 0.1.x with a FutureWarning
+    that announces the 0.2.0 default flip.
+    """
+
+    # ---- warning behaviour --------------------------------------------------
+
+    def test_default_emits_two_future_warnings(self):
+        """Calling load_tracking without the two kwargs should emit a
+        FutureWarning for each missing flag."""
+        with pytest.warns(FutureWarning) as caught:
+            skillcorner.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
+        messages = [str(w.message) for w in caught]
+        assert any("include_ball_owning_player" in m and "0.2.0" in m for m in messages)
+        assert any("include_is_detected" in m and "0.2.0" in m for m in messages)
+
+    def test_explicit_false_no_warning(self, recwarn):
+        skillcorner.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH,
+            include_ball_owning_player=False,
+            include_is_detected=False,
+            lazy=False,
+        )
+        future_warnings = [w for w in recwarn.list if issubclass(w.category, FutureWarning)]
+        assert future_warnings == []
+
+    def test_explicit_true_no_warning(self, recwarn):
+        skillcorner.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH,
+            include_ball_owning_player=True,
+            include_is_detected=True,
+            lazy=False,
+        )
+        future_warnings = [w for w in recwarn.list if issubclass(w.category, FutureWarning)]
+        assert future_warnings == []
+
+    # ---- column presence / absence ------------------------------------------
+
+    def test_default_omits_extras_columns(self):
+        with pytest.warns(FutureWarning):
+            ds = skillcorner.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
+        assert "ball_owning_player_id" not in ds.tracking.columns
+        assert "is_detected" not in ds.tracking.columns
+
+    def test_include_ball_owning_player_adds_column(self):
+        ds = skillcorner.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH,
+            include_ball_owning_player=True,
+            include_is_detected=False,
+            lazy=False,
+        )
+        assert "ball_owning_player_id" in ds.tracking.columns
+
+    def test_include_is_detected_adds_column_long(self):
+        ds = skillcorner.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH,
+            include_ball_owning_player=False,
+            include_is_detected=True,
+            layout="long",
+            lazy=False,
+        )
+        assert "is_detected" in ds.tracking.columns
+
+    def test_include_is_detected_adds_column_long_ball(self):
+        ds = skillcorner.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH,
+            include_ball_owning_player=False,
+            include_is_detected=True,
+            layout="long_ball",
+            lazy=False,
+        )
+        assert "is_detected" in ds.tracking.columns
+
+    def test_include_is_detected_wide_is_noop_for_now(self):
+        # Wide layout would need a per-player column; not implemented in this
+        # initial cut. The flag is accepted but doesn't add columns. Document
+        # the limitation by asserting the absence.
+        ds = skillcorner.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH,
+            include_ball_owning_player=False,
+            include_is_detected=True,
+            layout="wide",
+            lazy=False,
+        )
+        assert "is_detected" not in ds.tracking.columns
+
+    # ---- exact value checks (precomputed independently) ---------------------
+
+    def test_long_row_count(self):
+        ds = skillcorner.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH,
+            include_ball_owning_player=True,
+            include_is_detected=True,
+            lazy=False,
+        )
+        assert ds.tracking.height == EXPECTED_LONG_ROWS
+
+    def test_long_ball_row_count(self):
+        ds = skillcorner.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH,
+            include_ball_owning_player=True,
+            include_is_detected=True,
+            layout="long_ball",
+            lazy=False,
+        )
+        assert ds.tracking.height == EXPECTED_LONG_BALL_ROWS
+
+    def test_is_detected_distribution_long(self):
+        ds = skillcorner.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH,
+            include_ball_owning_player=False,
+            include_is_detected=True,
+            layout="long",
+            lazy=False,
+        )
+        true_n = ds.tracking.filter(pl.col("is_detected") == True).height  # noqa: E712
+        false_n = ds.tracking.filter(pl.col("is_detected") == False).height  # noqa: E712
+        null_n = ds.tracking.filter(pl.col("is_detected").is_null()).height
+        assert true_n == EXPECTED_IS_DETECTED_TRUE
+        assert false_n == EXPECTED_IS_DETECTED_FALSE
+        # In long layout the ball row has null is_detected by design.
+        assert null_n == EXPECTED_IS_DETECTED_NULL_LONG
+
+    def test_is_detected_distribution_long_ball(self):
+        ds = skillcorner.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH,
+            include_ball_owning_player=False,
+            include_is_detected=True,
+            layout="long_ball",
+            lazy=False,
+        )
+        true_n = ds.tracking.filter(pl.col("is_detected") == True).height  # noqa: E712
+        false_n = ds.tracking.filter(pl.col("is_detected") == False).height  # noqa: E712
+        # long_ball has no ball row, so no nulls from that source.
+        null_n = ds.tracking.filter(pl.col("is_detected").is_null()).height
+        assert true_n == EXPECTED_IS_DETECTED_TRUE
+        assert false_n == EXPECTED_IS_DETECTED_FALSE
+        assert null_n == 0
+
+    def test_ball_owning_player_non_null_counts(self):
+        for layout, expected in [
+            ("long", EXPECTED_BALL_OWNING_PLAYER_NON_NULL_LONG),
+            ("long_ball", EXPECTED_BALL_OWNING_PLAYER_NON_NULL_LONG_BALL),
+            ("wide", EXPECTED_BALL_OWNING_PLAYER_NON_NULL_WIDE),
+        ]:
+            ds = skillcorner.load_tracking(
+                RAW_DATA_PATH, META_DATA_PATH,
+                include_ball_owning_player=True,
+                include_is_detected=False,
+                layout=layout,
+                lazy=False,
+            )
+            n = ds.tracking.filter(pl.col("ball_owning_player_id").is_not_null()).height
+            assert n == expected, f"{layout} layout: expected {expected}, got {n}"
+
+    # ---- correctness invariants (catch fixture / parser drift) --------------
+
+    def test_owning_player_ids_are_real_players(self):
+        """Every non-null ball_owning_player_id must match a row in
+        ds.players. Designed to catch the class of bug where a fixture has
+        stale possession.player_id values that don't resolve to the roster
+        (the previous partial-anonymization issue)."""
+        ds = skillcorner.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH,
+            include_ball_owning_player=True,
+            include_is_detected=False,
+            lazy=False,
+        )
+        roster_ids = set(ds.players["player_id"].to_list())
+        owners = (
+            ds.tracking.filter(pl.col("ball_owning_player_id").is_not_null())
+            ["ball_owning_player_id"]
+            .unique()
+            .to_list()
+        )
+        # The fixture must have at least one possession-bearing frame, and
+        # every distinct owner UUID must be in the roster.
+        assert len(owners) > 0, "fixture has no non-null possession rows"
+        unknown = [uid for uid in owners if uid not in roster_ids]
+        assert not unknown, (
+            f"unknown ball_owning_player_id values: {unknown}. "
+            "Likely cause: the fixture has stale possession.player_id refs "
+            "that don't match the roster's player.id values."
+        )
+
+    def test_owning_player_consistent_per_frame(self):
+        """All rows of a given (period_id, frame_id) in long layout must
+        share the same ball_owning_player_id value (or be null together).
+        Tests that the broadcast join is correct."""
+        ds = skillcorner.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH,
+            include_ball_owning_player=True,
+            include_is_detected=False,
+            lazy=False,
+        )
+        per_frame = (
+            ds.tracking.group_by("period_id", "frame_id")
+            .agg(pl.col("ball_owning_player_id").n_unique().alias("distinct"))
+        )
+        # n_unique counts non-null distinct values: 0 (no owner) or 1 (one
+        # owner broadcast to all rows). Never > 1.
+        assert per_frame["distinct"].max() <= 1
