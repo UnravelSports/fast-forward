@@ -50,7 +50,7 @@ periods_df = dataset.periods      # Period info
 | [CDF][cdf]                       |      ✓      |                        |      [↗][cdf-doc]      |                                                    |
 | [GradientSports][gradientsports] |      ✓      |     [↗][pff-data]     | [↗][gradientsports-doc] | Formerly PFF                                       |
 | [Hawkeye (2D)][hawkeye]          |      ✓      |                        |    [↗][hawkeye-doc]    | Joint tracking data is not yet supported           |
-| [OptaVision][optavision]         |      ✓      |                        |                          | StatsPerform FIFA EPTS format                      |
+| [OptaVision][optavision]         |      ✓      |                        |   [↗][optavision-doc]   | StatsPerform FIFA EPTS format                      |
 | [RespoVision][respovision]       |      ✓      |                        |  [↗][respovision-doc]  | Includes support for v1 data                       |
 | [SecondSpectrum][ss]             |      ✓      |                        |       [↗][ss-doc]       |                                                    |
 | [Signality][signality]           |      ✓      |                        |   [↗][signality-doc]   |                                                    |
@@ -64,30 +64,28 @@ periods_df = dataset.periods      # Period info
 ![Load Time](https://raw.githubusercontent.com/UnravelSports/fast-forward/main/docs/assets/images/benchmark_load_time.png)
 
 [cdf]: https://www.cdf.football
-[cdf-doc]: https://kloppy.pysport.org/user-guide/loading-data/cdf
+[cdf-doc]: https://fast-forward.readthedocs.io/en/latest/providers/cdf/
 [gradientsports]: https://www.gradientsports.com/
-[gradientsports-doc]: https://kloppy.pysport.org/user-guide/loading-data/gradientsports
-[metrica-data]: https://github.com/metrica-sports/sample-data
-[metrica-doc]: https://kloppy.pysport.org/user-guide/loading-data/metrica
+[gradientsports-doc]: https://fast-forward.readthedocs.io/en/latest/providers/gradientsports/
+[hawkeye]: https://www.hawkeyeinnovations.com/data
+[hawkeye-doc]: https://fast-forward.readthedocs.io/en/latest/providers/hawkeye/
 [optavision]: https://www.statsperform.com/opta-vision/
+[optavision-doc]: https://fast-forward.readthedocs.io/en/latest/providers/optavision/
 [pff-data]: https://drive.google.com/drive/u/0/folders/1_a_q1e9CXeEPJ3GdCv_3-rNO3gPqacfa
 [respovision]: https://respo.vision/
-[respovision-doc]: https://kloppy.pysport.org/user-guide/loading-data/respovision
+[respovision-doc]: https://fast-forward.readthedocs.io/en/latest/providers/respovision/
 [signality]: https://www.spiideo.com/
-[signality-doc]: https://kloppy.pysport.org/user-guide/loading-data/signality
+[signality-doc]: https://fast-forward.readthedocs.io/en/latest/providers/signality/
 [skillcorner]: https://skillcorner.com/
 [skillcorner-data]: https://github.com/SkillCorner/opendata
-[skillcorner-doc]: https://kloppy.pysport.org/user-guide/loading-data/skillcorner
+[skillcorner-doc]: https://fast-forward.readthedocs.io/en/latest/providers/skillcorner/
 [sportec]: https://sportec-solutions.de/en/index.html
 [sportec-data]: https://www.nature.com/articles/s41597-025-04505-y
-[sportec-doc]: https://kloppy.pysport.org/user-guide/loading-data/sportec
+[sportec-doc]: https://fast-forward.readthedocs.io/en/latest/providers/sportec/
 [ss]: https://www.geniussports.com/
-[ss-doc]: https://kloppy.pysport.org/user-guide/loading-data/secondspectrum
+[ss-doc]: https://fast-forward.readthedocs.io/en/latest/providers/secondspectrum/
 [statsperform]: https://www.statsperform.com/
-[statsperform-doc]: user-guide/loading-data/statsperform
+[statsperform-doc]: https://fast-forward.readthedocs.io/en/latest/providers/statsperform/
 [tracab]: https://tracab.com/products/tracab-technologies/
-[tracab-doc]: https://kloppy.pysport.org/user-guide/loading-data/tracab
-[hawkeye]: https://www.hawkeyeinnovations.com/data
-[hawkeye-doc]: https://kloppy.pysport.org/user-guide/loading-data/hawkeye
-[metrica]: https://www.metrica-sports.com/
+[tracab-doc]: https://fast-forward.readthedocs.io/en/latest/providers/tracab/
 
