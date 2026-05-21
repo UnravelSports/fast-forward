@@ -61,7 +61,7 @@ periods_df = dataset.periods      # Period info
 
 ## Benchmarks
 
-![Load Time](docs/assets/images/benchmark_load_time.png)
+![Load Time](https://raw.githubusercontent.com/UnravelSports/fast-forward/main/docs/assets/images/benchmark_load_time.png)
 
 [cdf]: https://www.cdf.football
 [cdf-doc]: https://kloppy.pysport.org/user-guide/loading-data/cdf
@@ -91,6 +91,3 @@ periods_df = dataset.periods      # Period info
 [hawkeye-doc]: https://kloppy.pysport.org/user-guide/loading-data/hawkeye
 [metrica]: https://www.metrica-sports.com/
 
-## Repository conventions
-
-- `/internal_docs/` is a working-drafts directory. It is gitignored and never published to the docs site. Put any in-progress notes or analyses there instead of under `docs/`.
