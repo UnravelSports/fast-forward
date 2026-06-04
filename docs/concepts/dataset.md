@@ -1,22 +1,25 @@
 # TrackingDataset
 
-The `TrackingDataset` is the central object returned by every provider's `load_tracking()` function. It contains all tracking data and metadata as Polars DataFrames.
+The `TrackingDataset` is the central object returned by every provider's `load_tracking()` function. It contains all tracking data and metadata. The underlying type of each table (Polars, PySpark, or pyarrow) is determined by the `engine` kwarg passed to `load_tracking`.
 
 ## Properties
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `tracking` | `pl.DataFrame` | Positional data for all players and the ball |
-| `metadata` | `pl.DataFrame` | Match-level information (1 row) |
-| `teams` | `pl.DataFrame` | Team information (2 rows: home and away) |
-| `players` | `pl.DataFrame` | Player roster with positions and starter status |
-| `periods` | `pl.DataFrame` | Period boundaries with start/end frame IDs |
-| `engine` | `str` | Current engine: `"polars"` or `"pyspark"` |
+| `tracking` | `pl.DataFrame` / `SparkDataFrame` / `pyarrow.Table` | Positional data for all players and the ball |
+| `metadata` | `pl.DataFrame` / `SparkDataFrame` / `pyarrow.Table` | Match-level information (1 row) |
+| `teams` | `pl.DataFrame` / `SparkDataFrame` / `pyarrow.Table` | Team information (2 rows: home and away) |
+| `players` | `pl.DataFrame` / `SparkDataFrame` / `pyarrow.Table` | Player roster with positions and starter status |
+| `periods` | `pl.DataFrame` / `SparkDataFrame` / `pyarrow.Table` | Period boundaries with start/end frame IDs |
+| `engine` | `str` | One of `"polars"`, `"pyspark"`, `"arrow"`, `"arrow[spark]"` |
+| `schemas` | `Schemas` | Namespace exposing Arrow + PySpark schemas for all 5 tables (kwargs auto-bound from the load). See [Obtaining schemas](#obtaining-schemas). |
 | `coordinate_system` | `str` | Current coordinate system name |
 | `orientation` | `str` | Current orientation name |
 | `pitch_dimensions` | `tuple[float, float]` | `(pitch_length, pitch_width)` in meters |
 
 ## DataFrame Schemas
+
+The dtypes below are for `engine="polars"`. Arrow engines emit different physical types for some columns. See [Per-engine schema](#per-engine-schema) for the full comparison.
 
 ### tracking
 
@@ -111,6 +114,69 @@ One row per period found in the data.
 | `start_frame_id` | UInt32 | First frame of the period |
 | `end_frame_id` | UInt32 | Last frame of the period |
 
+## Per-engine schema
+
+The tracking schema dtypes for SkillCorner (long layout, all include flags on), shown across the four engine values:
+
+| Column                  | `engine="polars"` (default) | `engine="arrow"` (Polars-style Arrow) | `engine="arrow[spark]"` (Spark-compat) | `engine="pyspark"` |
+| ----------------------- | --------------------------- | ------------------------------------- | --------------------------------------- | ------------------ |
+| `game_id`               | `String`                    | `string_view`                         | `string`                                | `StringType`       |
+| `frame_id`              | `UInt32`                    | `int64`                               | `int64`                                 | `LongType`         |
+| `period_id`             | `Int32`                     | `int32`                               | `int32`                                 | `IntegerType`      |
+| `timestamp`             | `Duration(ms)`              | `duration[ms]`                        | `int64` (ms)                            | `LongType`         |
+| `ball_state`            | `String`                    | `string_view`                         | `string`                                | `StringType`       |
+| `ball_owning_team_id`   | `String`                    | `string_view`                         | `string`                                | `StringType`       |
+| `team_id`               | `String`                    | `string_view`                         | `string`                                | `StringType`       |
+| `player_id`             | `String`                    | `string_view`                         | `string`                                | `StringType`       |
+| `x`, `y`, `z`           | `Float32`                   | `float` (float32)                     | `float` (float32)                       | `FloatType`        |
+| `ball_owning_player_id` | `String`                    | `string_view`                         | `string`                                | `StringType`       |
+| `is_detected`           | `Boolean`                   | `bool`                                | `bool`                                  | `BooleanType`      |
+
+Two columns differ between the two arrow dialects: `string_view` vs `string`, and `duration[ms]` vs `int64`. The other arrow columns are identical between `engine="arrow"` and `engine="arrow[spark]"`. The choice between them is dictated by what your downstream framework accepts, not by which one is more correct. See the [Distributed Compute](../usage/spark.md) page for guidance.
+
+The non-tracking tables (`metadata`, `teams`, `players`, `periods`) follow the same dialect convention. The dtype list above applies to their string and integer columns equivalently.
+
+## Obtaining schemas
+
+Two ways to get the Arrow + PySpark schemas. Both produce the same `Schemas` namespace with 10 lazy properties: `tracking`, `metadata`, `teams`, `players`, `periods` (Arrow), and `tracking_spark`, `metadata_spark`, `teams_spark`, `players_spark`, `periods_spark` (PySpark `StructType`).
+
+**`dataset.schemas`** is available on any loaded dataset, with the load's kwargs already bound.
+
+```python
+dataset = skillcorner.load_tracking(raw, meta, engine="arrow[spark]")
+dataset.schemas.tracking_spark   # StructType you'd pass to mapInArrow
+```
+
+**`skillcorner.schemas(...)`** is for when you don't have data loaded yet (for example, declaring a Spark `mapInArrow` output schema before any worker runs). It accepts the same kwargs as `load_tracking`, so unpack a single config dict into both:
+
+```python
+LOAD_KWARGS = dict(
+    engine="arrow[spark]",
+    layout="long",
+    include_game_id=True,
+    include_ball_owning_player=True,
+    include_is_detected=True,
+)
+out_schema = skillcorner.schemas(**LOAD_KWARGS).tracking_spark
+```
+
+See the [Distributed Compute](../usage/spark.md#schema-helpers) page for the deeper explanation of when `tracking` vs `tracking_spark` matters and how the engine value controls the Arrow dialect.
+
+## Engine converters
+
+Every `TrackingDataset` can be converted between engines. Polars ↔ Arrow is zero-copy via the Arrow C Data Interface capsule.
+
+```python
+ds_pl = skillcorner.load_tracking(raw, meta, engine="polars")
+
+ds_arr = ds_pl.to_arrow()                       # engine="arrow"
+ds_arr_spark = ds_pl.to_arrow(engine="arrow[spark]")
+ds_back = ds_arr.to_polars()                    # back to engine="polars"
+ds_spark = ds_pl.to_pyspark(spark_session)      # engine="pyspark"
+```
+
+Round-trip preserves values exactly. `arrow` to `polars` to `arrow` produces a tracking table with the same column names, row count, and column values as the original.
+
 ## Methods
 
 ### transform()
@@ -127,14 +193,14 @@ transformed = dataset.transform(
 
 All three parameters are optional. Transforms are applied in a fixed order: orientation, then dimensions, then coordinates. See [Transformations](transformations.md) for details.
 
-### to_polars() / to_pyspark()
+### to_polars() / to_pyspark() / to_arrow()
 
-Convert between DataFrame engines:
+Convert between DataFrame engines. See [Engine converters](#engine-converters) above for the full table; brief examples:
 
 ```python
-# Convert to PySpark
-spark_dataset = dataset.to_pyspark()
+spark_dataset = dataset.to_pyspark()             # engine="pyspark"
+polars_dataset = spark_dataset.to_polars()       # engine="polars"
 
-# Convert back to Polars
-polars_dataset = spark_dataset.to_polars()
+arrow_dataset = dataset.to_arrow()               # engine="arrow"
+arrow_spark_dataset = dataset.to_arrow(engine="arrow[spark]")
 ```

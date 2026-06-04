@@ -88,6 +88,8 @@ nav:
     - Sportec: providers/sportec.md
     - StatsPerform: providers/statsperform.md
     - Tracab: providers/tracab.md
+  - Usage:
+    - Distributed Compute: usage/spark.md
   - Benchmarks: benchmarks.md
   - API Reference: api/index.md
   - Reporting Issues: reporting-issues.md

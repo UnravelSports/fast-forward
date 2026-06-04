@@ -64,7 +64,7 @@ dataset = secondspectrum.load_tracking(
     orientation="static_home_away",   # Target orientation
     only_alive=True,                  # Only include frames where ball is in play
     include_game_id=True,             # Add game_id column to tracking data
-    engine="polars",                  # "polars" or "pyspark"
+    engine="polars",                  # "polars", "pyspark", "arrow", or "arrow[spark]"
 )
 ```
 
@@ -121,3 +121,5 @@ spark_df = dataset.tracking  # pyspark.sql.DataFrame
 polars_dataset = dataset.to_polars()
 spark_dataset = dataset.to_pyspark()
 ```
+
+For Spark `mapInArrow`, Ray `map_batches`, or Dask `map_partitions` patterns, see [Distributed Compute](usage/spark.md).

@@ -27,7 +27,9 @@ dataset = skillcorner.load_tracking(
 | `include_game_id` | bool \| str | `True` | Add game_id column |
 | `include_ball_owning_player` | bool | `False` *(0.2.0: `True`)* | Add the `ball_owning_player_id` column |
 | `include_is_detected` | bool | `False` *(0.2.0: `True`)* | Add the `is_detected` column (long / long_ball only) |
-| `engine` | str | `"polars"` | `"polars"` or `"pyspark"` |
+| `engine` | str | `"polars"` | `"polars"`, `"pyspark"`, `"arrow"`, or `"arrow[spark]"` |
+
+All four engines are supported. For distributed compute (Spark, Ray, Dask), see [Distributed Compute](../usage/spark.md).
 
 ## File Format
 

@@ -147,20 +147,22 @@ class TrackingDataset:
 
     def __init__(
         self,
-        tracking: Union[pl.DataFrame, "SparkDataFrame"],
-        metadata: Union[pl.DataFrame, "SparkDataFrame"],
-        teams: Union[pl.DataFrame, "SparkDataFrame"],
-        players: Union[pl.DataFrame, "SparkDataFrame"],
-        periods: Union[pl.DataFrame, "SparkDataFrame"],
+        tracking,
+        metadata,
+        teams,
+        players,
+        periods,
         *,
         _engine: str = "polars",
-        _original_tracking: Optional[pl.LazyFrame] = None,
+        _original_tracking=None,
         _provider: Optional[str] = None,
         _cache_key: Optional[str] = None,
         _coordinate_system: str = "cdf",
         _orientation: str = "static_home_away",
         _pitch_length: Optional[float] = None,
         _pitch_width: Optional[float] = None,
+        _schema_kwargs: Optional[dict] = None,
+        _rust_module=None,
     ):
         """Initialize TrackingDataset.
 
@@ -210,6 +212,11 @@ class TrackingDataset:
         self._coordinate_system = _coordinate_system
         self._orientation = _orientation
 
+        # State for the `.schemas` property (populated by load_tracking_impl)
+        self._schema_kwargs = _schema_kwargs
+        self._rust_module = _rust_module
+        self._schemas_obj = None  # lazy
+
         # Get pitch dimensions from metadata if not provided
         if _pitch_length is not None and _pitch_width is not None:
             self._pitch_length = _pitch_length
@@ -217,6 +224,14 @@ class TrackingDataset:
         elif self._engine == "polars" and "pitch_length" in metadata.columns:
             self._pitch_length = float(metadata["pitch_length"][0])
             self._pitch_width = float(metadata["pitch_width"][0])
+        elif self._engine in ("arrow", "arrow[spark]"):
+            # pyarrow.Table — use column-by-column access
+            try:
+                self._pitch_length = float(metadata.column("pitch_length")[0].as_py())
+                self._pitch_width = float(metadata.column("pitch_width")[0].as_py())
+            except Exception:
+                self._pitch_length = 105.0
+                self._pitch_width = 68.0
         else:
             # Default IFAB dimensions
             self._pitch_length = 105.0
@@ -224,8 +239,37 @@ class TrackingDataset:
 
     @property
     def engine(self) -> str:
-        """Get the DataFrame engine ('polars' or 'pyspark')."""
+        """Get the DataFrame engine ('polars', 'pyspark', or 'arrow')."""
         return self._engine
+
+    @property
+    def schemas(self):
+        """Schemas namespace for this dataset's 5 tables — pyarrow + PySpark.
+
+        Bound to the kwargs the dataset was loaded with. Works for all engines.
+        See :class:`fastforward._schemas.Schemas` for the property surface.
+
+        Examples
+        --------
+        >>> dataset = skillcorner.load_tracking(raw, meta, engine="arrow")
+        >>> dataset.schemas.tracking            # pyarrow.Schema
+        >>> dataset.schemas.tracking_spark      # pyspark StructType
+        """
+        if self._schemas_obj is not None:
+            return self._schemas_obj
+        if self._provider is None or self._schema_kwargs is None or self._rust_module is None:
+            raise RuntimeError(
+                "dataset.schemas is unavailable: this dataset was constructed "
+                "without schema kwargs (likely loaded via cache or transformed). "
+                "Call provider.schemas(**kwargs) directly with the appropriate kwargs."
+            )
+        # Pass the dataset's engine straight through. schemas() knows how to
+        # map "polars"/"arrow" → Polars-style arrow types and
+        # "pyspark"/"arrow[spark]" → Spark-compat types.
+        from fastforward._base import get_schemas_factory
+        factory = get_schemas_factory(self._provider)
+        self._schemas_obj = factory(**self._schema_kwargs, engine=self._engine)
+        return self._schemas_obj
 
     @property
     def tracking(self) -> Union[pl.DataFrame, "SparkDataFrame"]:
@@ -347,24 +391,29 @@ class TrackingDataset:
     def to_polars(self) -> "TrackingDataset":
         """Convert all DataFrames to Polars.
 
-        If already using Polars engine, returns self unchanged.
-        For PySpark DataFrames, converts via Arrow/pandas interchange.
-
-        Returns
-        -------
-        TrackingDataset
-            New TrackingDataset with all Polars DataFrames,
-            or self if already Polars.
-
-        Examples
-        --------
-        >>> dataset_spark = secondspectrum.load_tracking(..., engine="pyspark")
-        >>> dataset_polars = dataset_spark.to_polars()
-        >>> dataset_polars.engine
-        'polars'
+        If already using Polars engine, returns self unchanged. Arrow tables
+        are converted zero-copy via ``pl.from_arrow`` (Arrow C Data Interface
+        capsule). PySpark DataFrames go via pandas (the round trip the JVM
+        side wants).
         """
         if self._engine == "polars":
             return self
+
+        if self._engine in ("arrow", "arrow[spark]"):
+            # pl.from_arrow handles both string_view and string, both duration
+            # and int64 — no conditional logic needed.
+            return TrackingDataset(
+                tracking=pl.from_arrow(self._tracking),
+                metadata=pl.from_arrow(self._metadata),
+                teams=pl.from_arrow(self._teams),
+                players=pl.from_arrow(self._players),
+                periods=pl.from_arrow(self._periods),
+                _engine="polars",
+                _provider=self._provider,
+                _cache_key=self._cache_key,
+                _schema_kwargs=self._schema_kwargs,
+                _rust_module=self._rust_module,
+            )
 
         from fastforward._engine import spark_to_polars
 
@@ -377,6 +426,8 @@ class TrackingDataset:
             _engine="polars",
             _provider=self._provider,
             _cache_key=self._cache_key,
+            _schema_kwargs=self._schema_kwargs,
+            _rust_module=self._rust_module,
         )
 
     def to_pyspark(
@@ -384,26 +435,9 @@ class TrackingDataset:
     ) -> "TrackingDataset":
         """Convert all DataFrames to PySpark.
 
-        If already using PySpark engine, returns self unchanged.
-        For Polars DataFrames, converts via Arrow interchange.
-
-        Parameters
-        ----------
-        spark : SparkSession, optional
-            SparkSession to use. If None, gets or creates one.
-
-        Returns
-        -------
-        TrackingDataset
-            New TrackingDataset with all PySpark DataFrames,
-            or self if already PySpark.
-
-        Examples
-        --------
-        >>> dataset_polars = secondspectrum.load_tracking(...)
-        >>> dataset_spark = dataset_polars.to_pyspark()
-        >>> dataset_spark.engine
-        'pyspark'
+        If already using PySpark engine, returns self unchanged. Arrow tables
+        go straight via ``spark.createDataFrame(arrow_table)`` (Spark 3.4+).
+        Polars DataFrames convert through the Arrow capsule, skipping pandas.
         """
         with error_handler():
             if self._engine == "pyspark":
@@ -413,6 +447,24 @@ class TrackingDataset:
 
             if spark is None:
                 spark = get_spark_session()
+
+            if self._engine in ("arrow", "arrow[spark]"):
+                # arrow[spark] is already pre-normalized; calling normalize again
+                # is cheap and idempotent (the helper returns the input
+                # unchanged when no casts are needed), so we don't branch.
+                from fastforward._arrow import _normalize_arrow_table
+                return TrackingDataset(
+                    tracking=spark.createDataFrame(_normalize_arrow_table(self._tracking)),
+                    metadata=spark.createDataFrame(_normalize_arrow_table(self._metadata)),
+                    teams=spark.createDataFrame(_normalize_arrow_table(self._teams)),
+                    players=spark.createDataFrame(_normalize_arrow_table(self._players)),
+                    periods=spark.createDataFrame(_normalize_arrow_table(self._periods)),
+                    _engine="pyspark",
+                    _provider=self._provider,
+                    _cache_key=self._cache_key,
+                    _schema_kwargs=self._schema_kwargs,
+                    _rust_module=self._rust_module,
+                )
 
             # For Polars LazyFrame, collect first
             tracking = self._tracking
@@ -428,7 +480,119 @@ class TrackingDataset:
                 _engine="pyspark",
                 _provider=self._provider,
                 _cache_key=self._cache_key,
+                _schema_kwargs=self._schema_kwargs,
+                _rust_module=self._rust_module,
             )
+
+    def to_arrow(self, engine: str = "arrow") -> "TrackingDataset":
+        """Convert all DataFrames to ``pyarrow.Table``.
+
+        Parameters
+        ----------
+        engine : {"arrow", "arrow[spark]"}, default "arrow"
+            Target arrow engine:
+
+            - ``"arrow"``: Polars-style Arrow types (``string_view``,
+              ``duration[ms]``). For Dask/Ray.
+            - ``"arrow[spark]"``: pre-normalized Arrow types (``string``,
+              ``int64``). For Spark ``mapInArrow``.
+
+        Behaviour:
+
+        - If already on the requested engine, returns self.
+        - From ``engine="polars"``: zero-copy via the Arrow C Data Interface
+          capsule. UInt columns are cast to signed Int regardless of target
+          (PySpark requires it, others don't care).
+        - From ``engine="pyspark"``: not supported in this release — call
+          ``.to_polars()`` first, then ``.to_arrow(engine=...)``.
+        - From the other arrow engine: re-normalizes (``"arrow"`` →
+          ``"arrow[spark]"``) or just re-labels (``"arrow[spark]"`` →
+          ``"arrow"``; we don't undo a normalize).
+        """
+        if engine not in ("arrow", "arrow[spark]"):
+            raise ValueError(
+                f"to_arrow() engine must be 'arrow' or 'arrow[spark]'; got {engine!r}"
+            )
+
+        if self._engine == engine:
+            return self
+
+        if self._engine == "pyspark":
+            raise NotImplementedError(
+                "to_arrow() from engine='pyspark' is not yet supported. "
+                "Call .to_polars().to_arrow() instead."
+            )
+
+        # Cross-arrow conversion (e.g. "arrow" → "arrow[spark]" or vice versa).
+        if self._engine in ("arrow", "arrow[spark]"):
+            from fastforward._arrow import _normalize_arrow_table
+            if engine == "arrow[spark]":
+                tracking = _normalize_arrow_table(self._tracking)
+                metadata = _normalize_arrow_table(self._metadata)
+                teams = _normalize_arrow_table(self._teams)
+                players = _normalize_arrow_table(self._players)
+                periods = _normalize_arrow_table(self._periods)
+            else:
+                # "arrow[spark]" → "arrow" is a no-op at the dtype level; we
+                # don't try to reverse the normalize (string → string_view
+                # would require allocating new buffers and isn't useful).
+                # Just return self with the new engine label.
+                tracking = self._tracking
+                metadata = self._metadata
+                teams = self._teams
+                players = self._players
+                periods = self._periods
+            return TrackingDataset(
+                tracking=tracking,
+                metadata=metadata,
+                teams=teams,
+                players=players,
+                periods=periods,
+                _engine=engine,
+                _provider=self._provider,
+                _cache_key=self._cache_key,
+                _coordinate_system=self._coordinate_system,
+                _orientation=self._orientation,
+                _pitch_length=self._pitch_length,
+                _pitch_width=self._pitch_width,
+                _schema_kwargs=self._schema_kwargs,
+                _rust_module=self._rust_module,
+            )
+
+        # engine='polars' → arrow via the capsule path.
+        from fastforward._arrow import polars_to_arrow_table, _normalize_arrow_table
+
+        tracking = self._tracking
+        if isinstance(tracking, pl.LazyFrame):
+            tracking = tracking.collect()
+
+        tables = [
+            polars_to_arrow_table(tracking, cast_unsigned=True),
+            polars_to_arrow_table(self._metadata, cast_unsigned=True),
+            polars_to_arrow_table(self._teams, cast_unsigned=True),
+            polars_to_arrow_table(self._players, cast_unsigned=True),
+            polars_to_arrow_table(self._periods, cast_unsigned=True),
+        ]
+        if engine == "arrow[spark]":
+            tables = [_normalize_arrow_table(t) for t in tables]
+        tracking_t, metadata_t, teams_t, players_t, periods_t = tables
+
+        return TrackingDataset(
+            tracking=tracking_t,
+            metadata=metadata_t,
+            teams=teams_t,
+            players=players_t,
+            periods=periods_t,
+            _engine=engine,
+            _provider=self._provider,
+            _cache_key=self._cache_key,
+            _coordinate_system=self._coordinate_system,
+            _orientation=self._orientation,
+            _pitch_length=self._pitch_length,
+            _pitch_width=self._pitch_width,
+            _schema_kwargs=self._schema_kwargs,
+            _rust_module=self._rust_module,
+        )
 
     def write_cache(self) -> None:
         """Write tracking data to cache.
@@ -453,6 +617,11 @@ class TrackingDataset:
         >>> dataset = tracab.load_tracking("raw.dat", "meta.xml")
         >>> dataset.write_cache()  # Writes to global cache directory
         """
+        if self._engine != "polars":
+            raise NotImplementedError(
+                f"write_cache requires engine='polars'; got engine={self._engine!r}. "
+                f"Call .to_polars().write_cache() instead."
+            )
         with error_handler():
             self._write_cache_impl()
 
@@ -576,9 +745,15 @@ class TrackingDataset:
         to_dimensions: Optional[Tuple[float, float]] = None,
         to_coordinates: Optional[str] = None,
     ) -> "TrackingDataset":
-        if self._engine != "polars":
+        if self._engine == "pyspark":
             raise NotImplementedError(
-                "transform() is currently only supported for Polars DataFrames"
+                "transform() is not supported for engine='pyspark' (would need "
+                "partition-wise Spark UDFs — separate problem). Call .to_polars() "
+                "or .to_arrow() first, transform, then convert back."
+            )
+        if self._engine not in ("polars", "arrow"):
+            raise NotImplementedError(
+                f"transform() is not supported for engine={self._engine!r}"
             )
 
         from fastforward._transforms import (
@@ -610,9 +785,16 @@ class TrackingDataset:
         if not (needs_orientation or needs_dimensions or needs_coordinates):
             return self  # No changes needed
 
-        # Collect if lazy
+        # Collect / convert input. For arrow engines, go through Polars via the
+        # zero-copy capsule (pl.from_arrow); the transform math runs in Rust
+        # inside `_coord`/`_dim`/`_orient`. Convert back at the end so the
+        # returned dataset stays on its original arrow dialect.
+        was_arrow = self._engine in ("arrow", "arrow[spark]")
+        was_arrow_spark = self._engine == "arrow[spark]"
         tracking = self._tracking
-        if isinstance(tracking, pl.LazyFrame):
+        if was_arrow:
+            tracking = pl.from_arrow(tracking)
+        elif isinstance(tracking, pl.LazyFrame):
             tracking = tracking.collect()
 
         # Track new state
@@ -657,20 +839,47 @@ class TrackingDataset:
                 tracking, curr_coord_system, new_coord_system, curr_length, curr_width
             )
 
-        # Update metadata DataFrame with new transformation state
-        new_metadata = self._metadata.with_columns([
+        # Build new metadata. For arrow engine the metadata is a pyarrow.Table —
+        # update via a polars roundtrip (cheap, single-row) so the same
+        # `.with_columns` pattern works.
+        if was_arrow:
+            metadata_pl = pl.from_arrow(self._metadata)
+        else:
+            metadata_pl = self._metadata
+        new_metadata_pl = metadata_pl.with_columns([
             pl.lit(new_coord_system).alias("coordinate_system"),
             pl.lit(new_orientation).alias("orientation"),
             pl.lit(new_length).cast(pl.Float32).alias("pitch_length"),
             pl.lit(new_width).cast(pl.Float32).alias("pitch_width"),
         ])
 
+        # Convert outputs back to arrow if needed. Preserve the dialect of the
+        # input dataset: arrow[spark] in → arrow[spark] out (re-normalize the
+        # newly transformed tables so the output matches the source dialect).
+        if was_arrow:
+            import pyarrow as pa
+            tracking_out = pa.table(tracking)
+            metadata_out = pa.table(new_metadata_pl)
+            teams_out = self._teams
+            players_out = self._players
+            periods_out = self._periods
+            if was_arrow_spark:
+                from fastforward._arrow import _normalize_arrow_table
+                tracking_out = _normalize_arrow_table(tracking_out)
+                metadata_out = _normalize_arrow_table(metadata_out)
+        else:
+            tracking_out = tracking
+            metadata_out = new_metadata_pl
+            teams_out = self._teams
+            players_out = self._players
+            periods_out = self._periods
+
         return TrackingDataset(
-            tracking=tracking,
-            metadata=new_metadata,
-            teams=self._teams,
-            players=self._players,
-            periods=self._periods,
+            tracking=tracking_out,
+            metadata=metadata_out,
+            teams=teams_out,
+            players=players_out,
+            periods=periods_out,
             _engine=self._engine,
             _provider=self._provider,
             _cache_key=self._cache_key,
@@ -678,6 +887,8 @@ class TrackingDataset:
             _orientation=new_orientation,
             _pitch_length=new_length,
             _pitch_width=new_width,
+            _schema_kwargs=self._schema_kwargs,
+            _rust_module=self._rust_module,
         )
 
     def __repr__(self) -> str:

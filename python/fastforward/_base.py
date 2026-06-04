@@ -1,16 +1,23 @@
 """Base module with provider registry and shared implementation."""
 
+from __future__ import annotations
+
+import importlib
 import warnings
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Literal, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import polars as pl
-from kloppy.io import FileLike, open_as_file
 
 from fastforward._dataset import TrackingDataset
 from fastforward._errors import with_error_handler
 
 if TYPE_CHECKING:
+    # kloppy.io is imported lazily inside functions that need it. Keeping
+    # it out of module-load preserves the engine='arrow' worker-safety
+    # contract: a Spark mapInArrow UDF can call load_tracking(engine='arrow')
+    # without dragging kloppy onto the executor.
+    from kloppy.io import FileLike
     from pyspark.sql import SparkSession
 
 
@@ -26,6 +33,8 @@ def register_provider(
     rust_module: Any,
     metadata_params: List[str] = None,
     tracking_params: List[str] = None,
+    schema_params: List[str] = None,
+    schemas_factory: Optional[str] = None,
 ) -> None:
     """Register a provider configuration.
 
@@ -39,12 +48,27 @@ def register_provider(
         Extra parameter names to pass to load_metadata_only
     tracking_params : list of str, optional
         Extra parameter names to pass to load_tracking
+    schema_params : list of str, optional
+        Subset of `tracking_params` that affect the *schema* (column set or
+        dtypes), as opposed to row filtering. These are forwarded to
+        ``provider.schemas(**kwargs)`` for the ``dataset.schemas`` property.
+        Defaults to `tracking_params` if not specified.
+    schemas_factory : str, optional
+        Dotted spec ``"module.path:attribute"`` resolved lazily by
+        ``get_schemas_factory`` when ``dataset.schemas`` is accessed.
+        ``None`` means arrow support is not yet ported for this provider —
+        accessing ``dataset.schemas`` will raise ``NotImplementedError``.
+        Stored as a string (not a callable) to avoid a top-level import of
+        the provider module here; that would close the import cycle
+        ``provider -> _base -> provider``.
     """
     _PROVIDERS[name] = {
         "name": name,
         "rust_module": rust_module,
         "metadata_params": metadata_params or [],
         "tracking_params": tracking_params or [],
+        "schema_params": schema_params if schema_params is not None else (tracking_params or []),
+        "schemas_factory": schemas_factory,
     }
 
 
@@ -71,7 +95,30 @@ def get_provider(name: str) -> ProviderConfig:
     return _PROVIDERS[name]
 
 
-def get_filename_from_filelike(filelike: FileLike) -> str:
+def get_schemas_factory(name: str) -> Callable[..., Any]:
+    """Resolve the ``schemas()`` factory callable for a provider.
+
+    Resolution is deferred until access to keep the provider import cycle
+    ``provider -> _base -> provider`` open at module-load time. See
+    ``register_provider`` for why the registry stores a dotted string
+    instead of a callable.
+
+    Raises ``NotImplementedError`` if the provider has not been ported to
+    the arrow path yet (registered with ``schemas_factory=None``).
+    """
+    config = get_provider(name)
+    spec = config.get("schemas_factory")
+    if spec is None:
+        raise NotImplementedError(
+            f"schemas() factory is not yet implemented for provider "
+            f"'{name}'. See internal_docs/phase-2-provider-rollout.md "
+            f"for the rollout queue."
+        )
+    module_path, attr_name = spec.split(":", 1)
+    return getattr(importlib.import_module(module_path), attr_name)
+
+
+def get_filename_from_filelike(filelike: "FileLike") -> str:
     """Extract filename from FileLike object.
 
     Parameters
@@ -150,8 +197,8 @@ def discover_files_in_directory(
 @with_error_handler
 def load_tracking_impl(
     provider_name: str,
-    raw_data: FileLike,
-    meta_data: FileLike,
+    raw_data: "FileLike",
+    meta_data: "FileLike",
     layout: str,
     coordinates: str,
     orientation: str,
@@ -211,17 +258,10 @@ def load_tracking_impl(
     if from_cache:
         raise NotImplementedError("cache loading is not yet supported in fast-forward")
 
-    from fastforward._lazy import create_lazy_tracking, _is_local_file
-    from fastforward._schema import get_tracking_schema
-    from fastforward._cache import (
-        compute_cache_key_fast,
-        compute_cache_key,
-        get_cache_path,
-        cache_exists,
-        read_cache,
-        CACHE_SCHEMA_VERSION,
-    )
-    from fastforward._engine import validate_engine, polars_to_spark, get_spark_session
+    # Engine validation only — heavier imports (_lazy/_cache/_schema, all of
+    # which pull kloppy) are deferred to the polars/pyspark branches below.
+    # The engine='arrow' branch must not trigger any kloppy import.
+    from fastforward._engine import validate_engine
 
     # Validate engine parameter
     engine = validate_engine(engine)
@@ -237,9 +277,132 @@ def load_tracking_impl(
     # For PySpark, force eager loading (will convert after)
     if engine == "pyspark":
         lazy = False
+    if engine in ("arrow", "arrow[spark]"):
+        lazy = False  # Arrow path is always eager
+        if from_cache:
+            warnings.warn(
+                f"engine={engine!r} does not support cache reads in this release; "
+                "ignoring from_cache=True.",
+                UserWarning,
+            )
+            from_cache = False
 
     config = get_provider(provider_name)
     rust_module = config["rust_module"]
+
+    # ===== engine="arrow" / "arrow[spark]" early branch =================
+    # Worker-safe path: bytes-only input, no kloppy import, no cache, no
+    # FileLike resolution. The arrow engines are designed to run inside Spark
+    # mapInArrow / Dask map_partitions / Ray map_batches UDFs where workers
+    # should not pay the cost of dragging kloppy and its dependencies.
+    #
+    # - engine="arrow":        returns Polars-style Arrow (string_view, duration[ms]).
+    #                          For Dask/Ray (which handle those types natively).
+    # - engine="arrow[spark]": returns Spark-compatible Arrow (string, int64).
+    #                          For Spark mapInArrow (no manual cast needed).
+    if engine in ("arrow", "arrow[spark]"):
+        import io
+        if spark_session is not None:
+            raise TypeError(
+                f"engine={engine!r} and spark_session=... are mutually exclusive. "
+                "Call dataset.to_pyspark(spark) afterwards if you need both."
+            )
+
+        def _to_bytes(obj, kind):
+            # Accept raw bytes-like AND any stdlib file-like object with .read().
+            # The latter covers io.BytesIO, BufferedReader, gzip.GzipFile, etc. —
+            # all pure-stdlib, no kloppy involved, no FileLike resolution.
+            if isinstance(obj, (bytes, bytearray, memoryview)):
+                return bytes(obj)
+            if isinstance(obj, io.IOBase):
+                data = obj.read()
+                if not isinstance(data, (bytes, bytearray, memoryview)):
+                    raise TypeError(
+                        f"engine={engine!r} {kind} stream returned "
+                        f"{type(data).__name__}, expected bytes. Open in binary "
+                        f"mode ('rb')."
+                    )
+                return bytes(data)
+            raise TypeError(
+                f"engine={engine!r} requires bytes or a binary file-like object for "
+                f"{kind}; got {type(obj).__name__}. Read the file yourself "
+                f"before calling (e.g. open(path, 'rb').read() or io.BytesIO(b)). "
+                f"The arrow engines deliberately do not perform FileLike "
+                f"resolution to keep workers kloppy-free."
+            )
+
+        raw_bytes_b = _to_bytes(raw_data, "raw_data")
+        meta_bytes_b = _to_bytes(meta_data, "meta_data")
+
+        tracking_kwargs = {
+            "layout": layout,
+            "coordinates": coordinates,
+            "orientation": orientation,
+            "only_alive": only_alive,
+            "include_game_id": include_game_id,
+        }
+        for param_name in config["tracking_params"]:
+            if param_name in provider_kwargs:
+                tracking_kwargs[param_name] = provider_kwargs[param_name]
+
+        tracking_t, metadata_t, team_t, player_t, periods_t = (
+            rust_module.load_tracking_arrow(raw_bytes_b, meta_bytes_b, **tracking_kwargs)
+        )
+
+        # arrow[spark] variant: pre-normalize string_view → string and
+        # duration[ms] → int64 so the tables are directly consumable by
+        # spark.createDataFrame / mapInArrow with no manual cast.
+        if engine == "arrow[spark]":
+            from fastforward._arrow import _normalize_arrow_table
+            tracking_t = _normalize_arrow_table(tracking_t)
+            metadata_t = _normalize_arrow_table(metadata_t)
+            team_t = _normalize_arrow_table(team_t)
+            player_t = _normalize_arrow_table(player_t)
+            periods_t = _normalize_arrow_table(periods_t)
+
+        # Schema kwargs for the dataset.schemas property — bound to whatever
+        # we just loaded with. Only forwards schema-affecting params (the
+        # provider's schema_params, not all tracking_params), so the factory
+        # gets exactly what it accepts.
+        schema_kwargs = {
+            "layout": layout,
+            "include_game_id": bool(include_game_id),
+        }
+        for param_name in config["schema_params"]:
+            if param_name in provider_kwargs:
+                schema_kwargs[param_name] = provider_kwargs[param_name]
+
+        return TrackingDataset(
+            tracking=tracking_t,
+            metadata=metadata_t,
+            teams=team_t,
+            players=player_t,
+            periods=periods_t,
+            _engine=engine,  # "arrow" or "arrow[spark]"
+            _provider=provider_name,
+            _cache_key=None,
+            _coordinate_system=coordinates,
+            _orientation=orientation,
+            _schema_kwargs=schema_kwargs,
+            _rust_module=rust_module,
+        )
+    # ===================================================================
+
+    # Lazy imports: only the polars/pyspark engines need kloppy + the cache
+    # / lazy / schema modules (which all pull kloppy transitively). Keeping
+    # these off the engine='arrow' branch preserves worker-safety.
+    from kloppy.io import open_as_file
+    from fastforward._lazy import create_lazy_tracking, _is_local_file
+    from fastforward._schema import get_tracking_schema
+    from fastforward._cache import (
+        compute_cache_key_fast,
+        compute_cache_key,
+        get_cache_path,
+        cache_exists,
+        read_cache,
+        CACHE_SCHEMA_VERSION,
+    )
+    from fastforward._engine import polars_to_spark, get_spark_session
 
     # Build config string for cache key (must match _lazy.py)
     config_str = f"{layout}|{coordinates}|{orientation}|{only_alive}|{include_game_id}"
@@ -412,17 +575,52 @@ def load_tracking_impl(
             if param_name in provider_kwargs:
                 tracking_kwargs[param_name] = provider_kwargs[param_name]
 
-        tracking_df, metadata_df, team_df, player_df, periods_df = (
-            rust_module.load_tracking(raw_bytes, meta_bytes, **tracking_kwargs)
-        )
+        # Build schema kwargs for the dataset.schemas property (only the
+        # schema-affecting subset of tracking_params).
+        schema_kwargs = {
+            "layout": layout,
+            "include_game_id": bool(include_game_id),
+        }
+        for param_name in config["schema_params"]:
+            if param_name in provider_kwargs:
+                schema_kwargs[param_name] = provider_kwargs[param_name]
 
         # Compute cache key for eager loading too
+        # (Need to read bytes first; cache_key requires the raw bytes hash)
         if cache_key is None:
             cache_key = compute_cache_key(raw_bytes, meta_bytes, config_str)
 
-        # Convert to PySpark if requested
+        # engine="pyspark" reroutes through load_tracking_arrow → spark.createDataFrame.
+        # Single Rust code path for both arrow and pyspark engines. The uint→int
+        # cast happens in Rust inside load_tracking_arrow (PySpark's Arrow path
+        # doesn't support unsigned integers). No pandas roundtrip.
         if engine == "pyspark":
             spark = spark_session or get_spark_session()
+            if hasattr(rust_module, "load_tracking_arrow"):
+                from fastforward._arrow import _normalize_arrow_table
+                tracking_t, metadata_t, team_t, player_t, periods_t = (
+                    rust_module.load_tracking_arrow(raw_bytes, meta_bytes, **tracking_kwargs)
+                )
+                return TrackingDataset(
+                    tracking=spark.createDataFrame(_normalize_arrow_table(tracking_t)),
+                    metadata=spark.createDataFrame(_normalize_arrow_table(metadata_t)),
+                    teams=spark.createDataFrame(_normalize_arrow_table(team_t)),
+                    players=spark.createDataFrame(_normalize_arrow_table(player_t)),
+                    periods=spark.createDataFrame(_normalize_arrow_table(periods_t)),
+                    _engine="pyspark",
+                    _provider=provider_name,
+                    _cache_key=cache_key,
+                    _coordinate_system=coordinates,
+                    _orientation=orientation,
+                    _schema_kwargs=schema_kwargs,
+                    _rust_module=rust_module,
+                )
+            # Fallback (older wheel without load_tracking_arrow): use the legacy
+            # polars_to_spark path. Will be removed once all providers are
+            # rolled out.
+            tracking_df, metadata_df, team_df, player_df, periods_df = (
+                rust_module.load_tracking(raw_bytes, meta_bytes, **tracking_kwargs)
+            )
             return TrackingDataset(
                 tracking=polars_to_spark(tracking_df, spark),
                 metadata=polars_to_spark(metadata_df, spark),
@@ -434,7 +632,14 @@ def load_tracking_impl(
                 _cache_key=cache_key,
                 _coordinate_system=coordinates,
                 _orientation=orientation,
+                _schema_kwargs=schema_kwargs,
+                _rust_module=rust_module,
             )
+
+        # engine="polars" (default): unchanged path, returns Polars DataFrames.
+        tracking_df, metadata_df, team_df, player_df, periods_df = (
+            rust_module.load_tracking(raw_bytes, meta_bytes, **tracking_kwargs)
+        )
 
         return TrackingDataset(
             tracking=tracking_df,
@@ -447,6 +652,8 @@ def load_tracking_impl(
             _cache_key=cache_key,
             _coordinate_system=coordinates,
             _orientation=orientation,
+            _schema_kwargs=schema_kwargs,
+            _rust_module=rust_module,
         )
 
 
@@ -497,6 +704,12 @@ def _register_standard_providers() -> None:
             "include_ball_owning_player",
             "include_is_detected",
         ],
+        # include_empty_frames affects rows, not columns — exclude from schema.
+        schema_params=[
+            "include_ball_owning_player",
+            "include_is_detected",
+        ],
+        schemas_factory="fastforward.skillcorner:schemas",
     )
 
     register_provider(
@@ -504,6 +717,9 @@ def _register_standard_providers() -> None:
         rust_module=_sp,
         metadata_params=["include_officials"],
         tracking_params=["include_officials"],
+        # include_officials adds rows to player_df but no new columns; exclude from schema.
+        schema_params=[],
+        schemas_factory="fastforward.sportec:schemas",
     )
 
     register_provider(

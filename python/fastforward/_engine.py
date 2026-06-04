@@ -11,7 +11,9 @@ import polars as pl
 if TYPE_CHECKING:
     from pyspark.sql import DataFrame as SparkDataFrame, SparkSession
 
-Engine = Literal["polars", "pyspark"]
+Engine = Literal["polars", "pyspark", "arrow", "arrow[spark]"]
+
+_VALID_ENGINES = ("polars", "pyspark", "arrow", "arrow[spark]")
 
 
 def validate_engine(engine: str) -> Engine:
@@ -20,7 +22,14 @@ def validate_engine(engine: str) -> Engine:
     Parameters
     ----------
     engine : str
-        Engine name to validate
+        Engine name to validate. One of:
+
+        - ``"polars"`` (default): returns Polars DataFrames.
+        - ``"pyspark"``: returns PySpark DataFrames.
+        - ``"arrow"``: returns pyarrow.Tables with Polars-style Arrow types
+          (``string_view``, ``duration[ms]``). For Dask/Ray workers.
+        - ``"arrow[spark]"``: returns pyarrow.Tables pre-normalized for Spark
+          consumption (``string``, ``int64`` ms). For Spark mapInArrow UDFs.
 
     Returns
     -------
@@ -30,13 +39,19 @@ def validate_engine(engine: str) -> Engine:
     Raises
     ------
     ValueError
-        If engine is not 'polars' or 'pyspark'
+        If engine is not one of the supported values.
     """
-    if engine not in ("polars", "pyspark"):
+    if engine not in _VALID_ENGINES:
         raise ValueError(
-            f"Invalid engine: {engine!r}. Must be 'polars' or 'pyspark'."
+            f"Invalid engine: {engine!r}. "
+            f"Must be one of: {', '.join(repr(e) for e in _VALID_ENGINES)}."
         )
     return engine  # type: ignore[return-value]
+
+
+def is_arrow_engine(engine: str) -> bool:
+    """Return True for ``"arrow"`` and ``"arrow[spark]"`` (the two arrow variants)."""
+    return engine in ("arrow", "arrow[spark]")
 
 
 def get_spark_session() -> "SparkSession":
@@ -68,9 +83,14 @@ def polars_to_spark(
 ) -> "SparkDataFrame":
     """Convert a Polars DataFrame to a PySpark DataFrame.
 
-    Uses Apache Arrow as the interchange format for efficient conversion.
-    Automatically casts uint32 columns to int64 to enable Arrow optimization
-    in PySpark (which doesn't support unsigned integers).
+    Public utility. Internally, ``engine="pyspark"`` no longer uses this — it
+    routes through the Rust ``load_tracking_arrow`` path which produces a
+    pyarrow.Table that ``spark.createDataFrame`` consumes directly. This
+    function remains for callers who already have a pl.DataFrame in hand.
+
+    The conversion goes via the Arrow C Data Interface capsule (zero-copy from
+    Polars's internal buffers) — no pandas roundtrip. UInt columns are cast to
+    signed Int because PySpark's Arrow path doesn't support unsigned.
 
     Parameters
     ----------
@@ -84,33 +104,12 @@ def polars_to_spark(
     SparkDataFrame
         PySpark DataFrame with the same data
     """
+    from fastforward._arrow import polars_to_arrow_table, _normalize_arrow_table
+
     if spark is None:
         spark = get_spark_session()
-
-    # Cast unsigned integer types to signed to enable Arrow optimization
-    # PySpark's Arrow path doesn't support uint8/uint16/uint32/uint64
-    cast_exprs = []
-    for col_name in df.columns:
-        dtype = df[col_name].dtype
-        if dtype == pl.UInt8:
-            cast_exprs.append(pl.col(col_name).cast(pl.Int16))
-        elif dtype == pl.UInt16:
-            cast_exprs.append(pl.col(col_name).cast(pl.Int32))
-        elif dtype == pl.UInt32:
-            cast_exprs.append(pl.col(col_name).cast(pl.Int64))
-        elif dtype == pl.UInt64:
-            # UInt64 max > Int64 max, but for our data this is safe
-            cast_exprs.append(pl.col(col_name).cast(pl.Int64))
-        else:
-            cast_exprs.append(pl.col(col_name))
-
-    if cast_exprs:
-        df = df.select(cast_exprs)
-
-    # Convert via Arrow -> pandas -> Spark
-    # This path is optimized when spark.sql.execution.arrow.pyspark.enabled=true
-    arrow_table = df.to_arrow()
-    return spark.createDataFrame(arrow_table.to_pandas())
+    arrow_table = polars_to_arrow_table(df, cast_unsigned=True)
+    return spark.createDataFrame(_normalize_arrow_table(arrow_table))
 
 
 def spark_to_polars(df: "SparkDataFrame") -> pl.DataFrame:

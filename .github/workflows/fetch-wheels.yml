@@ -69,6 +69,13 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
+        # NOTE: pyspark / dask / ray are deliberately NOT installed here.
+        # The engine='arrow' worker-safety contract requires the bytes path
+        # to import and run without any distributed framework present.
+        # The arrow tests run against this stripped env; do not add
+        # pyspark/dask/ray "for completeness" or you'll silently break
+        # the contract. (test_arrow_output.py / test_arrow_schema.py
+        # must pass here.)
         run: pip install "kloppy>=3.18.0" pyarrow
 
       - name: Install wheel

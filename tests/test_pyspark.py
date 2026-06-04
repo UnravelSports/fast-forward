@@ -528,3 +528,34 @@ class TestPySparkErrorHandling:
                 RAW_DATA_PATH, META_DATA_PATH,
                 engine="invalid",
             )
+
+
+class TestPySparkNoPandasRoundtrip:
+    """Guard against the old polars -> arrow -> pandas -> spark conversion path
+    creeping back in. engine='pyspark' should route through load_tracking_arrow
+    on the Rust side and hand Spark a pyarrow.Table directly; pandas should
+    never be touched on the hot path.
+    """
+
+    def test_pyspark_engine_does_not_call_pandas(self, spark, monkeypatch):
+        import pandas
+
+        original_init = pandas.DataFrame.__init__
+        calls = []
+
+        def sentinel_init(self, *args, **kwargs):
+            calls.append((args, kwargs))
+            original_init(self, *args, **kwargs)
+
+        monkeypatch.setattr(pandas.DataFrame, "__init__", sentinel_init)
+
+        dataset = secondspectrum.load_tracking(
+            RAW_DATA_PATH, META_DATA_PATH,
+            engine="pyspark",
+            spark_session=spark,
+        )
+        assert dataset.engine == "pyspark"
+        assert calls == [], (
+            f"pandas.DataFrame was instantiated {len(calls)} time(s) "
+            "during engine='pyspark' conversion — the pandas roundtrip is back."
+        )

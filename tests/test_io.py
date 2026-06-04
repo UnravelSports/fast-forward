@@ -173,6 +173,37 @@ class TestBytesInputs:
         assert len(tracking_paths) == len(tracking_bytes)
         assert tracking_paths.schema == tracking_bytes.schema
 
+    def test_bytes_produces_same_result_as_paths_arrow(self):
+        """SkillCorner engine='arrow' on bytes equals engine='polars' on paths
+        (row count + column-by-column equality, after the uint→int cast)."""
+        import pytest as _pytest
+        _pytest.importorskip("pyarrow")
+
+        from fastforward import skillcorner as sc
+        raw_path = DATA_DIR / "skillcorner_tracking.jsonl"
+        meta_path = DATA_DIR / "skillcorner_meta.json"
+
+        # Polars baseline
+        dataset_polars = sc.load_tracking(
+            str(raw_path), str(meta_path),
+            include_ball_owning_player=True,
+            include_is_detected=True,
+        )
+
+        # Arrow via bytes
+        with open(raw_path, "rb") as f:
+            raw_bytes = f.read()
+        with open(meta_path, "rb") as f:
+            meta_bytes = f.read()
+        dataset_arrow = sc.load_tracking(
+            raw_bytes, meta_bytes,
+            engine="arrow",
+            include_ball_owning_player=True,
+            include_is_detected=True,
+        )
+
+        assert dataset_arrow.tracking.num_rows == dataset_polars.tracking.height
+
 
 class TestFileHandleInputs:
     """Test open file object inputs."""

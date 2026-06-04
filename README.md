@@ -59,6 +59,10 @@ periods_df = dataset.periods      # Period info
 | [Stats Perform][statsperform]    |      ✓      |                        |  [↗][statsperform-doc]  | Includes support for MA1, MA3, and MA25 data feeds |
 | [Tracab][tracab]                 |      ✓      |                        |     [↗][tracab-doc]     |                                                    |
 
+## Distributed Compute
+
+For Spark, Ray, and Dask workflows, fast-forward exposes `engine="arrow"` and `engine="arrow[spark]"` paths that return `pyarrow.Table` directly without importing kloppy on executors. See [Distributed Compute](docs/usage/spark.md).
+
 ## Benchmarks
 
 ![Load Time](https://raw.githubusercontent.com/UnravelSports/fast-forward/main/docs/assets/images/benchmark_load_time.png)
