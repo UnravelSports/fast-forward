@@ -594,9 +594,18 @@ def load_tracking_impl(
         # Single Rust code path for both arrow and pyspark engines. The uint→int
         # cast happens in Rust inside load_tracking_arrow (PySpark's Arrow path
         # doesn't support unsigned integers). No pandas roundtrip.
+        #
+        # Exception: layout="wide" can't go through the arrow path (per-game
+        # schema — player IDs in column names — breaks the static-schema
+        # contract that load_tracking_arrow enforces). Fall through to the
+        # legacy polars→pyspark path for wide.
         if engine == "pyspark":
             spark = spark_session or get_spark_session()
-            if hasattr(rust_module, "load_tracking_arrow"):
+            arrow_eligible = (
+                hasattr(rust_module, "load_tracking_arrow")
+                and not (isinstance(layout, str) and layout.lower() == "wide")
+            )
+            if arrow_eligible:
                 from fastforward._arrow import _normalize_arrow_table
                 tracking_t, metadata_t, team_t, player_t, periods_t = (
                     rust_module.load_tracking_arrow(raw_bytes, meta_bytes, **tracking_kwargs)
@@ -693,6 +702,9 @@ def _register_standard_providers() -> None:
         rust_module=_ss,
         metadata_params=[],
         tracking_params=["exclude_missing_ball_frames"],
+        # exclude_missing_ball_frames affects rows, not columns.
+        schema_params=[],
+        schemas_factory="fastforward.secondspectrum:schemas",
     )
 
     register_provider(

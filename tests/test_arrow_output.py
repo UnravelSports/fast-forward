@@ -703,3 +703,23 @@ class TestArrowSparkDialect:
             assert sdf.count() == ds.tracking.num_rows
         finally:
             spark.stop()
+
+
+# --------------------------------------------------------------------------- #
+# Engine validation                                                            #
+# --------------------------------------------------------------------------- #
+
+class TestEngineValidation:
+    """validate_engine rejects unknown values; the provider surface propagates the same error."""
+
+    def test_unknown_engine_raises(self):
+        from fastforward._engine import validate_engine
+        with pytest.raises(ValueError, match="Invalid engine"):
+            validate_engine("bogus")
+
+    def test_unknown_engine_on_load_tracking_raises(self, raw_bytes, meta_bytes):
+        with pytest.raises(ValueError, match="Invalid engine"):
+            skillcorner.load_tracking(
+                raw_bytes, meta_bytes, engine="bogus",  # type: ignore[arg-type]
+                include_ball_owning_player=False, include_is_detected=False,
+            )

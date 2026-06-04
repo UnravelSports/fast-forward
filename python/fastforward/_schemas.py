@@ -135,7 +135,9 @@ class Schemas:
         return self._get_spark("periods", self.periods)
 
     def __repr__(self) -> str:
-        # Lazily resolve names of the cheap schemas; don't force expensive ones.
+        # Don't force schema materialization from __repr__ — interactive
+        # contexts (debuggers, Jupyter) call repr() unexpectedly, and a lazy
+        # schema fn that fails or hangs here would be a surprising trap.
         try:
             md_names = self.metadata.names
         except Exception:
