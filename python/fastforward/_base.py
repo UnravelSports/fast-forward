@@ -681,6 +681,9 @@ def _register_standard_providers() -> None:
         rust_module=_cdf,
         metadata_params=[],
         tracking_params=["exclude_missing_ball_frames"],
+        # exclude_missing_ball_frames affects rows, not columns.
+        schema_params=[],
+        schemas_factory="fastforward.cdf:schemas",
     )
 
     register_provider(
