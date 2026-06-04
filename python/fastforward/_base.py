@@ -739,6 +739,9 @@ def _register_standard_providers() -> None:
         rust_module=_tr,
         metadata_params=[],
         tracking_params=[],
+        # No provider-specific kwargs at all.
+        schema_params=[],
+        schemas_factory="fastforward.tracab:schemas",
     )
 
 
