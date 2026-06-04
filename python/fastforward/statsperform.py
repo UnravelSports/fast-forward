@@ -21,18 +21,20 @@ Example
     print(dataset.players)
 """
 
-from typing import Literal, Optional, Union
+from __future__ import annotations
 
-import polars as pl
-from kloppy.io import FileLike, open_as_file
+from typing import TYPE_CHECKING, Literal, Optional, Union
 
-from fastforward._fastforward import statsperform as _statsperform
+from fastforward._base import load_tracking_impl as _load_tracking_impl
 from fastforward._dataset import TrackingDataset
-from fastforward._errors import with_error_handler
-from fastforward._schema import get_tracking_schema
+from fastforward._engine import Engine
+from fastforward._schemas import Schemas
+
+if TYPE_CHECKING:
+    from kloppy.io import FileLike
+    from pyspark.sql import SparkSession
 
 
-@with_error_handler
 def load_tracking(
     ma25_data: FileLike,
     ma1_data: FileLike,
@@ -67,9 +69,11 @@ def load_tracking(
     include_officials: bool = False,
     *,
     lazy: bool = False,
+    from_cache: bool = False,
+    engine: Engine = "polars",
+    spark_session: Optional["SparkSession"] = None,
 ) -> TrackingDataset:
-    """
-    Load StatsPerform tracking data.
+    """Load StatsPerform tracking data.
 
     Parameters
     ----------
@@ -104,6 +108,18 @@ def load_tracking(
     include_officials : bool, default False
         If True, include match officials (referees) in the players DataFrame
         with team_id="officials" and appropriate position codes (REF, AREF, 4TH).
+    engine : {"polars", "pyspark", "arrow", "arrow[spark]"}, default "polars"
+        DataFrame engine to use:
+        - "polars": Return Polars DataFrames (default)
+        - "pyspark": Return PySpark DataFrames
+        - "arrow": Return pyarrow.Tables with Polars-style Arrow types
+          (string_view, duration[ms]). For Dask/Ray workers.
+        - "arrow[spark]": Return pyarrow.Tables pre-normalized for Spark
+          consumption (string, int64 ms). For Spark mapInArrow UDFs.
+    spark_session : SparkSession, optional
+        PySpark SparkSession to use. If None and engine="pyspark",
+        will get or create a session automatically.
+
     Returns
     -------
     TrackingDataset
@@ -120,188 +136,70 @@ def load_tracking(
 
     The MA1 metadata format is auto-detected (JSON or XML) based on content.
     """
-    if lazy:
-        raise NotImplementedError("lazy loading is not yet supported in fast-forward")
-
-    # Wide format doesn't support lazy loading - column names are game-specific
-    if lazy and layout == "wide":
-        raise ValueError(
-            "lazy=True is not supported for layout='wide'. "
-            "Wide format has game-specific column names (player IDs), "
-            "making lazy frame operations like concatenation incompatible."
-        )
-
-    if lazy:
-        # Load metadata only
-        with open_as_file(ma1_data) as ma1_file:
-            ma1_bytes = ma1_file.read() if ma1_file else b""
-
-        metadata_df, team_df, player_df, periods_df = _statsperform.load_metadata_only(
-            ma1_bytes,
-            pitch_length=pitch_length,
-            pitch_width=pitch_width,
-            coordinates=coordinates,
-            orientation=orientation,
-            include_game_id=include_game_id,
-            include_officials=include_officials,
-        )
-
-        # Generate schema
-        schema = get_tracking_schema(
-            layout=layout,
-            players_df=player_df,
-            include_game_id=bool(include_game_id),
-        )
-
-        # Create lazy frame using register_io_source
-        def source_fn(with_columns=None, n_rows=None, predicate=None):
-            # Load all files as bytes
-            with open_as_file(ma25_data) as ma25_file:
-                ma25_bytes = ma25_file.read() if ma25_file else b""
-            with open_as_file(ma1_data) as ma1_file2:
-                ma1_bytes2 = ma1_file2.read() if ma1_file2 else b""
-
-            tracking_df, _, _, _, _ = _statsperform.load_tracking(
-                ma25_bytes,
-                ma1_bytes2,
-                pitch_length=pitch_length,
-                pitch_width=pitch_width,
-                layout=layout,
-                coordinates=coordinates,
-                orientation=orientation,
-                only_alive=only_alive,
-                include_game_id=include_game_id,
-                include_officials=include_officials,
-                predicate=predicate,
-            )
-
-            # Apply column selection if needed
-            if with_columns is not None:
-                tracking_df = tracking_df.select(with_columns)
-
-            # Apply row limit if needed
-            if n_rows is not None:
-                tracking_df = tracking_df.head(n_rows)
-
-            return tracking_df
-
-        lazy_frame = pl.LazyFrame(
-            schema=schema,
-        ).map_batches(
-            lambda df: source_fn(),
-            schema=schema,
-        )
-
-        return TrackingDataset(
-            tracking=lazy_frame,
-            metadata=metadata_df,
-            teams=team_df,
-            players=player_df,
-            periods=periods_df,
-            _engine="polars",
-            _provider="statsperform",
-            _cache_key=None,
-            _coordinate_system=coordinates,
-            _orientation=orientation,
-        )
-    else:
-        # Eager loading - load all files as bytes
-        with open_as_file(ma25_data) as ma25_file:
-            ma25_bytes = ma25_file.read() if ma25_file else b""
-        with open_as_file(ma1_data) as ma1_file:
-            ma1_bytes = ma1_file.read() if ma1_file else b""
-
-        tracking_df, metadata_df, team_df, player_df, periods_df = (
-            _statsperform.load_tracking(
-                ma25_bytes,
-                ma1_bytes,
-                pitch_length=pitch_length,
-                pitch_width=pitch_width,
-                layout=layout,
-                coordinates=coordinates,
-                orientation=orientation,
-                only_alive=only_alive,
-                include_game_id=include_game_id,
-                include_officials=include_officials,
-            )
-        )
-
-        return TrackingDataset(
-            tracking=tracking_df,
-            metadata=metadata_df,
-            teams=team_df,
-            players=player_df,
-            periods=periods_df,
-            _engine="polars",
-            _provider="statsperform",
-            _cache_key=None,
-            _coordinate_system=coordinates,
-            _orientation=orientation,
-        )
-
-
-@with_error_handler
-def load_metadata_only(
-    ma1_data: FileLike,
-    pitch_length: Optional[float] = None,
-    pitch_width: Optional[float] = None,
-    coordinates: str = "cdf",
-    orientation: str = "static_home_away",
-    include_game_id: Union[bool, str] = True,
-    include_officials: bool = False,
-) -> TrackingDataset:
-    """
-    Load only StatsPerform metadata without tracking data.
-
-    Useful for quick metadata inspection without parsing large tracking files.
-
-    Parameters
-    ----------
-    ma1_data : FileLike
-        Path to MA1 metadata file (JSON or XML format, auto-detected).
-    pitch_length : float, optional
-        Length of the pitch in meters. Default: 105.0m.
-    pitch_width : float, optional
-        Width of the pitch in meters. Default: 68.0m.
-    coordinates : str, default "cdf"
-        Coordinate system for metadata output.
-    orientation : str, default "static_home_away"
-        Orientation for metadata output.
-    include_game_id : Union[bool, str], default True
-        If True, include game_id column from metadata.
-    include_officials : bool, default False
-        If True, include match officials (referees) in the players DataFrame.
-
-    Returns
-    -------
-    TrackingDataset
-        Dataset with metadata, teams, players, periods (tracking will be empty).
-    """
-    with open_as_file(ma1_data) as ma1_file:
-        ma1_bytes = ma1_file.read() if ma1_file else b""
-
-    metadata_df, team_df, player_df, periods_df = _statsperform.load_metadata_only(
-        ma1_bytes,
-        pitch_length=pitch_length,
-        pitch_width=pitch_width,
+    return _load_tracking_impl(
+        provider_name="statsperform",
+        raw_data=ma25_data,
+        meta_data=ma1_data,
+        layout=layout,
         coordinates=coordinates,
         orientation=orientation,
+        only_alive=only_alive,
         include_game_id=include_game_id,
+        lazy=lazy,
+        from_cache=from_cache,
+        engine=engine,
+        spark_session=spark_session,
+        pitch_length=pitch_length,
+        pitch_width=pitch_width,
         include_officials=include_officials,
     )
 
-    # Create empty tracking DataFrame with correct schema
-    tracking_df = pl.DataFrame()
 
-    return TrackingDataset(
-        tracking=tracking_df,
-        metadata=metadata_df,
-        teams=team_df,
-        players=player_df,
-        periods=periods_df,
-        _engine="polars",
-        _provider="statsperform",
-        _cache_key=None,
-        _coordinate_system=coordinates,
-        _orientation=orientation,
+def schemas(
+    *,
+    layout: Literal["long", "long_ball", "wide"] = "long",
+    include_game_id: bool = True,
+    engine: Engine = "polars",
+) -> Schemas:
+    """Return a ``Schemas`` namespace for StatsPerform.
+
+    The returned object has 10 lazy properties: Arrow + PySpark schemas for
+    each of the 5 tables (``tracking``, ``metadata``, ``teams``, ``players``,
+    ``periods``). Schemas are derived from Rust constants (single source of
+    truth with the parser) so they can't drift.
+
+    Accepts the standard schema-affecting kwargs. ``pitch_length`` /
+    ``pitch_width`` / ``include_officials`` are intentionally omitted:
+    pitch dimensions don't affect schema; ``include_officials`` adds rows
+    to ``players_df`` but doesn't change any column's shape.
+
+    Parameters
+    ----------
+    layout, include_game_id
+        Match the same-named kwargs on ``statsperform.load_tracking``.
+    engine : {"polars", "pyspark", "arrow", "arrow[spark]"}, default "polars"
+        Controls the Arrow type dialect for the non-``_spark`` schema
+        properties. ``"polars"`` / ``"arrow"`` produce Polars-style
+        (``string_view``, ``duration[ms]``); ``"pyspark"`` /
+        ``"arrow[spark]"`` produce Spark-compat (``string``, ``int64``).
+        The ``*_spark`` properties are always Spark-compatible regardless.
+
+    Use this on the driver to declare a Spark ``mapInArrow`` output schema
+    before any data load:
+
+    >>> tracking_schema = statsperform.schemas(layout="long", engine="arrow[spark]").tracking_spark
+    >>> matches_df.mapInArrow(parse_statsperform_match_udf, schema=tracking_schema)
+    """
+    from fastforward._fastforward import statsperform as _m
+
+    return Schemas(
+        tracking_fn=lambda: _m.tracking_schema_arrow(
+            layout=layout,
+            include_game_id=include_game_id,
+        ),
+        metadata_fn=lambda: _m.metadata_schema_arrow(),
+        teams_fn=lambda: _m.teams_schema_arrow(include_game_id=include_game_id),
+        players_fn=lambda: _m.players_schema_arrow(include_game_id=include_game_id),
+        periods_fn=lambda: _m.periods_schema_arrow(include_game_id=include_game_id),
+        engine=engine,
     )

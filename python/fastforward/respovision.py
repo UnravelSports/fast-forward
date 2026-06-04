@@ -8,15 +8,18 @@ Note: Lazy loading is NOT supported because metadata must be extracted from
 the tracking file, requiring a full parse.
 """
 
-from typing import TYPE_CHECKING, Literal, Optional, Union
+from __future__ import annotations
 
-from kloppy.io import FileLike, open_as_file
+from typing import TYPE_CHECKING, Literal, Optional, Union
 
 from fastforward._base import get_filename_from_filelike
 from fastforward._dataset import TrackingDataset
+from fastforward._engine import Engine
 from fastforward._errors import with_error_handler
+from fastforward._schemas import Schemas
 
 if TYPE_CHECKING:
+    from kloppy.io import FileLike
     from pyspark.sql import SparkSession
 
 
@@ -53,12 +56,12 @@ def load_tracking(
     include_joint_angles: bool = True,
     include_officials: bool = False,
     *,
+    filename: Optional[str] = None,
     lazy: bool = False,
-    engine: Literal["polars", "pyspark"] = "polars",
+    engine: Engine = "polars",
     spark_session: Optional["SparkSession"] = None,
 ) -> TrackingDataset:
-    """
-    Load Respovision tracking data.
+    """Load Respovision tracking data.
 
     Respovision data comes in a single JSONL file containing all tracking frames
     with embedded metadata. Team names are extracted from the filename pattern
@@ -70,6 +73,9 @@ def load_tracking(
         Path to JSONL tracking file, or bytes, or file-like object.
         Filename pattern: YYYYMMDD-HomeTeam-AwayTeam-*.jsonl
         Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths.
+        For ``engine="arrow"`` / ``"arrow[spark]"``, only bytes-like input is
+        accepted (no FileLike resolution; see ``filename`` for game_id
+        derivation in that case).
     layout : {"long", "long_ball", "wide"}, default "long"
         DataFrame layout:
         - "long": Ball as row with team_id="ball", player_id="ball"
@@ -82,18 +88,15 @@ def load_tracking(
         - "respovision": Native coordinates (origin at bottom-left corner, meters)
         - Other provider coordinate systems
     orientation : str, default "static_home_away"
-        Coordinate orientation:
-        - "static_home_away": Home attacks right (+x) entire match
-        - Other orientations available
+        Coordinate orientation.
     only_alive : bool, default True
         If True, only include frames where ball_possession is not null.
     exclude_missing_ball_frames : bool, default True
         If True, exclude frames where ball coordinates are missing (null).
-        Respovision data may have frames where ball tracking failed.
     pitch_length : float, default 105.0
-        Pitch length in meters. Used for coordinate transformation.
+        Pitch length in meters.
     pitch_width : float, default 68.0
-        Pitch width in meters. Used for coordinate transformation.
+        Pitch width in meters.
     include_game_id : bool or str, default True
         If True, add game_id column (auto-generated from filename).
         If False, no game_id column is added.
@@ -103,10 +106,19 @@ def load_tracking(
         Only applies to long and long_ball layouts.
     include_officials : bool, default False
         If True, include referees in tracking data with team_id="officials".
-    engine : {"polars", "pyspark"}, default "polars"
+    filename : str, optional
+        Explicit filename for game_id derivation. Required when ``raw_data`` is
+        bytes and you want auto-derived game_id (engine="arrow" can't extract
+        a filename from raw bytes). When raw_data is a FileLike, the filename
+        is auto-extracted and this kwarg is ignored.
+    engine : {"polars", "pyspark", "arrow", "arrow[spark]"}, default "polars"
         DataFrame engine to use:
         - "polars": Return Polars DataFrames (default)
         - "pyspark": Return PySpark DataFrames
+        - "arrow": Return pyarrow.Tables with Polars-style Arrow types
+          (string_view, duration[ms]). For Dask/Ray workers.
+        - "arrow[spark]": Return pyarrow.Tables pre-normalized for Spark
+          consumption (string, int64 ms). For Spark mapInArrow UDFs.
     spark_session : SparkSession, optional
         PySpark SparkSession to use. If None and engine="pyspark",
         will get or create a session automatically.
@@ -127,31 +139,8 @@ def load_tracking(
     - Frame rate is typically 25 Hz
     - Ball state: alive if ball_possession is not null, dead otherwise
     - Joint angles may contain null values (especially for goalkeepers)
-
-    Examples
-    --------
-    Load from file path:
-
-    >>> from fastforward import respovision
-    >>> dataset = respovision.load_tracking(
-    ...     "20240714-Argentina-Colombia-2d_tracking-tactical.jsonl",
-    ...     pitch_length=105.0,
-    ...     pitch_width=68.0,
-    ... )
-    >>> tracking_df = dataset.tracking
-
-    Load without joint angles:
-
-    >>> dataset = respovision.load_tracking(
-    ...     "tracking.jsonl",
-    ...     include_joint_angles=False,
-    ... )
     """
-    from fastforward._engine import (
-        validate_engine,
-        polars_to_spark,
-        get_spark_session,
-    )
+    from fastforward._engine import validate_engine
     from fastforward._fastforward import respovision as _respovision
 
     # Validate engine parameter
@@ -165,12 +154,76 @@ def load_tracking(
             "populated without parsing the entire file."
         )
 
+    # ===== engine="arrow" / "arrow[spark]" early branch =================
+    # Worker-safe path: bytes-only input, no kloppy import.
+    if engine in ("arrow", "arrow[spark]"):
+        from fastforward._base import _to_bytes
+        if spark_session is not None:
+            raise TypeError(
+                f"engine={engine!r} and spark_session=... are mutually exclusive. "
+                "Call dataset.to_pyspark(spark) afterwards if you need both."
+            )
+
+        raw_bytes = _to_bytes(raw_data, "raw_data", engine)
+        # filename: explicit kwarg wins; otherwise empty (Rust falls back to
+        # a no-filename game_id default).
+        fn = filename if filename is not None else ""
+
+        tracking_t, metadata_t, team_t, player_t, periods_t = (
+            _respovision.load_tracking_arrow(
+                raw_bytes,
+                filename=fn,
+                layout=layout,
+                coordinates=coordinates,
+                orientation=orientation,
+                only_alive=only_alive,
+                exclude_missing_ball_frames=exclude_missing_ball_frames,
+                pitch_length=pitch_length,
+                pitch_width=pitch_width,
+                include_game_id=include_game_id,
+                include_joint_angles=include_joint_angles,
+                include_officials=include_officials,
+            )
+        )
+
+        if engine == "arrow[spark]":
+            from fastforward._arrow import _normalize_arrow_table
+            tracking_t = _normalize_arrow_table(tracking_t)
+            metadata_t = _normalize_arrow_table(metadata_t)
+            team_t = _normalize_arrow_table(team_t)
+            player_t = _normalize_arrow_table(player_t)
+            periods_t = _normalize_arrow_table(periods_t)
+
+        return TrackingDataset(
+            tracking=tracking_t,
+            metadata=metadata_t,
+            teams=team_t,
+            players=player_t,
+            periods=periods_t,
+            _engine=engine,
+            _provider="respovision",
+            _cache_key=None,
+            _coordinate_system=coordinates,
+            _orientation=orientation,
+            _schema_kwargs={
+                "layout": layout,
+                "include_game_id": bool(include_game_id),
+                "include_joint_angles": include_joint_angles,
+            },
+            _rust_module=_respovision,
+        )
+    # ===================================================================
+
+    # Polars / pyspark path: kloppy-resolves FileLike to bytes.
+    from fastforward._engine import polars_to_spark, get_spark_session
+    from kloppy.io import open_as_file
+
     # For PySpark, force eager loading (will convert after)
     if engine == "pyspark":
         lazy = False
 
     # Extract filename for metadata extraction
-    filename = get_filename_from_filelike(raw_data)
+    fn = filename if filename is not None else get_filename_from_filelike(raw_data)
 
     # Read raw data
     with open_as_file(raw_data) as raw_file:
@@ -180,7 +233,7 @@ def load_tracking(
     tracking_df, metadata_df, team_df, player_df, periods_df = (
         _respovision.load_tracking(
             raw_bytes,
-            filename=filename,
+            filename=fn,
             layout=layout,
             coordinates=coordinates,
             orientation=orientation,
@@ -221,4 +274,51 @@ def load_tracking(
         _cache_key=None,
         _coordinate_system=coordinates,
         _orientation=orientation,
+    )
+
+
+def schemas(
+    *,
+    layout: Literal["long", "long_ball", "wide"] = "long",
+    include_game_id: bool = True,
+    include_joint_angles: bool = True,
+    engine: Engine = "polars",
+) -> Schemas:
+    """Return a ``Schemas`` namespace for Respovision.
+
+    The returned object has 10 lazy properties: Arrow + PySpark schemas for
+    each of the 5 tables (``tracking``, ``metadata``, ``teams``, ``players``,
+    ``periods``). Schemas are derived from Rust constants (single source of
+    truth with the parser) so they can't drift.
+
+    Accepts the schema-affecting kwargs from ``respovision.load_tracking``.
+    ``include_joint_angles`` adds three columns (head_angle, shoulders_angle,
+    hips_angle) to the tracking schema on the long / long_ball layouts.
+    ``only_alive`` / ``exclude_missing_ball_frames`` / ``include_officials``
+    are intentionally omitted: they filter rows but don't change columns.
+
+    Parameters
+    ----------
+    layout, include_game_id, include_joint_angles
+        Match the same-named kwargs on ``respovision.load_tracking``.
+    engine : {"polars", "pyspark", "arrow", "arrow[spark]"}, default "polars"
+        Controls the Arrow type dialect for the non-``_spark`` schema
+        properties. ``"polars"`` / ``"arrow"`` produce Polars-style
+        (``string_view``, ``duration[ms]``); ``"pyspark"`` /
+        ``"arrow[spark]"`` produce Spark-compat (``string``, ``int64``).
+        The ``*_spark`` properties are always Spark-compatible regardless.
+    """
+    from fastforward._fastforward import respovision as _m
+
+    return Schemas(
+        tracking_fn=lambda: _m.tracking_schema_arrow(
+            layout=layout,
+            include_game_id=include_game_id,
+            include_joint_angles=include_joint_angles,
+        ),
+        metadata_fn=lambda: _m.metadata_schema_arrow(),
+        teams_fn=lambda: _m.teams_schema_arrow(include_game_id=include_game_id),
+        players_fn=lambda: _m.players_schema_arrow(include_game_id=include_game_id),
+        periods_fn=lambda: _m.periods_schema_arrow(include_game_id=include_game_id),
+        engine=engine,
     )

@@ -35,6 +35,7 @@ def register_provider(
     tracking_params: List[str] = None,
     schema_params: List[str] = None,
     schemas_factory: Optional[str] = None,
+    extra_bytes_params: Optional[List[str]] = None,
 ) -> None:
     """Register a provider configuration.
 
@@ -61,6 +62,13 @@ def register_provider(
         Stored as a string (not a callable) to avoid a top-level import of
         the provider module here; that would close the import cycle
         ``provider -> _base -> provider``.
+    extra_bytes_params : list of str, optional
+        Names of extra binary-buffer kwargs the provider's Rust ``load_tracking``
+        accepts beyond ``raw_data`` + ``meta_data`` (e.g. ``"roster_data"`` for
+        gradientsports). ``_load_tracking_impl`` resolves each of these from
+        ``FileLike`` to ``bytes`` before forwarding, using ``kloppy.open_as_file``
+        on the polars/pyspark paths and ``_to_bytes`` (no kloppy import) on the
+        arrow paths — keeps the arrow worker-safety contract intact.
     """
     _PROVIDERS[name] = {
         "name": name,
@@ -69,6 +77,7 @@ def register_provider(
         "tracking_params": tracking_params or [],
         "schema_params": schema_params if schema_params is not None else (tracking_params or []),
         "schemas_factory": schemas_factory,
+        "extra_bytes_params": extra_bytes_params or [],
     }
 
 
@@ -116,6 +125,41 @@ def get_schemas_factory(name: str) -> Callable[..., Any]:
         )
     module_path, attr_name = spec.split(":", 1)
     return getattr(importlib.import_module(module_path), attr_name)
+
+
+def _to_bytes(obj: Any, kind: str, engine: str = "arrow") -> bytes:
+    """Convert bytes-like or stdlib file-like input to bytes (no kloppy).
+
+    Used by the arrow engines to validate that input is already in-memory
+    bytes-like — the arrow contract is bytes-only so workers don't need to
+    pay the cost of dragging kloppy and its dependencies. The ``engine``
+    parameter is used purely for error-message wording; the conversion is
+    identical for ``"arrow"`` and ``"arrow[spark]"``.
+
+    Accepts ``bytes``, ``bytearray``, ``memoryview``, and any stdlib
+    ``io.IOBase`` opened in binary mode (e.g. ``io.BytesIO``, ``BufferedReader``,
+    ``gzip.GzipFile``). Rejects ``str``/``Path``/text-mode streams with a
+    ``TypeError`` that points the user at ``open(path, 'rb').read()``.
+    """
+    import io
+    if isinstance(obj, (bytes, bytearray, memoryview)):
+        return bytes(obj)
+    if isinstance(obj, io.IOBase):
+        data = obj.read()
+        if not isinstance(data, (bytes, bytearray, memoryview)):
+            raise TypeError(
+                f"engine={engine!r} {kind} stream returned "
+                f"{type(data).__name__}, expected bytes. Open in binary "
+                f"mode ('rb')."
+            )
+        return bytes(data)
+    raise TypeError(
+        f"engine={engine!r} requires bytes or a binary file-like object for "
+        f"{kind}; got {type(obj).__name__}. Read the file yourself "
+        f"before calling (e.g. open(path, 'rb').read() or io.BytesIO(b)). "
+        f"The arrow engines deliberately do not perform FileLike "
+        f"resolution to keep workers kloppy-free."
+    )
 
 
 def get_filename_from_filelike(filelike: "FileLike") -> str:
@@ -301,38 +345,22 @@ def load_tracking_impl(
     # - engine="arrow[spark]": returns Spark-compatible Arrow (string, int64).
     #                          For Spark mapInArrow (no manual cast needed).
     if engine in ("arrow", "arrow[spark]"):
-        import io
         if spark_session is not None:
             raise TypeError(
                 f"engine={engine!r} and spark_session=... are mutually exclusive. "
                 "Call dataset.to_pyspark(spark) afterwards if you need both."
             )
 
-        def _to_bytes(obj, kind):
-            # Accept raw bytes-like AND any stdlib file-like object with .read().
-            # The latter covers io.BytesIO, BufferedReader, gzip.GzipFile, etc. —
-            # all pure-stdlib, no kloppy involved, no FileLike resolution.
-            if isinstance(obj, (bytes, bytearray, memoryview)):
-                return bytes(obj)
-            if isinstance(obj, io.IOBase):
-                data = obj.read()
-                if not isinstance(data, (bytes, bytearray, memoryview)):
-                    raise TypeError(
-                        f"engine={engine!r} {kind} stream returned "
-                        f"{type(data).__name__}, expected bytes. Open in binary "
-                        f"mode ('rb')."
-                    )
-                return bytes(data)
-            raise TypeError(
-                f"engine={engine!r} requires bytes or a binary file-like object for "
-                f"{kind}; got {type(obj).__name__}. Read the file yourself "
-                f"before calling (e.g. open(path, 'rb').read() or io.BytesIO(b)). "
-                f"The arrow engines deliberately do not perform FileLike "
-                f"resolution to keep workers kloppy-free."
-            )
+        raw_bytes_b = _to_bytes(raw_data, "raw_data", engine)
+        meta_bytes_b = _to_bytes(meta_data, "meta_data", engine)
 
-        raw_bytes_b = _to_bytes(raw_data, "raw_data")
-        meta_bytes_b = _to_bytes(meta_data, "meta_data")
+        # Provider-specific extra byte buffers (e.g. gradientsports' roster_data).
+        # Convert them via _to_bytes — same contract as raw/meta — so the arrow
+        # path never touches kloppy. Mutates provider_kwargs in place so the
+        # tracking_kwargs forwarding loop below picks the bytes value up.
+        for param_name in config["extra_bytes_params"]:
+            if param_name in provider_kwargs:
+                provider_kwargs[param_name] = _to_bytes(provider_kwargs[param_name], param_name, engine)
 
         tracking_kwargs = {
             "layout": layout,
@@ -403,6 +431,17 @@ def load_tracking_impl(
         CACHE_SCHEMA_VERSION,
     )
     from fastforward._engine import polars_to_spark, get_spark_session
+
+    # Provider-specific extra byte buffers (e.g. gradientsports' roster_data).
+    # Resolved here — before cache-key construction, lazy-load metadata, and
+    # eager load — so all three downstream branches see bytes, not FileLike.
+    # Mutates provider_kwargs in place. Uses kloppy.open_as_file (same as raw
+    # and meta), since we're already in the kloppy-importing region; the arrow
+    # branch has its own _to_bytes loop above and never reaches here.
+    for param_name in config["extra_bytes_params"]:
+        if param_name in provider_kwargs:
+            with open_as_file(provider_kwargs[param_name]) as extra_file:
+                provider_kwargs[param_name] = extra_file.read() if extra_file else b""
 
     # Build config string for cache key (must match _lazy.py)
     config_str = f"{layout}|{coordinates}|{orientation}|{only_alive}|{include_game_id}"
@@ -671,9 +710,11 @@ def _register_standard_providers() -> None:
     from fastforward._fastforward import cdf as _cdf
     from fastforward._fastforward import gradientsports as _gs
     from fastforward._fastforward import optavision as _ov
+    from fastforward._fastforward import respovision as _rv
     from fastforward._fastforward import secondspectrum as _ss
     from fastforward._fastforward import skillcorner as _sc
     from fastforward._fastforward import sportec as _sp
+    from fastforward._fastforward import statsperform as _stp
     from fastforward._fastforward import tracab as _tr
 
     register_provider(
@@ -690,7 +731,13 @@ def _register_standard_providers() -> None:
         name="gradientsports",
         rust_module=_gs,
         metadata_params=["roster_data"],
-        tracking_params=["roster_data"],
+        tracking_params=["roster_data", "include_incomplete_frames"],
+        # roster_data filters tracking rows to roster players;
+        # include_incomplete_frames filters rows with null ball / null players.
+        # Neither changes the column set.
+        schema_params=[],
+        schemas_factory="fastforward.gradientsports:schemas",
+        extra_bytes_params=["roster_data"],
     )
 
     register_provider(
@@ -698,6 +745,22 @@ def _register_standard_providers() -> None:
         rust_module=_ov,
         metadata_params=[],
         tracking_params=["include_ball_owning_player"],
+        # include_ball_owning_player adds the ball_owning_player_id column.
+        schema_params=["include_ball_owning_player"],
+        schemas_factory="fastforward.optavision:schemas",
+    )
+
+    # Respovision bypasses _load_tracking_impl (hand-rolled wrapper because of
+    # the 1-buffer + filename-as-metadata shape). Registration here is solely
+    # so dataset.schemas can resolve its factory; tracking_params / schema_params
+    # are unused in that flow.
+    register_provider(
+        name="respovision",
+        rust_module=_rv,
+        metadata_params=[],
+        tracking_params=[],
+        schema_params=[],
+        schemas_factory="fastforward.respovision:schemas",
     )
 
     register_provider(
@@ -735,6 +798,17 @@ def _register_standard_providers() -> None:
         # include_officials adds rows to player_df but no new columns; exclude from schema.
         schema_params=[],
         schemas_factory="fastforward.sportec:schemas",
+    )
+
+    register_provider(
+        name="statsperform",
+        rust_module=_stp,
+        metadata_params=["pitch_length", "pitch_width", "include_officials"],
+        tracking_params=["pitch_length", "pitch_width", "include_officials"],
+        # pitch_length / pitch_width are scalars (don't affect schema);
+        # include_officials adds rows to player_df but no new columns.
+        schema_params=[],
+        schemas_factory="fastforward.statsperform:schemas",
     )
 
     register_provider(
