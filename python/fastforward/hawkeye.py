@@ -4,35 +4,59 @@ HawkEye tracking data consists of multiple per-minute files:
 - Ball files: hawkeye_{period_id}_{minute}.football.samples.ball
 - Player files: hawkeye_{period_id}_{minute}.football.samples.centroids
 
-Supports both eager and lazy loading modes.
+Supports both eager and lazy loading modes, plus single-file (per-slice) and
+multi-file (full-match) modes for distributed compute.
 """
 
-import warnings
+from __future__ import annotations
+
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Literal, Optional, Tuple, Union
 import polars as pl
-
-from kloppy.io import FileLike, open_as_file
 
 from fastforward._base import (
     discover_files_in_directory,
     get_filename_from_filelike,
 )
+from fastforward._dataset import TrackingDataset
+from fastforward._engine import Engine
 from fastforward._errors import with_error_handler
 from fastforward._fastforward import hawkeye as _hawkeye
-from fastforward._lazy import create_lazy_tracking_hawkeye, _is_local_file
-from fastforward._schema import get_tracking_schema
-from fastforward._dataset import TrackingDataset
+from fastforward._schemas import Schemas
 
 if TYPE_CHECKING:
+    from kloppy.io import FileLike
     from pyspark.sql import SparkSession
+
+
+# Regex for extracting (period, minute) from hawkeye filenames like
+# `hawkeye_1_1.football.samples.ball` or `hawkeye_2_46.football.samples.centroids`.
+_FILENAME_PERIOD_MINUTE = re.compile(r"hawkeye_(\d+)_(\d+)\.")
+
+
+def _is_bytes_like(obj) -> bool:
+    """Bytes-like input (acceptable for all engines, no kloppy)."""
+    import io
+    return isinstance(obj, (bytes, bytearray, memoryview, io.IOBase))
+
+
+def _extract_period_minute(filename: str) -> Tuple[int, int]:
+    """Parse 'hawkeye_{period}_{minute}.*' filename → (period, minute)."""
+    m = _FILENAME_PERIOD_MINUTE.search(filename)
+    if not m:
+        raise ValueError(
+            f"Could not extract period and minute from hawkeye filename {filename!r}. "
+            f"Expected pattern 'hawkeye_<period>_<minute>.football.samples.ball|centroids'."
+        )
+    return int(m.group(1)), int(m.group(2))
 
 
 @with_error_handler
 def load_tracking(
-    ball_data: Union[FileLike, List[FileLike]],
-    player_data: Union[FileLike, List[FileLike]],
-    meta_data: FileLike,
+    ball_data: Union["FileLike", List["FileLike"], bytes, bytearray, memoryview, List[Tuple[int, int, bytes]]],
+    player_data: Union["FileLike", List["FileLike"], bytes, bytearray, memoryview, List[Tuple[int, int, bytes]]],
+    meta_data: Union["FileLike", bytes, bytearray, memoryview],
     layout: Literal["long", "long_ball", "wide"] = "long",
     coordinates: Literal[
         "cdf",
@@ -61,230 +85,165 @@ def load_tracking(
     object_id: Literal["fifa", "uefa", "he", "auto"] = "auto",
     include_game_id: Union[bool, str] = True,
     include_officials: bool = False,
+    period: Optional[int] = None,
+    minute: Optional[int] = None,
     *,
     lazy: bool = False,
     from_cache: bool = False,
     parallel: bool = True,
-    engine: Literal["polars", "pyspark"] = "polars",
+    engine: Engine = "polars",
     spark_session: Optional["SparkSession"] = None,
 ) -> TrackingDataset:
-    """
-    Load HawkEye tracking data.
+    """Load HawkEye tracking data.
+
+    Supports two modes, distinguished by whether ``period`` and ``minute`` are
+    provided:
+
+    - **Multi-file mode** (no ``period``/``minute``): load a full match.
+      ``ball_data`` and ``player_data`` are lists — either ``List[FileLike]``
+      (polars/pyspark only; kloppy resolves) or ``List[(period, minute, bytes)]``
+      triples (any engine; no kloppy).
+    - **Single-file mode** (``period`` AND ``minute`` provided): load one minute
+      of one match. ``ball_data`` and ``player_data`` are single-shaped:
+      bytes-like (any engine) or single ``FileLike`` (polars/pyspark only).
+      ``include_game_id`` should be a string match_id when used for distributed
+      compute (so rows from different matches don't collide after union).
+
+    Arrow engines (``"arrow"`` / ``"arrow[spark]"``) require bytes-only inputs
+    — same kloppy-free contract as the other 8 providers. FileLike inputs on
+    arrow engines raise ``TypeError``.
 
     Parameters
     ----------
-    ball_data : FileLike or List[FileLike]
-        Ball tracking file(s). Can be:
-        - Single FileLike: Path, bytes, or file-like object
-        - List[FileLike]: Multiple ball files (one per minute)
-        Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.
-    player_data : FileLike or List[FileLike]
-        Player tracking file(s). Can be:
-        - Single FileLike: Path, bytes, or file-like object
-        - List[FileLike]: Multiple player files (one per minute)
-        Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.
-    meta_data : FileLike
-        Path to metadata file (JSON or XML), or bytes, or file-like object.
-        Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.
-    layout : {"long"}, default "long"
-        DataFrame layout. Currently only "long" is supported.
-        - "long": Ball as row with team_id="ball", player_id="ball"
-        (TODO: "long_ball" and "wide" layouts)
-    coordinates : {"cdf"}, default "cdf"
-        Coordinate system. Currently only "cdf" is supported.
-        - "cdf": Common Data Format (origin at center, meters)
-        (TODO: Other coordinate systems)
-    orientation : {"static_home_away"}, default "static_home_away"
-        Coordinate orientation. Currently only "static_home_away" is supported.
-        - "static_home_away": Home attacks right (+x) entire match
-        (TODO: Other orientations)
-    only_alive : bool, default True
-        If True, only include frames where ball is in play (play field == "In").
-        Uses HawkEye's "play" field instead of typical "live" field.
-    pitch_length : float, default 105.0
-        Pitch length in meters. Used as fallback if not in metadata.
-        Metadata values take precedence if present.
-    pitch_width : float, default 68.0
-        Pitch width in meters. Used as fallback if not in metadata.
-        Metadata values take precedence if present.
-    object_id : {"fifa", "uefa", "he", "auto"} or str, default "auto"
-        Object ID preference for team and player identification:
-        - "fifa": Use FIFA IDs (error if not present)
-        - "uefa": Use UEFA IDs (error if not present)
-        - "he": Use HawkEye IDs
-        - "auto": Prefer FIFA > UEFA > HawkEye (automatic fallback)
-        - Custom string: Use custom ID field (error if not found)
-    include_game_id : bool or str, default True
-        If True, add game_id column to tracking_df, team_df, and player_df from metadata.
-        If False, no game_id column is added.
-        If str, use the provided string as the game_id value.
-    include_officials : bool, default False
-        If True, include officials in player_df and tracking data with team_id="officials"
-        and position codes: REF (Main Referee), AREF (Assistant Referee).
-    engine : {"polars", "pyspark"}, default "polars"
-        DataFrame engine to use:
-        - "polars": Return Polars DataFrames (default)
-        - "pyspark": Return PySpark DataFrames
+    ball_data : FileLike, List[FileLike], bytes-like, or List[(period, minute, bytes)]
+        Ball tracking file input. See mode descriptions above.
+    player_data : same shape as ball_data
+        Player tracking file input.
+    meta_data : FileLike or bytes-like
+        Metadata file (JSON or XML).
+    layout : {"long", "long_ball", "wide"}, default "long"
+        Layout. ``wide`` rejected on arrow engines.
+    only_alive, pitch_length, pitch_width, object_id, include_officials, ...
+        Standard kwargs (see source).
+    period, minute : int, optional
+        Single-file mode toggle. When both provided, single-file mode activates.
+        When both absent, multi-file mode. Providing one without the other
+        raises ``ValueError``.
+    engine : {"polars", "pyspark", "arrow", "arrow[spark]"}, default "polars"
+        DataFrame engine. Output type matches:
+        - "polars" → `pl.DataFrame` tables
+        - "pyspark" → `spark.DataFrame` tables
+        - "arrow" → `pyarrow.Table` tables with Polars-style Arrow types
+        - "arrow[spark]" → `pyarrow.Table` tables with Spark-compat types
     spark_session : SparkSession, optional
-        PySpark SparkSession to use. If None and engine="pyspark",
-        will get or create a session automatically.
+        PySpark session for engine="pyspark".
 
     Returns
     -------
     TrackingDataset
-        Object with .tracking, .metadata, .teams, .players, .periods properties.
-        If engine="polars", .tracking returns pl.DataFrame.
-        If engine="pyspark", all DataFrames are PySpark DataFrames.
-
-    Notes
-    -----
-    - Officials are excluded by default; set include_officials=True to include them
-    - Period and minute are extracted from filename patterns like hawkeye_1_1.ball
+        With ``.tracking``, ``.metadata``, ``.teams``, ``.players``, ``.periods``.
 
     Examples
     --------
-    Load from file paths:
+    Multi-file from disk (existing behavior):
 
-    >>> ball_files = ["hawkeye_1_1.ball", "hawkeye_1_2.ball"]
-    >>> player_files = ["hawkeye_1_1.centroids", "hawkeye_1_2.centroids"]
-    >>> dataset = load_tracking(ball_files, player_files, "hawkeye_meta.json")
-    >>> tracking_df = dataset.tracking
+    >>> ds = hawkeye.load_tracking(
+    ...     ball_data=["hawkeye_1_1.ball", "hawkeye_1_2.ball"],
+    ...     player_data=["hawkeye_1_1.centroids", "hawkeye_1_2.centroids"],
+    ...     meta_data="hawkeye_meta.json",
+    ...     engine="polars",
+    ... )
 
-    Load with specific object ID preference:
+    Single-file for distributed compute:
 
-    >>> dataset = load_tracking(ball_files, player_files, "hawkeye_meta.json", object_id="fifa")
-
-    PySpark engine:
-
-    >>> dataset = load_tracking(ball_files, player_files, "hawkeye_meta.json", engine="pyspark")
-    >>> dataset.tracking.show(5)
+    >>> ds = hawkeye.load_tracking(
+    ...     ball_data=ball_bytes, player_data=player_bytes,
+    ...     meta_data=meta_bytes,
+    ...     period=1, minute=1,
+    ...     engine="arrow[spark]",
+    ...     include_game_id="match_uuid_42",
+    ... )
     """
     from fastforward._engine import validate_engine, polars_to_spark, get_spark_session
 
-    # Validate engine parameter
     engine = validate_engine(engine)
 
     if lazy:
         raise NotImplementedError("lazy loading is not yet supported in fast-forward")
     if from_cache:
         raise NotImplementedError("cache loading is not yet supported in fast-forward")
-
-    # Wide format doesn't support lazy loading - column names are game-specific
-    if lazy and layout == "wide":
-        raise ValueError(
-            "lazy=True is not supported for layout='wide'. "
-            "Wide format has game-specific column names (player IDs), "
-            "making lazy frame operations like concatenation incompatible."
-        )
-
-    # For PySpark, force eager loading (will convert after)
     if engine == "pyspark":
-        lazy = False
+        lazy = False  # force eager for pyspark
 
-    # Handle lazy loading
-    if lazy:
-        # Handle directory input for ball_data
-        if isinstance(ball_data, (str, Path)) and Path(ball_data).is_dir():
-            ball_data_processed = discover_files_in_directory(ball_data, "*.ball")
-        elif isinstance(ball_data, list):
-            ball_data_processed = ball_data
-        else:
-            ball_data_processed = [ball_data]
+    # Mode dispatch: period + minute presence is the toggle.
+    period_provided = period is not None
+    minute_provided = minute is not None
+    if period_provided != minute_provided:
+        raise ValueError(
+            "period and minute must be provided together "
+            "(both for single-file mode, neither for multi-file mode)."
+        )
+    single_file_mode = period_provided  # both provided
 
-        # Handle directory input for player_data
-        if isinstance(player_data, (str, Path)) and Path(player_data).is_dir():
-            player_data_processed = discover_files_in_directory(player_data, "*.centroids")
-        elif isinstance(player_data, list):
-            player_data_processed = player_data
-        else:
-            player_data_processed = [player_data]
+    arrow_engine = engine in ("arrow", "arrow[spark]")
 
-        # Validate counts match
-        if len(ball_data_processed) != len(player_data_processed):
-            raise ValueError(
-                f"Mismatch: {len(ball_data_processed)} ball files but "
-                f"{len(player_data_processed)} player files"
+    # ---- Build canonical input: list[(period, minute, bytes)] for ball + player + meta_bytes
+    ball_triples, player_triples, meta_bytes = _build_triples(
+        ball_data, player_data, meta_data,
+        single_file_mode=single_file_mode,
+        period=period, minute=minute,
+        arrow_engine=arrow_engine,
+        engine=engine,
+    )
+
+    # ---- Dispatch to Rust based on engine. include_game_id passed through
+    # directly: Rust resolves True/False/str/None per the standard semantics.
+    if arrow_engine:
+        tracking_t, metadata_t, team_t, player_t, periods_t = (
+            _hawkeye.load_tracking_arrow_explicit(
+                ball_triples, player_triples, meta_bytes,
+                layout=layout,
+                coordinates=coordinates,
+                orientation=orientation,
+                only_alive=only_alive,
+                pitch_length=pitch_length,
+                pitch_width=pitch_width,
+                object_id=object_id,
+                include_game_id=include_game_id,
+                include_officials=include_officials,
+                parallel=parallel,
             )
+        )
+        if engine == "arrow[spark]":
+            from fastforward._arrow import _normalize_arrow_table
+            tracking_t = _normalize_arrow_table(tracking_t)
+            metadata_t = _normalize_arrow_table(metadata_t)
+            team_t = _normalize_arrow_table(team_t)
+            player_t = _normalize_arrow_table(player_t)
+            periods_t = _normalize_arrow_table(periods_t)
 
-        # Build config string for cache key
-        config_str = (
-            f"{layout}|{coordinates}|{orientation}|{only_alive}|"
-            f"{pitch_length}|{pitch_width}|{object_id}|{include_game_id}|{include_officials}"
+        return TrackingDataset(
+            tracking=tracking_t,
+            metadata=metadata_t,
+            teams=team_t,
+            players=player_t,
+            periods=periods_t,
+            _engine=engine,
+            _provider="hawkeye",
+            _cache_key=None,
+            _coordinate_system=coordinates,
+            _orientation=orientation,
+            _schema_kwargs={
+                "layout": layout,
+                "include_game_id": bool(include_game_id),
+            },
+            _rust_module=_hawkeye,
         )
 
-        # Compute cache key
-        cache_key: Optional[str] = None
-        all_files = list(ball_data_processed) + list(player_data_processed) + [meta_data]
-        is_local = all(_is_local_file(f) for f in all_files)
-
-        if is_local:
-            from fastforward._cache import compute_cache_key_fast_multi
-
-            all_paths = [str(f) for f in ball_data_processed] + [str(f) for f in player_data_processed]
-            try:
-                cache_key = compute_cache_key_fast_multi(
-                    all_paths, str(meta_data), config_str
-                )
-            except FileNotFoundError:
-                # Files don't exist, cache key cannot be computed
-                cache_key = None
-
-        # Check for cache hit if from_cache=True
-        if from_cache and cache_key:
-            from fastforward._cache import cache_exists, get_cache_path, read_cache
-
-            cache_path = get_cache_path(cache_key, "hawkeye")
-            if cache_exists(cache_path):
-                # Cache hit - load from cache
-                result = read_cache(cache_path)
-                if isinstance(result, tuple):
-                    lazy_frame, metadata_df, team_df, player_df, periods_df = result
-                    return TrackingDataset(
-                        tracking=lazy_frame,
-                        metadata=metadata_df,
-                        teams=team_df,
-                        players=player_df,
-                        periods=periods_df,
-                        _engine="polars",
-                        _provider="hawkeye",
-                        _cache_key=cache_key,
-                        _coordinate_system=coordinates,
-                        _orientation=orientation,
-                    )
-            else:
-                # Cache miss with from_cache=True - warn user
-                warnings.warn(
-                    "No cache found for this file. "
-                    "Use dataset.write_cache() after loading to create one.",
-                    UserWarning,
-                )
-
-        # Load metadata only (fast) - NOW WITH TEAM/PLAYER DATA
-        metadata_df, team_df, player_df, periods_df = load_metadata_only(
-            meta_data,
-            player_data=player_data_processed,  # Pass player data for teams and players
-            coordinates=coordinates,
-            orientation=orientation,
-            pitch_length=pitch_length,
-            pitch_width=pitch_width,
-            object_id=object_id,
-            include_game_id=include_game_id,
-            include_officials=include_officials,
-        )
-
-        # Generate schema for the tracking DataFrame
-        schema = get_tracking_schema(
-            layout=layout,
-            players_df=player_df,
-            include_game_id=bool(include_game_id),
-        )
-
-        # Create real pl.LazyFrame using register_io_source
-        lazy_frame = create_lazy_tracking_hawkeye(
-            ball_data=ball_data_processed,
-            player_data=player_data_processed,
-            meta_data=meta_data,
-            schema=schema,
+    # polars / pyspark path
+    tracking_df, metadata_df, team_df, player_df, periods_df = (
+        _hawkeye.load_tracking_explicit(
+            ball_triples, player_triples, meta_bytes,
             layout=layout,
             coordinates=coordinates,
             orientation=orientation,
@@ -296,96 +255,13 @@ def load_tracking(
             include_officials=include_officials,
             parallel=parallel,
         )
-
-        return TrackingDataset(
-            tracking=lazy_frame,
-            metadata=metadata_df,
-            teams=team_df,
-            players=player_df,
-            periods=periods_df,
-            _engine="polars",
-            _provider="hawkeye",
-            _cache_key=cache_key,
-            _coordinate_system=coordinates,
-            _orientation=orientation,
-        )
-
-    # Eager loading (existing logic)
-    # Convert FileLike to bytes for metadata
-    with open_as_file(meta_data) as meta_file:
-        meta_bytes = meta_file.read() if meta_file else b""
-
-    # Handle directory input for ball_data
-    if isinstance(ball_data, (str, Path)) and Path(ball_data).is_dir():
-        ball_data_list = discover_files_in_directory(ball_data, "*.ball")
-    elif isinstance(ball_data, list):
-        ball_data_list = ball_data
-    else:
-        ball_data_list = [ball_data]
-
-    # Handle directory input for player_data
-    if isinstance(player_data, (str, Path)) and Path(player_data).is_dir():
-        player_data_list = discover_files_in_directory(player_data, "*.centroids")
-    elif isinstance(player_data, list):
-        player_data_list = player_data
-    else:
-        player_data_list = [player_data]
-
-    # Validate counts match
-    if len(ball_data_list) != len(player_data_list):
-        raise ValueError(
-            f"Mismatch: {len(ball_data_list)} ball files but "
-            f"{len(player_data_list)} player files"
-        )
-
-    # Convert ball_data to list of (filename, bytes) tuples
-    ball_bytes_list = []
-    for ball_file in ball_data_list:
-        filename = get_filename_from_filelike(ball_file)
-        with open_as_file(ball_file) as f:
-            ball_bytes_list.append((filename, f.read() if f else b""))
-
-    # Convert player_data to list of (filename, bytes) tuples
-    player_bytes_list = []
-    for player_file in player_data_list:
-        filename = get_filename_from_filelike(player_file)
-        with open_as_file(player_file) as f:
-            player_bytes_list.append((filename, f.read() if f else b""))
-
-    # Pass bytes to Rust
-    tracking_df, metadata_df, team_df, player_df, periods_df = _hawkeye.load_tracking(
-        ball_bytes_list,
-        player_bytes_list,
-        meta_bytes,
-        layout=layout,
-        coordinates=coordinates,
-        orientation=orientation,
-        only_alive=only_alive,
-        pitch_length=pitch_length,
-        pitch_width=pitch_width,
-        object_id=object_id,
-        include_game_id=include_game_id,
-        include_officials=include_officials,
-        parallel=parallel,
     )
 
-    # Compute cache key for eager loading too
-    cache_key = None
-    all_files = list(ball_data_list) + list(player_data_list) + [meta_data]
-    is_local = all(_is_local_file(f) for f in all_files)
-    if is_local:
-        from fastforward._cache import compute_cache_key_fast_multi
+    schema_kwargs = {
+        "layout": layout,
+        "include_game_id": bool(include_game_id),
+    }
 
-        config_str = (
-            f"{layout}|{coordinates}|{orientation}|{only_alive}|"
-            f"{pitch_length}|{pitch_width}|{object_id}|{include_game_id}|{include_officials}"
-        )
-        all_paths = [str(f) for f in ball_data_list] + [str(f) for f in player_data_list]
-        cache_key = compute_cache_key_fast_multi(
-            all_paths, str(meta_data), config_str
-        )
-
-    # Convert to PySpark if requested
     if engine == "pyspark":
         spark = spark_session or get_spark_session()
         return TrackingDataset(
@@ -396,9 +272,11 @@ def load_tracking(
             periods=polars_to_spark(periods_df, spark),
             _engine="pyspark",
             _provider="hawkeye",
-            _cache_key=cache_key,
+            _cache_key=None,
             _coordinate_system=coordinates,
             _orientation=orientation,
+            _schema_kwargs=schema_kwargs,
+            _rust_module=_hawkeye,
         )
 
     return TrackingDataset(
@@ -409,16 +287,169 @@ def load_tracking(
         periods=periods_df,
         _engine="polars",
         _provider="hawkeye",
-        _cache_key=cache_key,
+        _cache_key=None,
         _coordinate_system=coordinates,
         _orientation=orientation,
+        _schema_kwargs=schema_kwargs,
+        _rust_module=_hawkeye,
     )
+
+
+def _build_triples(
+    ball_data, player_data, meta_data,
+    *,
+    single_file_mode: bool,
+    period: Optional[int],
+    minute: Optional[int],
+    arrow_engine: bool,
+    engine: str,
+) -> Tuple[List[Tuple[int, int, bytes]], List[Tuple[int, int, bytes]], bytes]:
+    """Normalize ball/player/meta inputs into canonical list-of-triples + meta bytes.
+
+    Performs all mode-specific validation. Returns:
+    - ball_triples: List[(period: int, minute: int, bytes)]
+    - player_triples: same shape
+    - meta_bytes: bytes
+    """
+    from fastforward._base import _to_bytes
+
+    # ---- meta_data resolution
+    if _is_bytes_like(meta_data):
+        meta_bytes = _to_bytes(meta_data, "meta_data", engine)
+    elif arrow_engine:
+        raise TypeError(
+            f"engine={engine!r} requires bytes or a binary file-like object for "
+            f"meta_data; got {type(meta_data).__name__}. The arrow engines do "
+            f"not perform FileLike resolution (kloppy-free contract)."
+        )
+    else:
+        # polars/pyspark: FileLike OK
+        from kloppy.io import open_as_file
+        with open_as_file(meta_data) as f:
+            meta_bytes = f.read() if f else b""
+
+    # ---- ball + player resolution per mode
+    if single_file_mode:
+        # Single-file: inputs must be single-shaped (not lists)
+        if isinstance(ball_data, list) or isinstance(player_data, list):
+            raise TypeError(
+                "single-file mode (period + minute provided) requires single-shaped "
+                "ball_data and player_data, not a list."
+            )
+        ball_bytes = _resolve_single(ball_data, "ball_data", arrow_engine, engine)
+        player_bytes = _resolve_single(player_data, "player_data", arrow_engine, engine)
+        return ([(period, minute, ball_bytes)], [(period, minute, player_bytes)], meta_bytes)
+
+    # Multi-file mode
+    ball_triples = _resolve_multi(ball_data, "ball_data", arrow_engine, engine, file_pattern="*.ball")
+    player_triples = _resolve_multi(player_data, "player_data", arrow_engine, engine, file_pattern="*.centroids")
+    if len(ball_triples) != len(player_triples):
+        raise ValueError(
+            f"Mismatch: {len(ball_triples)} ball files but "
+            f"{len(player_triples)} player files"
+        )
+    return (ball_triples, player_triples, meta_bytes)
+
+
+def _resolve_single(data, arg_name: str, arrow_engine: bool, engine: str) -> bytes:
+    """Resolve a single-shaped input to bytes. Rejects FileLike on arrow engines."""
+    from fastforward._base import _to_bytes
+    if _is_bytes_like(data):
+        return _to_bytes(data, arg_name, engine)
+    if arrow_engine:
+        raise TypeError(
+            f"engine={engine!r} requires bytes or a binary file-like object for "
+            f"{arg_name}; got {type(data).__name__}. The arrow engines do not "
+            f"perform FileLike resolution (kloppy-free contract). "
+            f"Use engine='polars' if you want to pass paths."
+        )
+    from kloppy.io import open_as_file
+    with open_as_file(data) as f:
+        return f.read() if f else b""
+
+
+def _resolve_multi(
+    data, arg_name: str, arrow_engine: bool, engine: str, *, file_pattern: str,
+) -> List[Tuple[int, int, bytes]]:
+    """Resolve a multi-file input to list of (period, minute, bytes) triples.
+
+    Accepts:
+    - list of (period: int, minute: int, bytes-like) triples — used as-is.
+    - list of FileLike (polars/pyspark only) — kloppy resolve, regex-extract period/minute.
+    - single FileLike pointing at a directory (polars/pyspark only) — glob via file_pattern.
+    """
+    from fastforward._base import _to_bytes
+
+    # Already a list — check if triples or FileLike
+    if isinstance(data, list):
+        if len(data) == 0:
+            raise ValueError(f"{arg_name} list is empty.")
+        # Detect triples by inspecting the first element
+        first = data[0]
+        if isinstance(first, tuple) and len(first) == 3:
+            # List of triples — validate + convert each bytes element
+            triples: List[Tuple[int, int, bytes]] = []
+            for i, item in enumerate(data):
+                if not (isinstance(item, tuple) and len(item) == 3):
+                    raise TypeError(
+                        f"{arg_name}[{i}] must be a (period, minute, bytes) tuple."
+                    )
+                p, m, raw = item
+                if not isinstance(p, int) or not isinstance(m, int):
+                    raise TypeError(
+                        f"{arg_name}[{i}]: period and minute must be int; "
+                        f"got ({type(p).__name__}, {type(m).__name__})."
+                    )
+                triples.append((p, m, _to_bytes(raw, f"{arg_name}[{i}]", engine)))
+            return triples
+        # List of FileLike — kloppy resolution required
+        if arrow_engine:
+            raise TypeError(
+                f"engine={engine!r} requires bytes for {arg_name}; got a list of "
+                f"FileLike. Pass list[(period, minute, bytes)] tuples instead "
+                f"(kloppy-free), or use engine='polars' for FileLike convenience."
+            )
+        return _filelike_list_to_triples(data, arg_name)
+
+    # Single FileLike pointing at a directory or single file
+    if arrow_engine:
+        raise TypeError(
+            f"engine={engine!r} requires a list of (period, minute, bytes) "
+            f"tuples for {arg_name} in multi-file mode (or pass period+minute "
+            f"for single-file mode); got {type(data).__name__}."
+        )
+    if isinstance(data, (str, Path)) and Path(data).is_dir():
+        files = discover_files_in_directory(data, file_pattern)
+        return _filelike_list_to_triples(files, arg_name)
+    # Single FileLike for a single file → wrap in list of 1
+    return _filelike_list_to_triples([data], arg_name)
+
+
+def _filelike_list_to_triples(files: List, arg_name: str) -> List[Tuple[int, int, bytes]]:
+    """Resolve a list of FileLike → list of (period, minute, bytes) via filename regex.
+
+    Opens each file first (kloppy raises InputNotFoundError for nonexistent
+    paths) so file-not-found errors surface before filename-pattern errors.
+    """
+    from kloppy.io import open_as_file
+    out: List[Tuple[int, int, bytes]] = []
+    for i, f in enumerate(files):
+        # Open first — surfaces InputNotFoundError before filename parsing.
+        with open_as_file(f) as fh:
+            data = fh.read() if fh else b""
+        filename = get_filename_from_filelike(f)
+        try:
+            p, m = _extract_period_minute(filename)
+        except ValueError as e:
+            raise ValueError(f"{arg_name}[{i}]: {e}") from None
+        out.append((p, m, data))
+    return out
 
 
 @with_error_handler
 def load_metadata_only(
-    meta_data: FileLike,
-    player_data: Optional[Union[FileLike, List[FileLike]]] = None,
+    meta_data: "FileLike",
+    player_data: Optional[Union["FileLike", List["FileLike"]]] = None,
     coordinates: Literal[
         "cdf",
         "hawkeye",
@@ -446,8 +477,7 @@ def load_metadata_only(
     include_game_id: Union[bool, str] = True,
     include_officials: bool = False,
 ) -> Tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame]:
-    """
-    Load only HawkEye metadata without tracking data.
+    """Load only HawkEye metadata without tracking data.
 
     Parameters
     ----------
@@ -457,58 +487,34 @@ def load_metadata_only(
         Optional path(s) to player centroid file(s) for team and player extraction.
         Only the first file is used as it contains all teams and players.
         If provided, team_df and player_df will be populated.
-    coordinates : {"cdf"}, default "cdf"
-        Coordinate system (currently only "cdf" supported).
-    orientation : {"static_home_away"}, default "static_home_away"
-        Coordinate orientation (currently only "static_home_away" supported).
-    pitch_length : float, default 105.0
-        Pitch length in meters (fallback if not in metadata).
-    pitch_width : float, default 68.0
-        Pitch width in meters (fallback if not in metadata).
-    object_id : {"auto", "heId", "fifaId"}, default "auto"
-        Which ID system to use for teams/players. "auto" tries heId first, falls back to fifaId.
-    include_game_id : bool or str, default True
-        If True, add game_id column from metadata.
-        If False, no game_id column is added.
-        If str, use the provided string as the game_id value.
-    include_officials : bool, default False
-        If True, include officials in player_df with team_id="officials".
+    coordinates, orientation, pitch_length, pitch_width, object_id, include_game_id, include_officials
+        Standard kwargs.
 
     Returns
     -------
     Tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame]
         (metadata_df, team_df, player_df, periods_df)
-
-    Notes
-    -----
-    HawkEye metadata files (JSON/XML) only contain match info and pitch dimensions.
-    To get team and player information, pass player_data. The first player centroid file
-    contains all players from both teams, so only one file is needed.
     """
-    # Convert FileLike to bytes
+    from kloppy.io import open_as_file
+
     with open_as_file(meta_data) as meta_file:
         meta_bytes = meta_file.read() if meta_file else b""
 
-    # Read first player file (contains all teams and players)
     player_bytes = None
     if player_data is not None:
-        # Handle directory input for player_data
         if isinstance(player_data, (str, Path)) and Path(player_data).is_dir():
             player_list = discover_files_in_directory(player_data, "*.centroids")
         elif isinstance(player_data, list):
             player_list = player_data
         else:
             player_list = [player_data]
-
-        # Only read first file - it contains ALL teams and players
         if player_list:
             with open_as_file(player_list[0]) as player_file:
                 player_bytes = player_file.read() if player_file else None
 
-    # Pass bytes to Rust
     return _hawkeye.load_metadata_only(
         meta_bytes,
-        player_bytes,  # Pass single file, not a list
+        player_bytes,
         coordinates=coordinates,
         orientation=orientation,
         pitch_length=pitch_length,
@@ -516,4 +522,49 @@ def load_metadata_only(
         object_id=object_id,
         include_game_id=include_game_id,
         include_officials=include_officials,
+    )
+
+
+def schemas(
+    *,
+    layout: Literal["long", "long_ball", "wide"] = "long",
+    include_game_id: bool = True,
+    engine: Engine = "polars",
+) -> Schemas:
+    """Return a ``Schemas`` namespace for HawkEye.
+
+    The returned object has 10 lazy properties: Arrow + PySpark schemas for
+    each of the 5 tables (``tracking``, ``metadata``, ``teams``, ``players``,
+    ``periods``).
+
+    HawkEye has many provider-specific kwargs (``pitch_length``, ``pitch_width``,
+    ``object_id``, ``include_officials``) but none affect the column set —
+    they only affect values or row counts. So the schema factory only needs
+    ``layout`` and ``include_game_id``.
+
+    Parameters
+    ----------
+    layout, include_game_id
+        Match the same-named kwargs on ``hawkeye.load_tracking``.
+    engine : {"polars", "pyspark", "arrow", "arrow[spark]"}, default "polars"
+        Controls the Arrow type dialect for the non-``_spark`` schema
+        properties. The ``*_spark`` properties are always Spark-compatible.
+
+    Use this on the driver to declare a Spark ``mapInArrow`` output schema:
+
+    >>> tracking_schema = hawkeye.schemas(layout="long", engine="arrow[spark]").tracking_spark
+    >>> matches_df.mapInArrow(parse_hawkeye_match_udf, schema=tracking_schema)
+    """
+    from fastforward._fastforward import hawkeye as _m
+
+    return Schemas(
+        tracking_fn=lambda: _m.tracking_schema_arrow(
+            layout=layout,
+            include_game_id=include_game_id,
+        ),
+        metadata_fn=lambda: _m.metadata_schema_arrow(),
+        teams_fn=lambda: _m.teams_schema_arrow(include_game_id=include_game_id),
+        players_fn=lambda: _m.players_schema_arrow(include_game_id=include_game_id),
+        periods_fn=lambda: _m.periods_schema_arrow(include_game_id=include_game_id),
+        engine=engine,
     )

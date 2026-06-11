@@ -709,9 +709,11 @@ def _register_standard_providers() -> None:
     """Register the standard providers at module load time."""
     from fastforward._fastforward import cdf as _cdf
     from fastforward._fastforward import gradientsports as _gs
+    from fastforward._fastforward import hawkeye as _he
     from fastforward._fastforward import optavision as _ov
     from fastforward._fastforward import respovision as _rv
     from fastforward._fastforward import secondspectrum as _ss
+    from fastforward._fastforward import signality as _sg
     from fastforward._fastforward import skillcorner as _sc
     from fastforward._fastforward import sportec as _sp
     from fastforward._fastforward import statsperform as _stp
@@ -748,6 +750,30 @@ def _register_standard_providers() -> None:
         # include_ball_owning_player adds the ball_owning_player_id column.
         schema_params=["include_ball_owning_player"],
         schemas_factory="fastforward.optavision:schemas",
+    )
+
+    # Hawkeye bypasses _load_tracking_impl (hand-rolled wrapper because of
+    # the multi-file-list + filename-as-metadata shape). Registration here is
+    # solely so dataset.schemas can resolve its factory.
+    register_provider(
+        name="hawkeye",
+        rust_module=_he,
+        metadata_params=[],
+        tracking_params=[],
+        schema_params=[],
+        schemas_factory="fastforward.hawkeye:schemas",
+    )
+
+    # Signality follows the same hand-rolled pattern as hawkeye — multi-file
+    # raw_data_feeds + filename-as-period-source. Registration is solely
+    # for dataset.schemas factory resolution.
+    register_provider(
+        name="signality",
+        rust_module=_sg,
+        metadata_params=[],
+        tracking_params=[],
+        schema_params=[],
+        schemas_factory="fastforward.signality:schemas",
     )
 
     # Respovision bypasses _load_tracking_impl (hand-rolled wrapper because of

@@ -1,68 +1,19 @@
 """GradientSports (formerly PFF) tracking data loader."""
 
-from typing import Literal, Union
+from __future__ import annotations
 
-import polars as pl
-from kloppy.io import FileLike, open_as_file
+from typing import TYPE_CHECKING, Literal, Optional, Union
 
-from fastforward._fastforward import gradientsports as _gradientsports
+from fastforward._base import load_tracking_impl as _load_tracking_impl
 from fastforward._dataset import TrackingDataset
-from fastforward._errors import with_error_handler
-from fastforward._schema import get_tracking_schema
+from fastforward._engine import Engine
+from fastforward._schemas import Schemas
+
+if TYPE_CHECKING:
+    from kloppy.io import FileLike
+    from pyspark.sql import SparkSession
 
 
-def _create_lazy_tracking_gradientsports(
-    raw_data: FileLike,
-    meta_data: FileLike,
-    roster_data: FileLike,
-    schema: dict,
-    layout: str,
-    coordinates: str,
-    orientation: str,
-    only_alive: bool,
-    include_incomplete_frames: bool,
-    include_game_id,
-) -> pl.LazyFrame:
-    """Create a lazy frame for GradientSports tracking data."""
-
-    def load_fn(with_columns=None, n_rows=None, predicate=None):
-        # Load all files as bytes
-        with open_as_file(raw_data) as raw_file:
-            raw_bytes = raw_file.read() if raw_file else b""
-        with open_as_file(meta_data) as meta_file:
-            meta_bytes = meta_file.read() if meta_file else b""
-        with open_as_file(roster_data) as roster_file:
-            roster_bytes = roster_file.read() if roster_file else b""
-
-        tracking_df, _, _, _, _ = _gradientsports.load_tracking(
-            raw_bytes,
-            meta_bytes,
-            roster_bytes,
-            layout=layout,
-            coordinates=coordinates,
-            orientation=orientation,
-            only_alive=only_alive,
-            include_incomplete_frames=include_incomplete_frames,
-            include_game_id=include_game_id,
-            predicate=predicate,
-        )
-
-        # Apply column selection if needed
-        if with_columns is not None:
-            tracking_df = tracking_df.select(with_columns)
-
-        # Apply row limit if needed
-        if n_rows is not None:
-            tracking_df = tracking_df.head(n_rows)
-
-        return tracking_df
-
-    return pl.LazyFrame(
-        schema=schema,
-    ).map_batches(lambda _: load_fn(), schema=schema)
-
-
-@with_error_handler
 def load_tracking(
     raw_data: FileLike,
     meta_data: FileLike,
@@ -95,18 +46,23 @@ def load_tracking(
     include_game_id: Union[bool, str] = True,
     *,
     lazy: bool = False,
+    from_cache: bool = False,
+    engine: Engine = "polars",
+    spark_session: Optional["SparkSession"] = None,
 ) -> TrackingDataset:
-    """
-    Load GradientSports (PFF) tracking data.
+    """Load GradientSports (PFF) tracking data.
 
     Parameters
     ----------
     raw_data : FileLike
-        Path to JSONL tracking file
+        Path to JSONL tracking file, or bytes, or file-like object.
+        Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.
     meta_data : FileLike
-        Path to JSON metadata file
+        Path to JSON metadata file, or bytes, or file-like object.
     roster_data : FileLike
-        Path to JSON roster file
+        Path to JSON roster file, or bytes, or file-like object.
+        Resolved to bytes by the framework before dispatch — engine-aware
+        (kloppy on polars/pyspark, no-kloppy on arrow).
     layout : {"long", "long_ball", "wide"}, default "long"
         DataFrame layout:
         - "long": Ball as row with team_id="ball", player_id="ball"
@@ -121,122 +77,89 @@ def load_tracking(
     include_incomplete_frames : bool, default False
         If True, include frames with null ball coordinates or null player arrays.
         If False (default), only include frames with complete data.
-    include_game_id : Union[bool, str], default True
+    include_game_id : bool or str, default True
         If True, add game_id column from metadata.
         If False, no game_id column is added.
         If str, use the provided string as the game_id value.
+    engine : {"polars", "pyspark", "arrow", "arrow[spark]"}, default "polars"
+        DataFrame engine to use:
+        - "polars": Return Polars DataFrames (default)
+        - "pyspark": Return PySpark DataFrames
+        - "arrow": Return pyarrow.Tables with Polars-style Arrow types
+          (string_view, duration[ms]). For Dask/Ray workers.
+        - "arrow[spark]": Return pyarrow.Tables pre-normalized for Spark
+          consumption (string, int64 ms). For Spark mapInArrow UDFs.
+    spark_session : SparkSession, optional
+        PySpark SparkSession to use. If None and engine="pyspark",
+        will get or create a session automatically.
+
     Returns
     -------
     TrackingDataset
         Object with .tracking, .metadata, .teams, .players, .periods properties.
     """
-    if lazy:
-        raise NotImplementedError("lazy loading is not yet supported in fast-forward")
-        # Load metadata only
-        with open_as_file(meta_data) as meta_file:
-            meta_bytes = meta_file.read() if meta_file else b""
-        with open_as_file(roster_data) as roster_file:
-            roster_bytes = roster_file.read() if roster_file else b""
+    return _load_tracking_impl(
+        provider_name="gradientsports",
+        raw_data=raw_data,
+        meta_data=meta_data,
+        layout=layout,
+        coordinates=coordinates,
+        orientation=orientation,
+        only_alive=only_alive,
+        include_game_id=include_game_id,
+        lazy=lazy,
+        from_cache=from_cache,
+        engine=engine,
+        spark_session=spark_session,
+        roster_data=roster_data,
+        include_incomplete_frames=include_incomplete_frames,
+    )
 
-        metadata_df, team_df, player_df, periods_df = _gradientsports.load_metadata_only(
-            meta_bytes,
-            roster_bytes,
-            coordinates=coordinates,
-            orientation=orientation,
-            include_game_id=include_game_id,
-        )
 
-        # Generate schema
-        schema = get_tracking_schema(
+def schemas(
+    *,
+    layout: Literal["long", "long_ball", "wide"] = "long",
+    include_game_id: bool = True,
+    engine: Engine = "polars",
+) -> Schemas:
+    """Return a ``Schemas`` namespace for GradientSports.
+
+    The returned object has 10 lazy properties: Arrow + PySpark schemas for
+    each of the 5 tables (``tracking``, ``metadata``, ``teams``, ``players``,
+    ``periods``). Schemas are derived from Rust constants (single source of
+    truth with the parser) so they can't drift.
+
+    Accepts the same schema-affecting kwargs as ``gradientsports.load_tracking``.
+    ``roster_data`` and ``include_incomplete_frames`` are intentionally omitted:
+    both filter rows but don't change any column's shape.
+
+    Parameters
+    ----------
+    layout, include_game_id
+        Match the same-named kwargs on ``gradientsports.load_tracking``.
+    engine : {"polars", "pyspark", "arrow", "arrow[spark]"}, default "polars"
+        Controls the Arrow type dialect for the non-``_spark`` schema
+        properties. ``"polars"`` / ``"arrow"`` produce Polars-style
+        (``string_view``, ``duration[ms]``); ``"pyspark"`` /
+        ``"arrow[spark]"`` produce Spark-compat (``string``, ``int64``).
+        The ``*_spark`` properties are always Spark-compatible regardless.
+
+    Use this on the driver to declare a Spark ``mapInArrow`` output schema
+    before any data load:
+
+    >>> tracking_schema = gradientsports.schemas(layout="long", engine="arrow[spark]").tracking_spark
+    >>> matches_df.mapInArrow(parse_gs_match_udf, schema=tracking_schema)
+    """
+    from fastforward._fastforward import gradientsports as _m
+
+    return Schemas(
+        tracking_fn=lambda: _m.tracking_schema_arrow(
             layout=layout,
-            players_df=player_df,
-            include_game_id=bool(include_game_id),
-        )
-
-        # Create lazy frame using register_io_source
-        def source_fn(with_columns=None, n_rows=None, predicate=None):
-            # Load all files as bytes
-            with open_as_file(raw_data) as raw_file:
-                raw_bytes = raw_file.read() if raw_file else b""
-            with open_as_file(meta_data) as meta_file2:
-                meta_bytes2 = meta_file2.read() if meta_file2 else b""
-            with open_as_file(roster_data) as roster_file2:
-                roster_bytes2 = roster_file2.read() if roster_file2 else b""
-
-            tracking_df, _, _, _, _ = _gradientsports.load_tracking(
-                raw_bytes,
-                meta_bytes2,
-                roster_bytes2,
-                layout=layout,
-                coordinates=coordinates,
-                orientation=orientation,
-                only_alive=only_alive,
-                include_incomplete_frames=include_incomplete_frames,
-                include_game_id=include_game_id,
-                predicate=predicate,
-            )
-
-            # Apply column selection if needed
-            if with_columns is not None:
-                tracking_df = tracking_df.select(with_columns)
-
-            # Apply row limit if needed
-            if n_rows is not None:
-                tracking_df = tracking_df.head(n_rows)
-
-            return tracking_df
-
-        lazy_frame = pl.LazyFrame(
-            schema=schema,
-        ).map_batches(
-            lambda df: source_fn(),
-            schema=schema,
-        )
-
-        return TrackingDataset(
-            tracking=lazy_frame,
-            metadata=metadata_df,
-            teams=team_df,
-            players=player_df,
-            periods=periods_df,
-            _engine="polars",
-            _provider="gradientsports",
-            _cache_key=None,
-            _coordinate_system=coordinates,
-            _orientation=orientation,
-        )
-    else:
-        # Eager loading - load all files as bytes
-        with open_as_file(raw_data) as raw_file:
-            raw_bytes = raw_file.read() if raw_file else b""
-        with open_as_file(meta_data) as meta_file:
-            meta_bytes = meta_file.read() if meta_file else b""
-        with open_as_file(roster_data) as roster_file:
-            roster_bytes = roster_file.read() if roster_file else b""
-
-        tracking_df, metadata_df, team_df, player_df, periods_df = (
-            _gradientsports.load_tracking(
-                raw_bytes,
-                meta_bytes,
-                roster_bytes,
-                layout=layout,
-                coordinates=coordinates,
-                orientation=orientation,
-                only_alive=only_alive,
-                include_incomplete_frames=include_incomplete_frames,
-                include_game_id=include_game_id,
-            )
-        )
-
-        return TrackingDataset(
-            tracking=tracking_df,
-            metadata=metadata_df,
-            teams=team_df,
-            players=player_df,
-            periods=periods_df,
-            _engine="polars",
-            _provider="gradientsports",
-            _cache_key=None,
-            _coordinate_system=coordinates,
-            _orientation=orientation,
-        )
+            include_game_id=include_game_id,
+        ),
+        metadata_fn=lambda: _m.metadata_schema_arrow(),
+        teams_fn=lambda: _m.teams_schema_arrow(include_game_id=include_game_id),
+        players_fn=lambda: _m.players_schema_arrow(include_game_id=include_game_id),
+        periods_fn=lambda: _m.periods_schema_arrow(include_game_id=include_game_id),
+        engine=engine,
+    )

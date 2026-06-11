@@ -5,35 +5,58 @@ Signality tracking data consists of:
 - Venue file: signality_venue_information.json (pitch dimensions)
 - Raw data feeds: signality_p{period}_raw_data.json (per-period tracking files)
 
-Supports both eager and lazy loading modes.
+Supports multi-file mode (full match) and single-file mode (per-period,
+for distributed compute) across all 4 engines.
 """
 
-import warnings
+from __future__ import annotations
+
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING, List, Literal, Optional, Tuple, Union
 
 import polars as pl
-from kloppy.io import FileLike, open_as_file
 
 from fastforward._base import (
     discover_files_in_directory,
     get_filename_from_filelike,
 )
+from fastforward._dataset import TrackingDataset
+from fastforward._engine import Engine
 from fastforward._errors import with_error_handler
 from fastforward._fastforward import signality as _signality
-from fastforward._lazy import create_lazy_tracking_signality, _is_local_file
-from fastforward._schema import get_tracking_schema
-from fastforward._dataset import TrackingDataset
+from fastforward._schemas import Schemas
 
 if TYPE_CHECKING:
+    from kloppy.io import FileLike
     from pyspark.sql import SparkSession
+
+
+# Regex for `signality_p<period>_raw_data*.json` filenames.
+_FILENAME_PERIOD = re.compile(r"signality_p(\d+)_raw_data")
+
+
+def _is_bytes_like(obj) -> bool:
+    """Bytes-like input (acceptable for all engines, no kloppy)."""
+    import io
+    return isinstance(obj, (bytes, bytearray, memoryview, io.IOBase))
+
+
+def _extract_period(filename: str) -> int:
+    m = _FILENAME_PERIOD.search(filename)
+    if not m:
+        raise ValueError(
+            f"Could not extract period from signality filename {filename!r}. "
+            f"Expected pattern 'signality_p<period>_raw_data*.json'."
+        )
+    return int(m.group(1))
 
 
 @with_error_handler
 def load_tracking(
-    meta_data: FileLike,
-    raw_data_feeds: Union[FileLike, List[FileLike]],
-    venue_information: FileLike,
+    meta_data: Union["FileLike", bytes, bytearray, memoryview],
+    raw_data_feeds: Union["FileLike", List["FileLike"], bytes, bytearray, memoryview, List[Tuple[int, bytes]]],
+    venue_information: Union["FileLike", bytes, bytearray, memoryview],
     layout: Literal["long", "long_ball", "wide"] = "long",
     coordinates: Literal[
         "cdf",
@@ -59,201 +82,159 @@ def load_tracking(
     only_alive: bool = True,
     include_game_id: Union[bool, str] = True,
     include_officials: bool = False,
+    period: Optional[int] = None,
     *,
     lazy: bool = False,
     from_cache: bool = False,
     parallel: bool = True,
-    engine: Literal["polars", "pyspark"] = "polars",
+    engine: Engine = "polars",
     spark_session: Optional["SparkSession"] = None,
 ) -> TrackingDataset:
-    """
-    Load Signality tracking data.
+    """Load Signality tracking data.
+
+    Supports two modes, distinguished by whether ``period`` is provided:
+
+    - **Multi-file mode** (no ``period``): load a full match.
+      ``raw_data_feeds`` is a list — either ``List[FileLike]`` (polars/pyspark
+      only; kloppy resolves) or ``List[(period, bytes)]`` pairs (any engine; no
+      kloppy).
+    - **Single-file mode** (``period`` provided): load one period of one match.
+      ``raw_data_feeds`` is single-shaped: bytes-like (any engine) or single
+      ``FileLike`` (polars/pyspark only). ``include_game_id`` should be a
+      string match_id when used for distributed compute (so rows from
+      different matches don't collide after union).
+
+    Arrow engines (``"arrow"`` / ``"arrow[spark]"``) require bytes-only inputs
+    — same kloppy-free contract as the other 10 providers. FileLike inputs on
+    arrow engines raise ``TypeError``.
 
     Parameters
     ----------
-    meta_data : FileLike
-        Path to metadata file (JSON), or bytes, or file-like object.
-        Contains team names, player info, lineups, and match timestamp.
-    raw_data_feeds : FileLike or List[FileLike]
-        Raw tracking data file(s). Can be:
-        - Single FileLike: Path, bytes, or file-like object
-        - List[FileLike]: Multiple files (one per period)
-        Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths.
-    venue_information : FileLike
-        Path to venue information file (JSON) containing pitch dimensions.
+    meta_data : FileLike or bytes-like
+        Metadata file (JSON).
+    raw_data_feeds : FileLike, List[FileLike], bytes-like, or List[(period, bytes)]
+        Raw-data input. See mode descriptions above.
+    venue_information : FileLike or bytes-like
+        Venue information file (JSON).
     layout : {"long", "long_ball", "wide"}, default "long"
-        DataFrame layout:
-        - "long": Ball as row with team_id="ball", player_id="ball"
-        - "long_ball": Ball in separate columns, only player rows
-        - "wide": One row per frame, player_id in column names
+        Layout. ``wide`` rejected on arrow engines.
     coordinates : str, default "cdf"
-        Coordinate system. Options:
-        - "cdf": Common Data Format (origin at center, meters)
-        - "signality": Native coordinates (same as CDF)
-        - Other provider coordinate systems
+        Coordinate system to transform into.
     orientation : str, default "static_home_away"
-        Coordinate orientation:
-        - "static_home_away": Home attacks right (+x) entire match
-        - Other orientations available
+        Orientation convention.
     only_alive : bool, default True
-        If True, only include frames where ball is in play ("running" state).
+        If True, drop frames where the ball is not alive.
     include_game_id : bool or str, default True
-        If True, add game_id column from metadata.
-        If False, no game_id column is added.
-        If str, use the provided string as the game_id value.
+        Whether to include a ``game_id`` column. Pass a string to override the
+        match id (required in single-file mode for distributed compute).
     include_officials : bool, default False
-        If True, include officials in player_df and tracking data with team_id="officials"
-        and position codes: REF (Main Referee), AREF (Assistant Referee), FOURTH (4th Official).
-    parallel : bool, default True
-        If True, process multiple files in parallel using rayon.
-    engine : {"polars", "pyspark"}, default "polars"
-        DataFrame engine to use:
-        - "polars": Return Polars DataFrames (default)
-        - "pyspark": Return PySpark DataFrames
+        Include referees/assistants as rows in the tracking dataframe.
+    period : int, optional
+        Single-file mode toggle. When provided, single-file mode activates and
+        ``raw_data_feeds`` must be single-shaped.
+    engine : {"polars", "pyspark", "arrow", "arrow[spark]"}, default "polars"
+        DataFrame engine. Output type matches:
+        - "polars" → `pl.DataFrame` tables
+        - "pyspark" → `spark.DataFrame` tables
+        - "arrow" → `pyarrow.Table` tables with Polars-style Arrow types
+        - "arrow[spark]" → `pyarrow.Table` tables with Spark-compat types
     spark_session : SparkSession, optional
-        PySpark SparkSession to use. If None and engine="pyspark",
-        will get or create a session automatically.
+        PySpark session for engine="pyspark".
 
     Returns
     -------
     TrackingDataset
-        Object with .tracking, .metadata, .teams, .players, .periods properties.
-
-    Notes
-    -----
-    - Signality uses center-origin coordinates in meters (same as CDF)
-    - Period is extracted from filename patterns like signality_p1_raw_data.json
-    - Frame rate is typically 25 Hz (40ms between frames)
+        With ``.tracking``, ``.metadata``, ``.teams``, ``.players``, ``.periods``.
 
     Examples
     --------
-    Load from file paths:
+    Multi-file from disk (existing behavior):
 
-    >>> from fastforward import signality
-    >>> dataset = signality.load_tracking(
+    >>> ds = signality.load_tracking(
     ...     meta_data="signality_meta_data.json",
     ...     raw_data_feeds=["signality_p1_raw_data.json", "signality_p2_raw_data.json"],
     ...     venue_information="signality_venue_information.json",
+    ...     engine="polars",
     ... )
-    >>> tracking_df = dataset.tracking
-    """
-    from fastforward._engine import (
-        validate_engine,
-        polars_to_spark,
-        get_spark_session,
-    )
 
-    # Validate engine parameter
+    Single-file (per-period) for distributed compute:
+
+    >>> ds = signality.load_tracking(
+    ...     meta_data=meta_bytes,
+    ...     raw_data_feeds=raw_bytes,
+    ...     venue_information=venue_bytes,
+    ...     period=1,
+    ...     engine="arrow[spark]",
+    ...     include_game_id="match_uuid_42",
+    ... )
+    """
+    from fastforward._engine import validate_engine, polars_to_spark, get_spark_session
+
     engine = validate_engine(engine)
 
     if lazy:
         raise NotImplementedError("lazy loading is not yet supported in fast-forward")
     if from_cache:
         raise NotImplementedError("cache loading is not yet supported in fast-forward")
-
-    # Wide format doesn't support lazy loading - column names are game-specific
-    if lazy and layout == "wide":
-        raise ValueError(
-            "lazy=True is not supported for layout='wide'. "
-            "Wide format has game-specific column names (player IDs), "
-            "making lazy frame operations like concatenation incompatible."
-        )
-
-    # For PySpark, force eager loading (will convert after)
     if engine == "pyspark":
         lazy = False
 
-    # Handle lazy loading
-    if lazy:
-        # Handle directory input for raw_data_feeds
-        if isinstance(raw_data_feeds, (str, Path)) and Path(raw_data_feeds).is_dir():
-            raw_data_processed = discover_files_in_directory(
-                raw_data_feeds, "*raw_data*.json"
+    single_file_mode = period is not None
+    arrow_engine = engine in ("arrow", "arrow[spark]")
+
+    raw_pairs, meta_bytes, venue_bytes = _build_pairs(
+        raw_data_feeds, meta_data, venue_information,
+        single_file_mode=single_file_mode,
+        period=period,
+        arrow_engine=arrow_engine,
+        engine=engine,
+    )
+
+    schema_kwargs = {
+        "layout": layout,
+        "include_game_id": bool(include_game_id),
+    }
+
+    if arrow_engine:
+        tracking_t, metadata_t, team_t, player_t, periods_t = (
+            _signality.load_tracking_arrow_explicit(
+                raw_pairs, meta_bytes, venue_bytes,
+                layout=layout,
+                coordinates=coordinates,
+                orientation=orientation,
+                only_alive=only_alive,
+                include_game_id=include_game_id,
+                include_officials=include_officials,
+                parallel=parallel,
             )
-        elif isinstance(raw_data_feeds, list):
-            raw_data_processed = raw_data_feeds
-        else:
-            raw_data_processed = [raw_data_feeds]
+        )
+        if engine == "arrow[spark]":
+            from fastforward._arrow import _normalize_arrow_table
+            tracking_t = _normalize_arrow_table(tracking_t)
+            metadata_t = _normalize_arrow_table(metadata_t)
+            team_t = _normalize_arrow_table(team_t)
+            player_t = _normalize_arrow_table(player_t)
+            periods_t = _normalize_arrow_table(periods_t)
 
-        # Build config string for cache key
-        config_str = (
-            f"{layout}|{coordinates}|{orientation}|{only_alive}|"
-            f"{include_game_id}|{include_officials}"
+        return TrackingDataset(
+            tracking=tracking_t,
+            metadata=metadata_t,
+            teams=team_t,
+            players=player_t,
+            periods=periods_t,
+            _engine=engine,
+            _provider="signality",
+            _cache_key=None,
+            _coordinate_system=coordinates,
+            _orientation=orientation,
+            _schema_kwargs=schema_kwargs,
+            _rust_module=_signality,
         )
 
-        # Compute cache key
-        cache_key: Optional[str] = None
-        all_files = list(raw_data_processed) + [meta_data, venue_information]
-        is_local = all(_is_local_file(f) for f in all_files)
-
-        if is_local:
-            from fastforward._cache import compute_cache_key_fast_multi
-
-            # Include venue_information in file_paths since function only accepts single meta_path
-            all_paths = [str(f) for f in raw_data_processed] + [str(venue_information)]
-            try:
-                cache_key = compute_cache_key_fast_multi(
-                    all_paths,
-                    str(meta_data),
-                    config_str,
-                )
-            except FileNotFoundError:
-                # Files don't exist, cache key cannot be computed
-                cache_key = None
-
-        # Check for cache hit if from_cache=True
-        if from_cache and cache_key:
-            from fastforward._cache import cache_exists, get_cache_path, read_cache
-
-            cache_path = get_cache_path(cache_key, "signality")
-            if cache_exists(cache_path):
-                # Cache hit - load from cache
-                result = read_cache(cache_path)
-                if isinstance(result, tuple):
-                    lazy_frame, metadata_df, team_df, player_df, periods_df = result
-                    return TrackingDataset(
-                        tracking=lazy_frame,
-                        metadata=metadata_df,
-                        teams=team_df,
-                        players=player_df,
-                        periods=periods_df,
-                        _engine="polars",
-                        _provider="signality",
-                        _cache_key=cache_key,
-                        _coordinate_system=coordinates,
-                        _orientation=orientation,
-                    )
-            else:
-                # Cache miss with from_cache=True - warn user
-                warnings.warn(
-                    "No cache found for this file. "
-                    "Use dataset.write_cache() after loading to create one.",
-                    UserWarning,
-                )
-
-        # Load metadata only (fast)
-        metadata_df, team_df, player_df, periods_df = load_metadata_only(
-            meta_data,
-            venue_information,
-            coordinates=coordinates,
-            orientation=orientation,
-            include_game_id=include_game_id,
-            include_officials=include_officials,
-        )
-
-        # Generate schema for the tracking DataFrame
-        schema = get_tracking_schema(
-            layout=layout,
-            players_df=player_df,
-            include_game_id=bool(include_game_id),
-        )
-
-        # Create real pl.LazyFrame using register_io_source
-        lazy_frame = create_lazy_tracking_signality(
-            raw_data_feeds=raw_data_processed,
-            meta_data=meta_data,
-            venue_information=venue_information,
-            schema=schema,
+    # polars / pyspark path
+    tracking_df, metadata_df, team_df, player_df, periods_df = (
+        _signality.load_tracking_explicit(
+            raw_pairs, meta_bytes, venue_bytes,
             layout=layout,
             coordinates=coordinates,
             orientation=orientation,
@@ -262,78 +243,8 @@ def load_tracking(
             include_officials=include_officials,
             parallel=parallel,
         )
-
-        return TrackingDataset(
-            tracking=lazy_frame,
-            metadata=metadata_df,
-            teams=team_df,
-            players=player_df,
-            periods=periods_df,
-            _engine="polars",
-            _provider="signality",
-            _cache_key=cache_key,
-            _coordinate_system=coordinates,
-            _orientation=orientation,
-        )
-
-    # Eager loading
-    # Convert FileLike to bytes for metadata and venue
-    with open_as_file(meta_data) as meta_file:
-        meta_bytes = meta_file.read() if meta_file else b""
-    with open_as_file(venue_information) as venue_file:
-        venue_bytes = venue_file.read() if venue_file else b""
-
-    # Handle directory input for raw_data_feeds
-    if isinstance(raw_data_feeds, (str, Path)) and Path(raw_data_feeds).is_dir():
-        raw_data_list = discover_files_in_directory(
-            raw_data_feeds, "*raw_data*.json"
-        )
-    elif isinstance(raw_data_feeds, list):
-        raw_data_list = raw_data_feeds
-    else:
-        raw_data_list = [raw_data_feeds]
-
-    # Convert raw_data to list of (filename, bytes) tuples
-    raw_bytes_list = []
-    for raw_file in raw_data_list:
-        filename = get_filename_from_filelike(raw_file)
-        with open_as_file(raw_file) as f:
-            raw_bytes_list.append((filename, f.read() if f else b""))
-
-    # Pass bytes to Rust
-    tracking_df, metadata_df, team_df, player_df, periods_df = _signality.load_tracking(
-        raw_bytes_list,
-        meta_bytes,
-        venue_bytes,
-        layout=layout,
-        coordinates=coordinates,
-        orientation=orientation,
-        only_alive=only_alive,
-        include_game_id=include_game_id,
-        include_officials=include_officials,
-        parallel=parallel,
     )
 
-    # Compute cache key for eager loading too
-    cache_key = None
-    all_files = list(raw_data_list) + [meta_data, venue_information]
-    is_local = all(_is_local_file(f) for f in all_files)
-    if is_local:
-        from fastforward._cache import compute_cache_key_fast_multi
-
-        config_str = (
-            f"{layout}|{coordinates}|{orientation}|{only_alive}|"
-            f"{include_game_id}|{include_officials}"
-        )
-        # Include venue_information in file_paths since function only accepts single meta_path
-        all_paths = [str(f) for f in raw_data_list] + [str(venue_information)]
-        cache_key = compute_cache_key_fast_multi(
-            all_paths,
-            str(meta_data),
-            config_str,
-        )
-
-    # Convert to PySpark if requested
     if engine == "pyspark":
         spark = spark_session or get_spark_session()
         return TrackingDataset(
@@ -344,9 +255,11 @@ def load_tracking(
             periods=polars_to_spark(periods_df, spark),
             _engine="pyspark",
             _provider="signality",
-            _cache_key=cache_key,
+            _cache_key=None,
             _coordinate_system=coordinates,
             _orientation=orientation,
+            _schema_kwargs=schema_kwargs,
+            _rust_module=_signality,
         )
 
     return TrackingDataset(
@@ -357,58 +270,141 @@ def load_tracking(
         periods=periods_df,
         _engine="polars",
         _provider="signality",
-        _cache_key=cache_key,
+        _cache_key=None,
         _coordinate_system=coordinates,
         _orientation=orientation,
+        _schema_kwargs=schema_kwargs,
+        _rust_module=_signality,
     )
+
+
+def _build_pairs(
+    raw_data_feeds, meta_data, venue_information,
+    *,
+    single_file_mode: bool,
+    period: Optional[int],
+    arrow_engine: bool,
+    engine: str,
+) -> Tuple[List[Tuple[int, bytes]], bytes, bytes]:
+    """Normalize raw/meta/venue inputs into canonical (list-of-(period, bytes), meta_bytes, venue_bytes)."""
+    from fastforward._base import _to_bytes
+
+    meta_bytes = _resolve_single_buffer(meta_data, "meta_data", arrow_engine, engine)
+    venue_bytes = _resolve_single_buffer(venue_information, "venue_information", arrow_engine, engine)
+
+    if single_file_mode:
+        if isinstance(raw_data_feeds, list):
+            raise TypeError(
+                "single-file mode (period provided) requires single-shaped "
+                "raw_data_feeds, not a list."
+            )
+        raw_bytes = _resolve_single_buffer(raw_data_feeds, "raw_data_feeds", arrow_engine, engine)
+        return ([(period, raw_bytes)], meta_bytes, venue_bytes)
+
+    # Multi-file mode
+    raw_pairs = _resolve_multi_raw(raw_data_feeds, arrow_engine, engine)
+    return (raw_pairs, meta_bytes, venue_bytes)
+
+
+def _resolve_single_buffer(data, arg_name: str, arrow_engine: bool, engine: str) -> bytes:
+    """Resolve a single bytes-or-FileLike input to bytes. Rejects FileLike on arrow."""
+    from fastforward._base import _to_bytes
+    if _is_bytes_like(data):
+        return _to_bytes(data, arg_name, engine)
+    if arrow_engine:
+        raise TypeError(
+            f"engine={engine!r} requires bytes or a binary file-like object for "
+            f"{arg_name}; got {type(data).__name__}. The arrow engines do not "
+            f"perform FileLike resolution (kloppy-free contract). "
+            f"Use engine='polars' if you want to pass paths."
+        )
+    from kloppy.io import open_as_file
+    with open_as_file(data) as f:
+        return f.read() if f else b""
+
+
+def _resolve_multi_raw(data, arrow_engine: bool, engine: str) -> List[Tuple[int, bytes]]:
+    """Resolve raw_data_feeds (multi-file mode) → list[(period, bytes)]."""
+    from fastforward._base import _to_bytes
+
+    if isinstance(data, list):
+        if len(data) == 0:
+            raise ValueError("raw_data_feeds list is empty.")
+        first = data[0]
+        if isinstance(first, tuple) and len(first) == 2:
+            # List of (period, bytes) pairs
+            pairs: List[Tuple[int, bytes]] = []
+            for i, item in enumerate(data):
+                if not (isinstance(item, tuple) and len(item) == 2):
+                    raise TypeError(
+                        f"raw_data_feeds[{i}] must be a (period, bytes) tuple."
+                    )
+                p, raw = item
+                if not isinstance(p, int):
+                    raise TypeError(
+                        f"raw_data_feeds[{i}]: period must be int; got {type(p).__name__}."
+                    )
+                pairs.append((p, _to_bytes(raw, f"raw_data_feeds[{i}]", engine)))
+            return pairs
+        # List of FileLike
+        if arrow_engine:
+            raise TypeError(
+                f"engine={engine!r} requires bytes for raw_data_feeds; got a list of "
+                f"FileLike. Pass list[(period, bytes)] tuples instead "
+                f"(kloppy-free), or use engine='polars' for FileLike convenience."
+            )
+        return _filelike_list_to_pairs(data)
+
+    # Single FileLike (directory or single file)
+    if arrow_engine:
+        raise TypeError(
+            f"engine={engine!r} requires a list of (period, bytes) tuples for "
+            f"raw_data_feeds in multi-file mode (or pass period for single-file "
+            f"mode); got {type(data).__name__}."
+        )
+    if isinstance(data, (str, Path)) and Path(data).is_dir():
+        files = discover_files_in_directory(data, "*raw_data*.json")
+        return _filelike_list_to_pairs(files)
+    return _filelike_list_to_pairs([data])
+
+
+def _filelike_list_to_pairs(files: List) -> List[Tuple[int, bytes]]:
+    """Resolve a list of FileLike → list[(period, bytes)] via filename regex.
+
+    Opens each file first (kloppy raises InputNotFoundError for nonexistent
+    paths) so file-not-found errors surface before filename-pattern errors.
+    """
+    from kloppy.io import open_as_file
+    out: List[Tuple[int, bytes]] = []
+    for i, f in enumerate(files):
+        with open_as_file(f) as fh:
+            data = fh.read() if fh else b""
+        filename = get_filename_from_filelike(f)
+        try:
+            p = _extract_period(filename)
+        except ValueError as e:
+            raise ValueError(f"raw_data_feeds[{i}]: {e}") from None
+        out.append((p, data))
+    return out
 
 
 @with_error_handler
 def load_metadata_only(
-    meta_data: FileLike,
-    venue_information: FileLike,
+    meta_data: "FileLike",
+    venue_information: "FileLike",
     coordinates: str = "cdf",
     orientation: str = "static_home_away",
     include_game_id: Union[bool, str] = True,
     include_officials: bool = False,
 ) -> Tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame]:
-    """
-    Load only Signality metadata without tracking data.
+    """Load only Signality metadata without tracking data."""
+    from kloppy.io import open_as_file
 
-    Parameters
-    ----------
-    meta_data : FileLike
-        Path to metadata file (JSON), or bytes, or file-like object.
-    venue_information : FileLike
-        Path to venue information file (JSON) containing pitch dimensions.
-    coordinates : str, default "cdf"
-        Coordinate system (metadata output).
-    orientation : str, default "static_home_away"
-        Coordinate orientation (metadata output).
-    include_game_id : bool or str, default True
-        If True, add game_id column from metadata.
-        If False, no game_id column is added.
-        If str, use the provided string as the game_id value.
-    include_officials : bool, default False
-        If True, include officials placeholder in player_df.
-
-    Returns
-    -------
-    Tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame]
-        (metadata_df, team_df, player_df, periods_df)
-
-    Notes
-    -----
-    Signality metadata contains team names, player info, and lineups.
-    Venue information contains pitch dimensions.
-    """
-    # Convert FileLike to bytes
     with open_as_file(meta_data) as meta_file:
         meta_bytes = meta_file.read() if meta_file else b""
     with open_as_file(venue_information) as venue_file:
         venue_bytes = venue_file.read() if venue_file else b""
 
-    # Pass bytes to Rust
     return _signality.load_metadata_only(
         meta_bytes,
         venue_bytes,
@@ -416,4 +412,48 @@ def load_metadata_only(
         orientation=orientation,
         include_game_id=include_game_id,
         include_officials=include_officials,
+    )
+
+
+def schemas(
+    *,
+    layout: Literal["long", "long_ball", "wide"] = "long",
+    include_game_id: bool = True,
+    engine: Engine = "polars",
+) -> Schemas:
+    """Return a ``Schemas`` namespace for Signality.
+
+    The returned object has 10 lazy properties: Arrow + PySpark schemas for
+    each of the 5 tables (``tracking``, ``metadata``, ``teams``, ``players``,
+    ``periods``).
+
+    Signality has no schema-affecting flags — `include_officials` adds rows
+    but not columns. So the schema factory only needs `layout` and
+    `include_game_id`.
+
+    Parameters
+    ----------
+    layout, include_game_id
+        Match the same-named kwargs on ``signality.load_tracking``.
+    engine : {"polars", "pyspark", "arrow", "arrow[spark]"}, default "polars"
+        Controls the Arrow type dialect for the non-``_spark`` schema
+        properties. The ``*_spark`` properties are always Spark-compatible.
+
+    Use this on the driver to declare a Spark ``mapInArrow`` output schema:
+
+    >>> tracking_schema = signality.schemas(layout="long", engine="arrow[spark]").tracking_spark
+    >>> matches_df.mapInArrow(parse_signality_match_udf, schema=tracking_schema)
+    """
+    from fastforward._fastforward import signality as _m
+
+    return Schemas(
+        tracking_fn=lambda: _m.tracking_schema_arrow(
+            layout=layout,
+            include_game_id=include_game_id,
+        ),
+        metadata_fn=lambda: _m.metadata_schema_arrow(),
+        teams_fn=lambda: _m.teams_schema_arrow(include_game_id=include_game_id),
+        players_fn=lambda: _m.players_schema_arrow(include_game_id=include_game_id),
+        periods_fn=lambda: _m.periods_schema_arrow(include_game_id=include_game_id),
+        engine=engine,
     )
