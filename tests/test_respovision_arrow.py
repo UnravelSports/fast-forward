@@ -302,3 +302,50 @@ class TestRespovisionArrowSchemas:
         assert isinstance(s.tracking_spark, StructType)
         first = s.tracking_spark.fields[0]
         assert first.name == "game_id"
+
+
+# --------------------------------------------------------------------------- #
+# Phase B additions (InputContract already present in TestRespovisionArrowInputContract) #
+# --------------------------------------------------------------------------- #
+
+from tests._arrow_helpers import (
+    assert_arrow_transform_matches_polars,
+    assert_arrow_to_polars_height_match,
+    assert_arrow_polars_arrow_roundtrip,
+    assert_polars_to_arrow_to_polars,
+    assert_to_arrow_idempotent,
+)
+
+
+class TestRespovisionArrowTimestampDialect:
+
+    def test_arrow_timestamp_is_duration_ms(self, raw_bytes, rv_filename):
+        ds = respovision.load_tracking(raw_bytes, engine="arrow", filename=rv_filename)
+        ts_t = ds.tracking.schema.field("timestamp").type
+        assert pa.types.is_duration(ts_t) and ts_t.unit == "ms"
+
+
+class TestRespovisionArrowTransforms:
+
+    def test_transform_coords_and_orientation(self, raw_bytes, rv_filename):
+        arrow_ds = respovision.load_tracking(raw_bytes, engine="arrow", filename=rv_filename)
+        polars_ds = respovision.load_tracking(raw_bytes, engine="polars", filename=rv_filename)
+        assert_arrow_transform_matches_polars(arrow_ds, polars_ds)
+
+
+class TestRespovisionEngineConverters:
+
+    def test_arrow_to_polars(self, raw_bytes, rv_filename, polars_dataset):
+        arrow_ds = respovision.load_tracking(raw_bytes, engine="arrow", filename=rv_filename)
+        assert_arrow_to_polars_height_match(arrow_ds, polars_dataset)
+
+    def test_arrow_polars_arrow_roundtrip(self, raw_bytes, rv_filename):
+        arrow_ds = respovision.load_tracking(raw_bytes, engine="arrow", filename=rv_filename)
+        assert_arrow_polars_arrow_roundtrip(arrow_ds)
+
+    def test_polars_to_arrow_to_polars(self, polars_dataset):
+        assert_polars_to_arrow_to_polars(polars_dataset)
+
+    def test_to_arrow_idempotent(self, raw_bytes, rv_filename):
+        arrow_ds = respovision.load_tracking(raw_bytes, engine="arrow", filename=rv_filename)
+        assert_to_arrow_idempotent(arrow_ds)

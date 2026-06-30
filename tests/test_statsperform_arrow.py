@@ -258,3 +258,65 @@ class TestStatsperformArrowSchemas:
         assert isinstance(s.tracking_spark, StructType)
         first = s.tracking_spark.fields[0]
         assert first.name == "game_id"
+
+
+# --------------------------------------------------------------------------- #
+# Phase B additions                                                            #
+# --------------------------------------------------------------------------- #
+
+from tests._arrow_helpers import (
+    assert_arrow_transform_matches_polars,
+    assert_arrow_to_polars_height_match,
+    assert_arrow_polars_arrow_roundtrip,
+    assert_polars_to_arrow_to_polars,
+    assert_to_arrow_idempotent,
+    assert_arrow_accepts_bytes_like,
+    assert_arrow_rejects_paths,
+)
+
+
+class TestStatsperformArrowTimestampDialect:
+
+    def test_arrow_timestamp_is_duration_ms(self, raw_bytes, meta_json_bytes):
+        ds = statsperform.load_tracking(raw_bytes, meta_json_bytes, engine="arrow")
+        ts_t = ds.tracking.schema.field("timestamp").type
+        assert pa.types.is_duration(ts_t) and ts_t.unit == "ms"
+
+
+class TestStatsperformArrowTransforms:
+
+    def test_transform_coords_and_orientation(self, raw_bytes, meta_json_bytes):
+        arrow_ds = statsperform.load_tracking(raw_bytes, meta_json_bytes, engine="arrow")
+        polars_ds = statsperform.load_tracking(raw_bytes, meta_json_bytes, engine="polars")
+        assert_arrow_transform_matches_polars(arrow_ds, polars_ds)
+
+
+class TestStatsperformEngineConverters:
+
+    def test_arrow_to_polars(self, raw_bytes, meta_json_bytes, polars_dataset):
+        arrow_ds = statsperform.load_tracking(raw_bytes, meta_json_bytes, engine="arrow")
+        assert_arrow_to_polars_height_match(arrow_ds, polars_dataset)
+
+    def test_arrow_polars_arrow_roundtrip(self, raw_bytes, meta_json_bytes):
+        arrow_ds = statsperform.load_tracking(raw_bytes, meta_json_bytes, engine="arrow")
+        assert_arrow_polars_arrow_roundtrip(arrow_ds)
+
+    def test_polars_to_arrow_to_polars(self, polars_dataset):
+        assert_polars_to_arrow_to_polars(polars_dataset)
+
+    def test_to_arrow_idempotent(self, raw_bytes, meta_json_bytes):
+        arrow_ds = statsperform.load_tracking(raw_bytes, meta_json_bytes, engine="arrow")
+        assert_to_arrow_idempotent(arrow_ds)
+
+
+def _stp_load_arrow(r, m):
+    return statsperform.load_tracking(r, m, engine="arrow")
+
+
+class TestStatsperformArrowInputContract:
+
+    def test_accepts_bytes_like_forms(self, raw_bytes, meta_json_bytes):
+        assert_arrow_accepts_bytes_like(_stp_load_arrow, raw_bytes, meta_json_bytes)
+
+    def test_path_string_rejected_on_arrow(self):
+        assert_arrow_rejects_paths(_stp_load_arrow, STP_RAW_MA25, STP_META_JSON)
