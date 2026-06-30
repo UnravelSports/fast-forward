@@ -349,3 +349,18 @@ class TestRespovisionEngineConverters:
     def test_to_arrow_idempotent(self, raw_bytes, rv_filename):
         arrow_ds = respovision.load_tracking(raw_bytes, engine="arrow", filename=rv_filename)
         assert_to_arrow_idempotent(arrow_ds)
+
+
+class TestRespovisionArrowIncludeGameId:
+
+    def test_default_includes_game_id(self, raw_bytes, rv_filename):
+        ds = respovision.load_tracking(raw_bytes, engine="arrow", filename=rv_filename)
+        assert "game_id" in ds.tracking.column_names
+
+    def test_false_omits_game_id(self, raw_bytes, rv_filename):
+        ds = respovision.load_tracking(raw_bytes, engine="arrow", filename=rv_filename, include_game_id=False)
+        assert "game_id" not in ds.tracking.column_names
+
+    def test_str_overrides_game_id(self, raw_bytes, rv_filename):
+        ds = respovision.load_tracking(raw_bytes, engine="arrow", filename=rv_filename, include_game_id="custom_123")
+        assert set(ds.tracking["game_id"].to_pylist()) == {"custom_123"}

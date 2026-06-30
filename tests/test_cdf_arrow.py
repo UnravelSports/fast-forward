@@ -188,6 +188,9 @@ class TestCdfArrowSparkDialect:
             f"expected int64 under engine='arrow[spark]', got {ts_t}"
         )
 
+
+class TestCdfArrowTimestampDialect:
+
     def test_arrow_timestamp_is_duration_ms(self, raw_bytes, meta_bytes):
         ds = cdf.load_tracking(raw_bytes, meta_bytes, engine="arrow")
         ts_t = ds.tracking.schema.field("timestamp").type
@@ -303,3 +306,18 @@ class TestCdfArrowInputContract:
 
     def test_path_string_rejected_on_arrow(self):
         assert_arrow_rejects_paths(_load_arrow, CDF_RAW, CDF_META)
+
+
+class TestCdfArrowIncludeGameId:
+
+    def test_default_includes_game_id(self, raw_bytes, meta_bytes):
+        ds = cdf.load_tracking(raw_bytes, meta_bytes, engine="arrow")
+        assert "game_id" in ds.tracking.column_names
+
+    def test_false_omits_game_id(self, raw_bytes, meta_bytes):
+        ds = cdf.load_tracking(raw_bytes, meta_bytes, engine="arrow", include_game_id=False)
+        assert "game_id" not in ds.tracking.column_names
+
+    def test_str_overrides_game_id(self, raw_bytes, meta_bytes):
+        ds = cdf.load_tracking(raw_bytes, meta_bytes, engine="arrow", include_game_id="custom_123")
+        assert set(ds.tracking["game_id"].to_pylist()) == {"custom_123"}

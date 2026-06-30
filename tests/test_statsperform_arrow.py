@@ -320,3 +320,42 @@ class TestStatsperformArrowInputContract:
 
     def test_path_string_rejected_on_arrow(self):
         assert_arrow_rejects_paths(_stp_load_arrow, STP_RAW_MA25, STP_META_JSON)
+
+
+class TestStatsperformArrowIncludeGameId:
+
+    def test_default_includes_game_id(self, raw_bytes, meta_json_bytes):
+        ds = statsperform.load_tracking(raw_bytes, meta_json_bytes, engine="arrow")
+        assert "game_id" in ds.tracking.column_names
+
+    def test_false_omits_game_id(self, raw_bytes, meta_json_bytes):
+        ds = statsperform.load_tracking(raw_bytes, meta_json_bytes, engine="arrow", include_game_id=False)
+        assert "game_id" not in ds.tracking.column_names
+
+    def test_str_overrides_game_id(self, raw_bytes, meta_json_bytes):
+        ds = statsperform.load_tracking(raw_bytes, meta_json_bytes, engine="arrow", include_game_id="custom_123")
+        assert set(ds.tracking["game_id"].to_pylist()) == {"custom_123"}
+
+
+# --------------------------------------------------------------------------- #
+# Statsperform: cover the XML metadata path through the arrow engine too      #
+# --------------------------------------------------------------------------- #
+
+class TestStatsperformArrowXmlMetadataPath:
+    """Phase B additions used the JSON metadata path. This pins that the
+    XML metadata branch is also wired through arrow / arrow[spark]."""
+
+    def test_arrow_xml_metadata_loads(self, raw_bytes, meta_xml_bytes):
+        ds = statsperform.load_tracking(raw_bytes, meta_xml_bytes, engine="arrow")
+        assert ds.engine == "arrow"
+        assert ds.tracking.num_rows > 0
+
+    def test_arrow_xml_row_count_matches_polars(self, raw_bytes, meta_xml_bytes):
+        arrow_ds = statsperform.load_tracking(raw_bytes, meta_xml_bytes, engine="arrow")
+        polars_ds = statsperform.load_tracking(raw_bytes, meta_xml_bytes, engine="polars")
+        assert arrow_ds.tracking.num_rows == polars_ds.tracking.height
+
+    def test_arrow_xml_timestamp_is_duration_ms(self, raw_bytes, meta_xml_bytes):
+        ds = statsperform.load_tracking(raw_bytes, meta_xml_bytes, engine="arrow")
+        ts_t = ds.tracking.schema.field("timestamp").type
+        assert pa.types.is_duration(ts_t) and ts_t.unit == "ms"

@@ -82,13 +82,22 @@ def assert_arrow_transform_matches_polars(
     )
     assert isinstance(arrow_t.tracking, pa.Table)
 
+    # Guard against trivially-passing on degenerate inputs (empty fixture
+    # or a layout that strips every comparable column).
+    assert arrow_t.tracking.num_rows > 0, "arrow transform produced zero rows"
+    assert polars_t.tracking.height > 0, "polars transform produced zero rows"
+    cols_present = [c for c in cols if c in arrow_t.tracking.column_names
+                    and c in polars_t.tracking.columns]
+    assert cols_present, (
+        f"none of cols={list(cols)} present in both schemas — test would "
+        f"trivially pass"
+    )
+
     sort_keys_list = [k for k in sort_keys if k in arrow_t.tracking.column_names]
     arrow_pl = pl.from_arrow(arrow_t.tracking).sort(sort_keys_list)
     polars_sorted = polars_t.tracking.sort(sort_keys_list)
 
-    for col in cols:
-        if col not in arrow_pl.columns or col not in polars_sorted.columns:
-            continue
+    for col in cols_present:
         a = arrow_pl[col]
         p = polars_sorted[col]
         diffs = (a - p).abs()
@@ -112,21 +121,40 @@ def assert_arrow_to_polars_height_match(
 
 
 def assert_arrow_polars_arrow_roundtrip(arrow_ds: TrackingDataset) -> None:
-    """arrow → polars → arrow preserves row count and column names."""
+    """arrow → polars → arrow preserves row count, column names, AND values.
+
+    A weaker version (rows + names only) was caught silently passing all-null
+    converters in the Phase B QA review. Always compare values now.
+    """
     via_polars = arrow_ds.to_polars().to_arrow()
     assert via_polars.engine == "arrow"
     assert isinstance(via_polars.tracking, pa.Table)
     assert via_polars.tracking.num_rows == arrow_ds.tracking.num_rows
     assert via_polars.tracking.column_names == arrow_ds.tracking.column_names
+    # Value-equality column by column. .equals() on full tables is too strict
+    # because pyarrow records chunk layout in equality; iterate columns to
+    # compare values regardless of chunking.
+    for col in arrow_ds.tracking.column_names:
+        assert via_polars.tracking[col].to_pylist() == arrow_ds.tracking[col].to_pylist(), (
+            f"arrow → polars → arrow diverged on column {col!r}"
+        )
 
 
 def assert_polars_to_arrow_to_polars(polars_ds: TrackingDataset) -> None:
-    """polars → arrow → polars preserves row count and column names."""
+    """polars → arrow → polars preserves row count, column names, AND values.
+
+    NaN-aware: NaN-vs-NaN counts as equal (Polars' `equals(null_equal=True)`).
+    """
     via_arrow = polars_ds.to_arrow().to_polars()
     assert via_arrow.engine == "polars"
     assert isinstance(via_arrow.tracking, pl.DataFrame)
     assert via_arrow.tracking.height == polars_ds.tracking.height
     assert via_arrow.tracking.columns == polars_ds.tracking.columns
+    # Polars equals() with null_equal=True treats null-vs-null and NaN-vs-NaN
+    # as equal — the right semantics for a pure roundtrip.
+    assert via_arrow.tracking.equals(polars_ds.tracking, null_equal=True), (
+        "polars → arrow → polars diverged on values"
+    )
 
 
 def assert_to_arrow_idempotent(arrow_ds: TrackingDataset) -> None:
@@ -165,6 +193,17 @@ def assert_arrow_accepts_bytes_like(
         wrapped = [wrapper(b) for b in byte_args]
         ds = load_fn(*wrapped)
         assert ds.tracking.num_rows > 0, f"empty result with input form {name!r}"
+        # Catch silent fall-back to a non-arrow engine — without this, a
+        # bug that opened a FileLike and went through the polars path could
+        # pass.
+        assert ds.engine in ("arrow", "arrow[spark]"), (
+            f"input form {name!r} loaded but engine is {ds.engine!r}, "
+            f"expected arrow / arrow[spark]"
+        )
+        assert isinstance(ds.tracking, pa.Table), (
+            f"input form {name!r} loaded but tracking is {type(ds.tracking).__name__}, "
+            f"expected pa.Table"
+        )
 
 
 def assert_arrow_rejects_paths(
@@ -172,7 +211,8 @@ def assert_arrow_rejects_paths(
     *path_args: str,
 ) -> None:
     """Calling load_fn with path-string args should raise TypeError on the
-    arrow engine (kloppy-free contract).
+    arrow engine (kloppy-free contract). Pins the contract via match= so a
+    stray TypeError (wrong positional count, etc) doesn't slip through.
     """
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match=r"(?i)bytes|kloppy-free|file-like"):
         load_fn(*path_args)

@@ -292,3 +292,18 @@ class TestSportecArrowInputContract:
 
     def test_path_string_rejected_on_arrow(self):
         assert_arrow_rejects_paths(_sportec_load_arrow, SP_RAW, SP_META)
+
+
+class TestSportecArrowIncludeGameId:
+
+    def test_default_includes_game_id(self, raw_bytes, meta_bytes):
+        ds = sportec.load_tracking(raw_bytes, meta_bytes, engine="arrow")
+        assert "game_id" in ds.tracking.column_names
+
+    def test_false_omits_game_id(self, raw_bytes, meta_bytes):
+        ds = sportec.load_tracking(raw_bytes, meta_bytes, engine="arrow", include_game_id=False)
+        assert "game_id" not in ds.tracking.column_names
+
+    def test_str_overrides_game_id(self, raw_bytes, meta_bytes):
+        ds = sportec.load_tracking(raw_bytes, meta_bytes, engine="arrow", include_game_id="custom_123")
+        assert set(ds.tracking["game_id"].to_pylist()) == {"custom_123"}
