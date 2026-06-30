@@ -105,7 +105,7 @@ def load_tracking(
       different matches don't collide after union).
 
     Arrow engines (``"arrow"`` / ``"arrow[spark]"``) require bytes-only inputs
-    — same kloppy-free contract as the other 10 providers. FileLike inputs on
+    — same kloppy-free contract as the other 11 providers. FileLike inputs on
     arrow engines raise ``TypeError``.
 
     Parameters
@@ -379,6 +379,13 @@ def _filelike_list_to_pairs(files: List) -> List[Tuple[int, bytes]]:
     for i, f in enumerate(files):
         with open_as_file(f) as fh:
             data = fh.read() if fh else b""
+        if not data:
+            # Surface empty-data as the actual diagnosis. Otherwise
+            # filename-regex extraction on bytes-without-a-name produces
+            # a misleading "could not extract period" error.
+            raise ValueError(
+                f"raw_data_feeds[{i}]: Empty data — file is empty or unreadable."
+            )
         filename = get_filename_from_filelike(f)
         try:
             p = _extract_period(filename)

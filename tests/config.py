@@ -72,6 +72,12 @@ SIG_RAW_FILES = [SIG_RAW_P1, SIG_RAW_P2]
 RV_RAW = str(DATA_DIR / "respovision_tracking.jsonl")
 
 # =============================================================================
+# SciSports (EPTS XML metadata + colon-delimited positions txt)
+# =============================================================================
+SCI_META_XML = str(DATA_DIR / "scisports_epts_metadata.xml")
+SCI_RAW_TXT = str(DATA_DIR / "scisports_epts_positions.txt")
+
+# =============================================================================
 # Tracab
 # =============================================================================
 TR_META_XML = str(DATA_DIR / "tracab_meta.xml")

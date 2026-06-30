@@ -9,7 +9,8 @@ All notable changes to **fast-forward** are documented here. Format loosely foll
 ## [v0.2.0] — unreleased
 
 ### New
-- `engine="arrow"` and `engine="arrow[spark]"` now supported on all 11 providers.
+- `engine="arrow"` and `engine="arrow[spark]"` now supported on all 12 providers.
+- New provider: **SciSports** (EPTS / FIFA XML metadata + colon-delimited positions `.txt`). Arrow and arrow[spark] supported from day 1.
 
 ### Breaking
 - HawkEye and Signality: `frame_id` values for period 2 and later have changed. Period 1 values are unchanged. If your downstream code joins on raw `frame_id` across periods, re-derive any cached offsets. `(period_id, frame_id)` composite keys are unaffected.

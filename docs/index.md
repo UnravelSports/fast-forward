@@ -14,7 +14,7 @@ fast-forward loads tracking data from all major providers into [Polars](https://
 
 ## Key Features
 
-- **11 providers** supported with a consistent `load_tracking()` interface
+- **12 providers** supported with a consistent `load_tracking()` interface
 - **Polars DataFrame** and **PySpark DataFrame** support for fast, memory-efficient data processing
 - **Coordinate transformations** between all major coordinate systems
 - **Orientation normalization** to ensure consistent attacking directions
@@ -59,6 +59,7 @@ transformed = dataset.transform(
 | [HawkEye](providers/hawkeye.md)               | Per-minute text + JSON/XML | Multiple       |
 | [OptaVision](providers/optavision.md)         | Text + XML                 | 2              |
 | [Respovision](providers/respovision.md)       | JSONL (embedded metadata)  | 1              |
+| [SciSports](providers/scisports.md)           | EPTS XML + Text            | 2              |
 | [SecondSpectrum](providers/secondspectrum.md) | JSONL + JSON               | 2              |
 | [Signality](providers/signality.md)           | JSON (per-period)          | 3+             |
 | [SkillCorner](providers/skillcorner.md)       | JSONL + JSON               | 2              |
@@ -76,3 +77,53 @@ transformed = dataset.transform(
 ## Credit
 
 This project owes a depth of gratitude to [Kloppy](https://kloppy.pysport.org/) and the hard work put into that project by all its contributors. Without their dedication and commitment this project would not exist. 💙
+
+## Providers
+
+### [CDF](providers/cdf.md)
+
+Common Data Format. JSONL tracking plus JSON metadata.
+
+### [GradientSports](providers/gradientsports.md)
+
+JSONL tracking plus JSON metadata and roster.
+
+### [HawkEye](providers/hawkeye.md)
+
+Per-minute ball and centroid files plus JSON or XML metadata.
+
+### [OptaVision](providers/optavision.md)
+
+Colon-delimited text plus XML metadata.
+
+### [Respovision](providers/respovision.md)
+
+JSONL with metadata embedded in the same file.
+
+### [SciSports](providers/scisports.md)
+
+FIFA EPTS XML metadata plus colon-delimited positions text.
+
+### [SecondSpectrum](providers/secondspectrum.md)
+
+JSONL tracking plus JSON metadata.
+
+### [Signality](providers/signality.md)
+
+Per-period JSON tracking files plus JSON metadata and venue files.
+
+### [SkillCorner](providers/skillcorner.md)
+
+JSONL tracking plus JSON metadata.
+
+### [Sportec](providers/sportec.md)
+
+XML tracking plus XML metadata.
+
+### [StatsPerform](providers/statsperform.md)
+
+MA25 text tracking plus MA1 JSON or XML metadata.
+
+### [Tracab](providers/tracab.md)
+
+DAT or JSON tracking plus XML or JSON metadata.

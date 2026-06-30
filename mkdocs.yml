@@ -82,6 +82,7 @@ nav:
     - HawkEye: providers/hawkeye.md
     - OptaVision: providers/optavision.md
     - Respovision: providers/respovision.md
+    - SciSports: providers/scisports.md
     - SecondSpectrum: providers/secondspectrum.md
     - Signality: providers/signality.md
     - SkillCorner: providers/skillcorner.md

@@ -437,6 +437,13 @@ def _filelike_list_to_triples(files: List, arg_name: str) -> List[Tuple[int, int
         # Open first — surfaces InputNotFoundError before filename parsing.
         with open_as_file(f) as fh:
             data = fh.read() if fh else b""
+        if not data:
+            # Surface empty-data as the actual diagnosis. Otherwise
+            # filename-regex extraction on bytes-without-a-name produces
+            # a misleading "could not extract period/minute" error.
+            raise ValueError(
+                f"{arg_name}[{i}]: Empty data — file is empty or unreadable."
+            )
         filename = get_filename_from_filelike(f)
         try:
             p, m = _extract_period_minute(filename)

@@ -712,6 +712,7 @@ def _register_standard_providers() -> None:
     from fastforward._fastforward import hawkeye as _he
     from fastforward._fastforward import optavision as _ov
     from fastforward._fastforward import respovision as _rv
+    from fastforward._fastforward import scisports as _sci
     from fastforward._fastforward import secondspectrum as _ss
     from fastforward._fastforward import signality as _sg
     from fastforward._fastforward import skillcorner as _sc
@@ -787,6 +788,16 @@ def _register_standard_providers() -> None:
         tracking_params=[],
         schema_params=[],
         schemas_factory="fastforward.respovision:schemas",
+    )
+
+    register_provider(
+        name="scisports",
+        rust_module=_sci,
+        metadata_params=[],
+        tracking_params=[],
+        # No provider-specific kwargs that affect rows or columns.
+        schema_params=[],
+        schemas_factory="fastforward.scisports:schemas",
     )
 
     register_provider(
