@@ -111,6 +111,24 @@ class TestSciSportsArrowInputContract:
                 engine="arrow",
             )
 
+    def test_accepts_buffered_reader(self, raw_bytes, meta_bytes, tmp_path):
+        raw_p = tmp_path / "raw.bin"
+        meta_p = tmp_path / "meta.bin"
+        raw_p.write_bytes(raw_bytes)
+        meta_p.write_bytes(meta_bytes)
+        with open(raw_p, "rb") as rh, open(meta_p, "rb") as mh:
+            ds = scisports.load_tracking(rh, mh, engine="arrow")
+        assert ds.tracking.num_rows > 0
+        assert ds.engine == "arrow"
+
+    def test_accepts_gzip_stream(self, raw_bytes, meta_bytes):
+        import gzip
+        with gzip.GzipFile(fileobj=io.BytesIO(gzip.compress(raw_bytes))) as rh, \
+             gzip.GzipFile(fileobj=io.BytesIO(gzip.compress(meta_bytes))) as mh:
+            ds = scisports.load_tracking(rh, mh, engine="arrow")
+        assert ds.tracking.num_rows > 0
+        assert ds.engine == "arrow"
+
 
 # --------------------------------------------------------------------------- #
 # Layout matrix                                                                #

@@ -216,3 +216,152 @@ def assert_arrow_rejects_paths(
     """
     with pytest.raises(TypeError, match=r"(?i)bytes|kloppy-free|file-like"):
         load_fn(*path_args)
+
+
+def assert_arrow_accepts_buffered_reader(
+    load_fn: Callable[..., TrackingDataset],
+    tmp_path,
+    *byte_args: bytes,
+) -> None:
+    """Write each bytes arg to a file under `tmp_path` and pass
+    `open(path, "rb")` (BufferedReader, the result of the most common way
+    a user opens a file) to `load_fn`. The kloppy-free `_to_bytes` contract
+    documents BufferedReader as accepted; this test pins that promise.
+
+    `tmp_path` is the standard pytest fixture; pass it in at the call site.
+    """
+    paths = [tmp_path / f"input_{i}.bin" for i in range(len(byte_args))]
+    for path, b in zip(paths, byte_args):
+        path.write_bytes(b)
+    handles = [open(p, "rb") for p in paths]
+    try:
+        ds = load_fn(*handles)
+    finally:
+        for h in handles:
+            h.close()
+    assert ds.tracking.num_rows > 0, "empty result with BufferedReader input"
+    assert ds.engine in ("arrow", "arrow[spark]"), (
+        f"BufferedReader input loaded but engine is {ds.engine!r}"
+    )
+    assert isinstance(ds.tracking, pa.Table), (
+        f"BufferedReader input loaded but tracking is {type(ds.tracking).__name__}"
+    )
+
+
+def assert_arrow_accepts_gzip_stream(
+    load_fn: Callable[..., TrackingDataset],
+    *byte_args: bytes,
+) -> None:
+    """Wrap each bytes arg in an in-memory gzipped `GzipFile` (read mode)
+    and pass to `load_fn`. Reading a GzipFile returns the original
+    decompressed bytes, so a correct parser sees identical input.
+
+    The kloppy-free `_to_bytes` contract documents gzip.GzipFile as accepted
+    (any binary-mode `io.IOBase`); this test pins that promise.
+    """
+    import gzip
+    handles = [
+        gzip.GzipFile(fileobj=io.BytesIO(gzip.compress(b)))
+        for b in byte_args
+    ]
+    try:
+        ds = load_fn(*handles)
+    finally:
+        for h in handles:
+            h.close()
+    assert ds.tracking.num_rows > 0, "empty result with GzipFile input"
+    assert ds.engine in ("arrow", "arrow[spark]"), (
+        f"GzipFile input loaded but engine is {ds.engine!r}"
+    )
+    assert isinstance(ds.tracking, pa.Table), (
+        f"GzipFile input loaded but tracking is {type(ds.tracking).__name__}"
+    )
+
+
+# --------------------------------------------------------------------------- #
+# Atomic dialect / schemas helpers (D.2 refactor)                              #
+# --------------------------------------------------------------------------- #
+# These are one-purpose helpers. Each replaces the body of exactly ONE test
+# method in a provider's TestProviderArrowSparkDialect or TestProviderArrowSchemas
+# class. Test granularity stays intact: each existing test method becomes
+# 2 lines (load + one helper call), and a failure points at the exact
+# assertion that broke.
+
+
+def assert_arrow_engine_uses_string_view(ds: TrackingDataset) -> None:
+    """engine='arrow' uses Polars-style string_view for string columns."""
+    team_id_t = ds.tracking.schema.field("team_id").type
+    assert pa.types.is_string_view(team_id_t), (
+        f"expected string_view under engine='arrow', got {team_id_t}"
+    )
+
+
+def assert_arrow_spark_engine_uses_string(ds: TrackingDataset) -> None:
+    """engine='arrow[spark]' normalizes string_view → plain string."""
+    team_id_t = ds.tracking.schema.field("team_id").type
+    assert (
+        pa.types.is_string(team_id_t) and not pa.types.is_string_view(team_id_t)
+    ), f"expected plain string under engine='arrow[spark]', got {team_id_t}"
+
+
+def assert_arrow_engine_timestamp_duration_ms(ds: TrackingDataset) -> None:
+    """engine='arrow' keeps Polars-style duration[ms] for the timestamp column."""
+    ts_t = ds.tracking.schema.field("timestamp").type
+    assert pa.types.is_duration(ts_t) and ts_t.unit == "ms", (
+        f"expected duration[ms] under engine='arrow', got {ts_t}"
+    )
+
+
+def assert_arrow_spark_engine_timestamp_int64(ds: TrackingDataset) -> None:
+    """engine='arrow[spark]' normalizes duration[ms] → int64 for Spark."""
+    ts_t = ds.tracking.schema.field("timestamp").type
+    assert pa.types.is_int64(ts_t), (
+        f"expected int64 under engine='arrow[spark]', got {ts_t}"
+    )
+
+
+def assert_schemas_factory_matches_dataset(factory, ds: TrackingDataset) -> None:
+    """`provider.schemas(...).tracking == ds.tracking.schema` and same for
+    metadata, teams, players, periods."""
+    assert factory.tracking == ds.tracking.schema, "tracking schema differs"
+    assert factory.metadata == ds.metadata.schema, "metadata schema differs"
+    assert factory.teams == ds.teams.schema, "teams schema differs"
+    assert factory.players == ds.players.schema, "players schema differs"
+    assert factory.periods == ds.periods.schema, "periods schema differs"
+
+
+def assert_dataset_schemas_property_matches_factory(
+    ds: TrackingDataset, factory
+) -> None:
+    """`ds.schemas.tracking == factory.tracking` and same for the spark
+    StructType variant."""
+    assert ds.schemas.tracking == factory.tracking, (
+        "ds.schemas.tracking differs from factory.tracking"
+    )
+    assert ds.schemas.tracking_spark == factory.tracking_spark, (
+        "ds.schemas.tracking_spark differs from factory.tracking_spark"
+    )
+
+
+def assert_wide_layout_schemas_raises(wide_factory) -> None:
+    """Accessing the tracking schemas on a wide-layout factory raises
+    NotImplementedError on both tracking and tracking_spark properties."""
+    with pytest.raises(NotImplementedError):
+        _ = wide_factory.tracking
+    with pytest.raises(NotImplementedError):
+        _ = wide_factory.tracking_spark
+
+
+def assert_pyspark_struct_first_field_is_game_id(factory) -> None:
+    """`factory.tracking_spark` is a pyspark StructType with `game_id` as
+    the first field (when include_game_id=True, the default).
+    """
+    pytest.importorskip("pyspark")
+    from pyspark.sql.types import StructType
+    assert isinstance(factory.tracking_spark, StructType), (
+        f"expected StructType, got {type(factory.tracking_spark).__name__}"
+    )
+    first = factory.tracking_spark.fields[0]
+    assert first.name == "game_id", (
+        f"expected first field to be 'game_id', got {first.name!r}"
+    )

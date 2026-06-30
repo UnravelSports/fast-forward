@@ -175,24 +175,15 @@ class TestOptavisionArrowSparkDialect:
 
     def test_arrow_uses_string_view(self, raw_bytes, meta_bytes):
         ds = optavision.load_tracking(raw_bytes, meta_bytes, engine="arrow")
-        team_id_t = ds.tracking.schema.field("team_id").type
-        assert pa.types.is_string_view(team_id_t), (
-            f"expected string_view under engine='arrow', got {team_id_t}"
-        )
+        assert_arrow_engine_uses_string_view(ds)
 
     def test_arrow_spark_uses_string(self, raw_bytes, meta_bytes):
         ds = optavision.load_tracking(raw_bytes, meta_bytes, engine="arrow[spark]")
-        team_id_t = ds.tracking.schema.field("team_id").type
-        assert pa.types.is_string(team_id_t) and not pa.types.is_string_view(team_id_t), (
-            f"expected plain string under engine='arrow[spark]', got {team_id_t}"
-        )
+        assert_arrow_spark_engine_uses_string(ds)
 
     def test_arrow_spark_timestamp_is_int64_ms(self, raw_bytes, meta_bytes):
         ds = optavision.load_tracking(raw_bytes, meta_bytes, engine="arrow[spark]")
-        ts_t = ds.tracking.schema.field("timestamp").type
-        assert pa.types.is_int64(ts_t), (
-            f"expected int64 under engine='arrow[spark]', got {ts_t}"
-        )
+        assert_arrow_spark_engine_timestamp_int64(ds)
 
 
 # --------------------------------------------------------------------------- #
@@ -206,26 +197,18 @@ class TestOptavisionArrowSchemas:
         s = optavision.schemas(
             layout="long", include_ball_owning_player=True, engine="arrow[spark]",
         )
-        assert s.tracking == ds.tracking.schema
-        assert s.metadata == ds.metadata.schema
-        assert s.teams == ds.teams.schema
-        assert s.players == ds.players.schema
-        assert s.periods == ds.periods.schema
+        assert_schemas_factory_matches_dataset(s, ds)
 
     def test_dataset_schemas_property_matches_factory(self, raw_bytes, meta_bytes):
         ds = optavision.load_tracking(raw_bytes, meta_bytes, engine="arrow[spark]")
         factory = optavision.schemas(
             layout="long", include_ball_owning_player=True, engine="arrow[spark]",
         )
-        assert ds.schemas.tracking == factory.tracking
-        assert ds.schemas.tracking_spark == factory.tracking_spark
+        assert_dataset_schemas_property_matches_factory(ds, factory)
 
     def test_wide_layout_schemas_raises(self):
         s = optavision.schemas(layout="wide", engine="arrow[spark]")
-        with pytest.raises(NotImplementedError):
-            _ = s.tracking
-        with pytest.raises(NotImplementedError):
-            _ = s.tracking_spark
+        assert_wide_layout_schemas_raises(s)
 
     def test_schemas_engine_polars_uses_polars_dialect(self):
         s = optavision.schemas(layout="long", engine="polars")
@@ -238,13 +221,8 @@ class TestOptavisionArrowSchemas:
         assert pa.types.is_string(team_id_t) and not pa.types.is_string_view(team_id_t)
 
     def test_pyspark_struct_type_available(self):
-        pyspark = pytest.importorskip("pyspark")
         s = optavision.schemas(layout="long", engine="arrow[spark]")
-        from pyspark.sql.types import StructType
-        assert isinstance(s.tracking_spark, StructType)
-        # First field should be game_id (string) when include_game_id=True (default)
-        first = s.tracking_spark.fields[0]
-        assert first.name == "game_id"
+        assert_pyspark_struct_first_field_is_game_id(s)
 
 
 # --------------------------------------------------------------------------- #
@@ -259,6 +237,16 @@ from tests._arrow_helpers import (
     assert_to_arrow_idempotent,
     assert_arrow_accepts_bytes_like,
     assert_arrow_rejects_paths,
+    assert_arrow_accepts_buffered_reader,
+    assert_arrow_accepts_gzip_stream,
+    assert_arrow_engine_uses_string_view,
+    assert_arrow_spark_engine_uses_string,
+    assert_arrow_engine_timestamp_duration_ms,
+    assert_arrow_spark_engine_timestamp_int64,
+    assert_schemas_factory_matches_dataset,
+    assert_dataset_schemas_property_matches_factory,
+    assert_wide_layout_schemas_raises,
+    assert_pyspark_struct_first_field_is_game_id,
 )
 
 
@@ -266,8 +254,7 @@ class TestOptavisionArrowTimestampDialect:
 
     def test_arrow_timestamp_is_duration_ms(self, raw_bytes, meta_bytes):
         ds = optavision.load_tracking(raw_bytes, meta_bytes, engine="arrow")
-        ts_t = ds.tracking.schema.field("timestamp").type
-        assert pa.types.is_duration(ts_t) and ts_t.unit == "ms"
+        assert_arrow_engine_timestamp_duration_ms(ds)
 
 
 class TestOptavisionArrowTransforms:
@@ -307,6 +294,12 @@ class TestOptavisionArrowInputContract:
 
     def test_path_string_rejected_on_arrow(self):
         assert_arrow_rejects_paths(_ov_load_arrow, OV_RAW, OV_META)
+
+    def test_accepts_buffered_reader(self, raw_bytes, meta_bytes, tmp_path):
+        assert_arrow_accepts_buffered_reader(_ov_load_arrow, tmp_path, raw_bytes, meta_bytes)
+
+    def test_accepts_gzip_stream(self, raw_bytes, meta_bytes):
+        assert_arrow_accepts_gzip_stream(_ov_load_arrow, raw_bytes, meta_bytes)
 
 
 class TestOptavisionArrowIncludeGameId:
