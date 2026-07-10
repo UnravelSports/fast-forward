@@ -6,7 +6,7 @@ All notable changes to **fast-forward** are documented here. Format loosely foll
 
 ---
 
-## [v0.2.0] — unreleased
+## [v0.2.0] — 2026-07-10
 
 ### New
 - `engine="arrow"` and `engine="arrow[spark]"` now supported on all 12 providers.
