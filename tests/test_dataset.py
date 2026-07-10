@@ -299,12 +299,12 @@ class TestTrackingDatasetWithDifferentProviders:
         from fastforward import hawkeye
 
         ball_files = [
-            str(DATA_DIR / "hawkeye_1_1.football.samples.ball"),
-            str(DATA_DIR / "hawkeye_2_46.football.samples.ball"),
+            str(DATA_DIR / "hawkeye_1_1.football.samples.ball.gz"),
+            str(DATA_DIR / "hawkeye_2_46.football.samples.ball.gz"),
         ]
         player_files = [
-            str(DATA_DIR / "hawkeye_1_1.football.samples.centroids"),
-            str(DATA_DIR / "hawkeye_2_46.football.samples.centroids"),
+            str(DATA_DIR / "hawkeye_1_1.football.samples.centroids.gz"),
+            str(DATA_DIR / "hawkeye_2_46.football.samples.centroids.gz"),
         ]
         meta_json = str(DATA_DIR / "hawkeye_meta.json")
 
