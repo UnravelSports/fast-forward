@@ -52,6 +52,20 @@ def _extract_period_minute(filename: str) -> Tuple[int, int]:
     return int(m.group(1)), int(m.group(2))
 
 
+def _maybe_gunzip(data: bytes) -> bytes:
+    """Inflate gzip-compressed payloads (magic 0x1f 0x8b); pass others through.
+
+    Applied to the byte buffers handed to Rust so the arrow engines (which are
+    bytes-only and never touch kloppy) accept ``.gz`` inputs too. FileLike inputs
+    are already decompressed by kloppy, so the magic check is a no-op there.
+    """
+    if len(data) >= 2 and data[0] == 0x1F and data[1] == 0x8B:
+        import gzip
+
+        return gzip.decompress(data)
+    return data
+
+
 @with_error_handler
 def load_tracking(
     ball_data: Union["FileLike", List["FileLike"], bytes, bytearray, memoryview, List[Tuple[int, int, bytes]]],
@@ -195,6 +209,12 @@ def load_tracking(
         arrow_engine=arrow_engine,
         engine=engine,
     )
+
+    # ---- Transparently inflate any gzip-compressed payloads before Rust parses
+    # them as JSON. Covers every engine/input shape; already-plain bytes are a no-op.
+    ball_triples = [(p, m, _maybe_gunzip(b)) for (p, m, b) in ball_triples]
+    player_triples = [(p, m, _maybe_gunzip(b)) for (p, m, b) in player_triples]
+    meta_bytes = _maybe_gunzip(meta_bytes)
 
     # ---- Dispatch to Rust based on engine. include_game_id passed through
     # directly: Rust resolves True/False/str/None per the standard semantics.

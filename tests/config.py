@@ -50,10 +50,10 @@ SP_RAW_W_REF = str(DATA_DIR / "sportec_positional_w_referee.xml")
 HE_META_JSON = str(DATA_DIR / "hawkeye_meta.json")
 HE_META_XML = str(DATA_DIR / "hawkeye_meta.xml")
 HE_META_XML_BOM = str(DATA_DIR / "hawkeye_meta_bom.xml")
-HE_BALL_1 = str(DATA_DIR / "hawkeye_1_1.football.samples.ball")
-HE_BALL_2 = str(DATA_DIR / "hawkeye_2_46.football.samples.ball")
-HE_PLAYER_1 = str(DATA_DIR / "hawkeye_1_1.football.samples.centroids")
-HE_PLAYER_2 = str(DATA_DIR / "hawkeye_2_46.football.samples.centroids")
+HE_BALL_1 = str(DATA_DIR / "hawkeye_1_1.football.samples.ball.gz")
+HE_BALL_2 = str(DATA_DIR / "hawkeye_2_46.football.samples.ball.gz")
+HE_PLAYER_1 = str(DATA_DIR / "hawkeye_1_1.football.samples.centroids.gz")
+HE_PLAYER_2 = str(DATA_DIR / "hawkeye_2_46.football.samples.centroids.gz")
 HE_BALL_FILES = [HE_BALL_1, HE_BALL_2]
 HE_PLAYER_FILES = [HE_PLAYER_1, HE_PLAYER_2]
 

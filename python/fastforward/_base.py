@@ -214,7 +214,8 @@ def discover_files_in_directory(
     if not dir_path.is_dir():
         raise ValueError(f"Not a directory: {directory}")
 
-    files = list(dir_path.glob(pattern))
+    # Match both plain and gzip-compressed fixtures (e.g. "*.ball" and "*.ball.gz").
+    files = list(dir_path.glob(pattern)) + list(dir_path.glob(pattern + ".gz"))
 
     if not files:
         raise ValueError(f"No files matching '{pattern}' found in {directory}")
@@ -224,7 +225,7 @@ def discover_files_in_directory(
         # Pattern: {prefix}_{period}_{minute}[_{extra_minute}].{extension}
         # Match the LAST 2-3 digit groups before the file extension (anchored to end)
         match = re.search(
-            r"_(\d{1,2})_(\d{1,3})(?:_(\d{1,2}))?\.(?:football\.samples\.)?(ball|centroids)$",
+            r"_(\d{1,2})_(\d{1,3})(?:_(\d{1,2}))?\.(?:football\.samples\.)?(ball|centroids)(?:\.gz)?$",
             path.name,
         )
         if match:
