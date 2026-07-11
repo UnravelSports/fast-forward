@@ -679,6 +679,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/distributed-compute/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Distributed Compute
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -862,6 +890,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../optavision/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OptaVision
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../respovision/" class="md-nav__link">
         
   
@@ -870,6 +926,34 @@
     
   
     Respovision
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../scisports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SciSports
   
 
     
@@ -1043,6 +1127,39 @@
     <span class="md-ellipsis">
       
         Example
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ball-owning-player" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ball-Owning Player
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#detection-flag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Detection Flag
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#staged-rollout-notice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Staged Rollout Notice
       
     </span>
   </a>
@@ -1312,6 +1429,39 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#ball-owning-player" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ball-Owning Player
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#detection-flag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Detection Flag
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#staged-rollout-notice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Staged Rollout Notice
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#notes" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1412,13 +1562,26 @@
 <td>Add game_id column</td>
 </tr>
 <tr>
+<td><code>include_ball_owning_player</code></td>
+<td>bool</td>
+<td><code>False</code> <em>(0.2.0: <code>True</code>)</em></td>
+<td>Add the <code>ball_owning_player_id</code> column</td>
+</tr>
+<tr>
+<td><code>include_is_detected</code></td>
+<td>bool</td>
+<td><code>False</code> <em>(0.2.0: <code>True</code>)</em></td>
+<td>Add the <code>is_detected</code> column (long / long_ball only)</td>
+</tr>
+<tr>
 <td><code>engine</code></td>
 <td>str</td>
 <td><code>"polars"</code></td>
-<td><code>"polars"</code> or <code>"pyspark"</code></td>
+<td><code>"polars"</code>, <code>"pyspark"</code>, <code>"arrow"</code>, or <code>"arrow[spark]"</code></td>
 </tr>
 </tbody>
 </table>
+<p>All four engines are supported. For distributed compute (Spark, Ray, Dask), see <a href="../../concepts/distributed-compute/">Distributed Compute</a>.</p>
 <h2 id="file-format">File Format<a class="headerlink" href="#file-format" title="Permanent link">&para;</a></h2>
 <p><strong>Tracking data</strong> (JSONL): Typically named <code>tracking_extrapolated.jsonl</code>. One JSON object per frame.</p>
 <p><strong>Metadata</strong> (JSON): Typically named <code>match.json</code>. Contains match info, teams, and players.</p>
@@ -1434,6 +1597,46 @@
 <a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="nb">print</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">tracking</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 <a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">players</span><span class="p">)</span>
 </code></pre></div>
+<h2 id="ball-owning-player">Ball-Owning Player<a class="headerlink" href="#ball-owning-player" title="Permanent link">&para;</a></h2>
+<p>SkillCorner exports include the player UUID currently in possession on each frame. With <code>include_ball_owning_player=True</code>, an extra column is attached:</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ball_owning_player_id</code></td>
+<td>Utf8</td>
+<td>Player UUID in possession; null when not recorded or attributed to a non-roster entity (e.g. referee)</td>
+</tr>
+</tbody>
+</table>
+<p>Values match <code>dataset.players["player_id"]</code>. Set <code>include_ball_owning_player=False</code> to exclude this column.</p>
+<h2 id="detection-flag">Detection Flag<a class="headerlink" href="#detection-flag" title="Permanent link">&para;</a></h2>
+<p>With <code>include_is_detected=True</code>, every player row gets a boolean flag:</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>is_detected</code></td>
+<td>Bool</td>
+<td>True = camera-detected, False = extrapolated</td>
+</tr>
+</tbody>
+</table>
+<p>In long layout, the ball row's <code>is_detected</code> is null (the concept does not apply to the ball). The flag is only added for the <code>long</code> and <code>long_ball</code> layouts; <code>wide</code> is not supported.</p>
+<h2 id="staged-rollout-notice">Staged Rollout Notice<a class="headerlink" href="#staged-rollout-notice" title="Permanent link">&para;</a></h2>
+<p><code>include_ball_owning_player</code> and <code>include_is_detected</code> currently default to <code>False</code> on 0.1.x. <strong>In fast-forward 0.2.0 both defaults will flip to <code>True</code></strong>, adding new columns to the SkillCorner tracking DataFrame by default. To silence the <code>FutureWarning</code> and lock in your preferred behaviour, pass an explicit value (<code>True</code> or <code>False</code>) when calling <code>load_tracking</code>.</p>
 <h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>
 <ul>
 <li>SkillCorner uses CDF-compatible coordinates natively (center origin, meters)</li>

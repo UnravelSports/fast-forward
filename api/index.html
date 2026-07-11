@@ -679,6 +679,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/distributed-compute/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Distributed Compute
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -859,6 +887,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../providers/optavision/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OptaVision
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../providers/respovision/" class="md-nav__link">
         
   
@@ -867,6 +923,34 @@
     
   
     Respovision
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../providers/scisports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SciSports
   
 
     
@@ -2482,7 +2566,7 @@
 
     <div class="doc doc-contents ">
 
-        <p>Get the DataFrame engine ('polars' or 'pyspark').</p>
+        <p>Get the DataFrame engine ('polars', 'pyspark', or 'arrow').</p>
 
     </div>
 
@@ -2577,40 +2661,10 @@
     <div class="doc doc-contents ">
 
         <p>Convert all DataFrames to Polars.</p>
-<p>If already using Polars engine, returns self unchanged.
-For PySpark DataFrames, converts via Arrow/pandas interchange.</p>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><a class="autorefs autorefs-internal" title="fastforward._dataset.TrackingDataset" href="#fastforward._dataset.TrackingDataset">TrackingDataset</a></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>New TrackingDataset with all Polars DataFrames,
-or self if already Polars.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset_spark</span> <span class="o">=</span> <span class="n">secondspectrum</span><span class="o">.</span><span class="n">load_tracking</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;pyspark&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset_polars</span> <span class="o">=</span> <span class="n">dataset_spark</span><span class="o">.</span><span class="n">to_polars</span><span class="p">()</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset_polars</span><span class="o">.</span><span class="n">engine</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="go">&#39;polars&#39;</span>
-</code></pre></div>
+<p>If already using Polars engine, returns self unchanged. Arrow tables
+are converted zero-copy via <code>pl.from_arrow</code> (Arrow C Data Interface
+capsule). PySpark DataFrames go via pandas (the round trip the JVM
+side wants).</p>
 
 
     </div>
@@ -2631,71 +2685,9 @@ or self if already Polars.</p>
     <div class="doc doc-contents ">
 
         <p>Convert all DataFrames to PySpark.</p>
-<p>If already using PySpark engine, returns self unchanged.
-For Polars DataFrames, converts via Arrow interchange.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                <code>spark</code>
-            </td>
-            <td>
-                  <code><span title="pyspark.sql.SparkSession">SparkSession</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>SparkSession to use. If None, gets or creates one.</p>
-              </div>
-            </td>
-            <td>
-                  <code>None</code>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-    <p><span class="doc-section-title">Returns:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Type</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td>
-                  <code><a class="autorefs autorefs-internal" title="fastforward._dataset.TrackingDataset" href="#fastforward._dataset.TrackingDataset">TrackingDataset</a></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>New TrackingDataset with all PySpark DataFrames,
-or self if already PySpark.</p>
-              </div>
-            </td>
-          </tr>
-      </tbody>
-    </table>
-
-
-<p><span class="doc-section-title">Examples:</span></p>
-    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset_polars</span> <span class="o">=</span> <span class="n">secondspectrum</span><span class="o">.</span><span class="n">load_tracking</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset_spark</span> <span class="o">=</span> <span class="n">dataset_polars</span><span class="o">.</span><span class="n">to_pyspark</span><span class="p">()</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset_spark</span><span class="o">.</span><span class="n">engine</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="go">&#39;pyspark&#39;</span>
-</code></pre></div>
+<p>If already using PySpark engine, returns self unchanged. Arrow tables
+go straight via <code>spark.createDataFrame(arrow_table)</code> (Spark 3.4+).
+Polars DataFrames convert through the Arrow capsule, skipping pandas.</p>
 
 
     </div>
@@ -2905,7 +2897,7 @@ Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.
                 <code>layout</code>
             </td>
             <td>
-                  <code>(<span title="long">long</span>, <span title="long_ball">long_ball</span>, <span title="wide">wide</span>)</code>
+                  <code>(&#39;long&#39;, &#39;long_ball&#39;, &#39;wide&#39;)</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2924,7 +2916,7 @@ Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.
                 <code>coordinates</code>
             </td>
             <td>
-                  <code><span title="fastforward.cdf">cdf</span></code>
+                  <code>&#39;cdf&#39;</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3013,13 +3005,17 @@ If str, use the provided string as the game_id value.</p>
                 <code>engine</code>
             </td>
             <td>
-                  <code>(<span title="polars">polars</span>, <span title="pyspark">pyspark</span>)</code>
+                  <code>(&#39;polars&#39;, &#39;pyspark&#39;, &#39;arrow&#39;, &#39;arrow[spark]&#39;)</code>
             </td>
             <td>
               <div class="doc-md-description">
                 <p>DataFrame engine to use:
 - "polars": Return Polars DataFrames (default)
-- "pyspark": Return PySpark DataFrames</p>
+- "pyspark": Return PySpark DataFrames
+- "arrow": Return pyarrow.Tables with Polars-style Arrow types
+  (string_view, duration[ms]). For Dask/Ray workers.
+- "arrow[spark]": Return pyarrow.Tables pre-normalized for Spark
+  consumption (string, int64 ms). For Spark mapInArrow UDFs.</p>
               </div>
             </td>
             <td>
@@ -3137,7 +3133,7 @@ Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.
                 <code>layout</code>
             </td>
             <td>
-                  <code>(<span title="long">long</span>, <span title="long_ball">long_ball</span>, <span title="wide">wide</span>)</code>
+                  <code>(&#39;long&#39;, &#39;long_ball&#39;, &#39;wide&#39;)</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3156,7 +3152,7 @@ Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.
                 <code>coordinates</code>
             </td>
             <td>
-                  <code><span title="fastforward.cdf">cdf</span></code>
+                  <code>&#39;cdf&#39;</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3246,13 +3242,17 @@ If str, use the provided string as the game_id value.</p>
                 <code>engine</code>
             </td>
             <td>
-                  <code>(<span title="polars">polars</span>, <span title="pyspark">pyspark</span>)</code>
+                  <code>(&#39;polars&#39;, &#39;pyspark&#39;, &#39;arrow&#39;, &#39;arrow[spark]&#39;)</code>
             </td>
             <td>
               <div class="doc-md-description">
                 <p>DataFrame engine to use:
 - "polars": Return Polars DataFrames (default)
-- "pyspark": Return PySpark DataFrames</p>
+- "pyspark": Return PySpark DataFrames
+- "arrow": Return pyarrow.Tables with Polars-style Arrow types
+  (string_view, duration[ms]). For Dask/Ray workers.
+- "arrow[spark]": Return pyarrow.Tables pre-normalized for Spark
+  consumption (string, int64 ms). For Spark mapInArrow UDFs.</p>
               </div>
             </td>
             <td>
@@ -3370,7 +3370,7 @@ Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.
                 <code>layout</code>
             </td>
             <td>
-                  <code>(<span title="long">long</span>, <span title="long_ball">long_ball</span>, <span title="wide">wide</span>)</code>
+                  <code>(&#39;long&#39;, &#39;long_ball&#39;, &#39;wide&#39;)</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3389,7 +3389,7 @@ Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.
                 <code>coordinates</code>
             </td>
             <td>
-                  <code><span title="fastforward.cdf">cdf</span></code>
+                  <code>&#39;cdf&#39;</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3475,16 +3475,63 @@ If str, use the provided string as the game_id value.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
+                <code>include_ball_owning_player</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, attach a <code>ball_owning_player_id</code> column to the tracking
+DataFrame carrying the player UUID currently in possession on each
+frame (null when SkillCorner did not record one). Omitting the kwarg
+currently behaves as False but emits a <code>FutureWarning</code>; pass an
+explicit value to silence the warning.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False (will become True in fastforward 0.2.0)</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>include_is_detected</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, attach an <code>is_detected</code> column to the tracking DataFrame
+(long / long_ball layouts) indicating whether each player position
+was camera-detected (True) or imputed/extrapolated (False). Ball
+rows in long layout receive null since the concept doesn't apply.
+Wide layout doesn't surface the flag yet; long or long_ball is
+recommended for detection-aware analyses. Omitting the kwarg
+currently behaves as False but emits a <code>FutureWarning</code>; pass an
+explicit value to silence the warning.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False (will become True in fastforward 0.2.0)</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
                 <code>engine</code>
             </td>
             <td>
-                  <code>(<span title="polars">polars</span>, <span title="pyspark">pyspark</span>)</code>
+                  <code>(&#39;polars&#39;, &#39;pyspark&#39;, &#39;arrow&#39;, &#39;arrow[spark]&#39;)</code>
             </td>
             <td>
               <div class="doc-md-description">
                 <p>DataFrame engine to use:
 - "polars": Return Polars DataFrames (default)
-- "pyspark": Return PySpark DataFrames</p>
+- "pyspark": Return PySpark DataFrames
+- "arrow": Return pyarrow.Tables with Polars-style Arrow types
+  (string_view, duration[ms]). For Dask/Ray workers.
+- "arrow[spark]": Return pyarrow.Tables pre-normalized for Spark
+  consumption (string, int64 ms). For Spark mapInArrow UDFs.</p>
               </div>
             </td>
             <td>
@@ -3602,7 +3649,7 @@ Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.
                 <code>layout</code>
             </td>
             <td>
-                  <code>(<span title="long">long</span>, <span title="long_ball">long_ball</span>, <span title="wide">wide</span>)</code>
+                  <code>(&#39;long&#39;, &#39;long_ball&#39;, &#39;wide&#39;)</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3621,7 +3668,7 @@ Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.
                 <code>coordinates</code>
             </td>
             <td>
-                  <code><span title="fastforward.cdf">cdf</span></code>
+                  <code>&#39;cdf&#39;</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3712,13 +3759,17 @@ AVAR (Assistant VAR), 4TH (Fourth Official)</p>
                 <code>engine</code>
             </td>
             <td>
-                  <code>(<span title="polars">polars</span>, <span title="pyspark">pyspark</span>)</code>
+                  <code>(&#39;polars&#39;, &#39;pyspark&#39;, &#39;arrow&#39;, &#39;arrow[spark]&#39;)</code>
             </td>
             <td>
               <div class="doc-md-description">
                 <p>DataFrame engine to use:
 - "polars": Return Polars DataFrames (default)
-- "pyspark": Return PySpark DataFrames</p>
+- "pyspark": Return PySpark DataFrames
+- "arrow": Return pyarrow.Tables with Polars-style Arrow types
+  (string_view, duration[ms]). For Dask/Ray workers.
+- "arrow[spark]": Return pyarrow.Tables pre-normalized for Spark
+  consumption (string, int64 ms). For Spark mapInArrow UDFs.</p>
               </div>
             </td>
             <td>
@@ -3840,7 +3891,7 @@ transformed to the target coordinate system.</p>
                 <code>layout</code>
             </td>
             <td>
-                  <code>(<span title="long">long</span>, <span title="long_ball">long_ball</span>, <span title="wide">wide</span>)</code>
+                  <code>(&#39;long&#39;, &#39;long_ball&#39;, &#39;wide&#39;)</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -3925,13 +3976,17 @@ If str, use the provided string as the game_id value.</p>
                 <code>engine</code>
             </td>
             <td>
-                  <code>(<span title="polars">polars</span>, <span title="pyspark">pyspark</span>)</code>
+                  <code>(&#39;polars&#39;, &#39;pyspark&#39;, &#39;arrow&#39;, &#39;arrow[spark]&#39;)</code>
             </td>
             <td>
               <div class="doc-md-description">
                 <p>DataFrame engine to use:
 - "polars": Return Polars DataFrames (default)
-- "pyspark": Return PySpark DataFrames</p>
+- "pyspark": Return PySpark DataFrames
+- "arrow": Return pyarrow.Tables with Polars-style Arrow types
+  (string_view, duration[ms]). For Dask/Ray workers.
+- "arrow[spark]": Return pyarrow.Tables pre-normalized for Spark
+  consumption (string, int64 ms). For Spark mapInArrow UDFs.</p>
               </div>
             </td>
             <td>
@@ -4013,6 +4068,22 @@ If engine="pyspark", all DataFrames are PySpark DataFrames.</p>
     <div class="doc doc-contents first">
 
         <p>Load HawkEye tracking data.</p>
+<p>Supports two modes, distinguished by whether <code>period</code> and <code>minute</code> are
+provided:</p>
+<ul>
+<li><strong>Multi-file mode</strong> (no <code>period</code>/<code>minute</code>): load a full match.
+  <code>ball_data</code> and <code>player_data</code> are lists — either <code>List[FileLike]</code>
+  (polars/pyspark only; kloppy resolves) or <code>List[(period, minute, bytes)]</code>
+  triples (any engine; no kloppy).</li>
+<li><strong>Single-file mode</strong> (<code>period</code> AND <code>minute</code> provided): load one minute
+  of one match. <code>ball_data</code> and <code>player_data</code> are single-shaped:
+  bytes-like (any engine) or single <code>FileLike</code> (polars/pyspark only).
+  <code>include_game_id</code> should be a string match_id when used for distributed
+  compute (so rows from different matches don't collide after union).</li>
+</ul>
+<p>Arrow engines (<code>"arrow"</code> / <code>"arrow[spark]"</code>) require bytes-only inputs
+— same kloppy-free contract as the other 8 providers. FileLike inputs on
+arrow engines raise <code>TypeError</code>.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4031,14 +4102,11 @@ If engine="pyspark", all DataFrames are PySpark DataFrames.</p>
                 <code>ball_data</code>
             </td>
             <td>
-                  <code><span title="kloppy.io.FileLike">FileLike</span> or <span title="typing.List">List</span>[<span title="kloppy.io.FileLike">FileLike</span>]</code>
+                  <code>FileLike, List[FileLike], bytes-like, or List[(period, minute, bytes)]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Ball tracking file(s). Can be:
-- Single FileLike: Path, bytes, or file-like object
-- List[FileLike]: Multiple ball files (one per minute)
-Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.</p>
+                <p>Ball tracking file input. See mode descriptions above.</p>
               </div>
             </td>
             <td>
@@ -4050,14 +4118,11 @@ Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.
                 <code>player_data</code>
             </td>
             <td>
-                  <code><span title="kloppy.io.FileLike">FileLike</span> or <span title="typing.List">List</span>[<span title="kloppy.io.FileLike">FileLike</span>]</code>
+                  <code>same shape as ball_data</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Player tracking file(s). Can be:
-- Single FileLike: Path, bytes, or file-like object
-- List[FileLike]: Multiple player files (one per minute)
-Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.</p>
+                <p>Player tracking file input.</p>
               </div>
             </td>
             <td>
@@ -4069,12 +4134,11 @@ Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.
                 <code>meta_data</code>
             </td>
             <td>
-                  <code><span title="kloppy.io.FileLike">FileLike</span></code>
+                  <code><span title="kloppy.io.FileLike">FileLike</span> or <span title="bytes">bytes</span> - <span title="like">like</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Path to metadata file (JSON or XML), or bytes, or file-like object.
-Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.</p>
+                <p>Metadata file (JSON or XML).</p>
               </div>
             </td>
             <td>
@@ -4086,53 +4150,15 @@ Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.
                 <code>layout</code>
             </td>
             <td>
-                  <code><span title="long">long</span></code>
+                  <code>(&#39;long&#39;, &#39;long_ball&#39;, &#39;wide&#39;)</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>DataFrame layout. Currently only "long" is supported.
-- "long": Ball as row with team_id="ball", player_id="ball"
-(TODO: "long_ball" and "wide" layouts)</p>
+                <p>Layout. <code>wide</code> rejected on arrow engines.</p>
               </div>
             </td>
             <td>
                   <code>&#34;long&#34;</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>coordinates</code>
-            </td>
-            <td>
-                  <code><span title="fastforward.cdf">cdf</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Coordinate system. Currently only "cdf" is supported.
-- "cdf": Common Data Format (origin at center, meters)
-(TODO: Other coordinate systems)</p>
-              </div>
-            </td>
-            <td>
-                  <code>&#34;cdf&#34;</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>orientation</code>
-            </td>
-            <td>
-                  <code><span title="static_home_away">static_home_away</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Coordinate orientation. Currently only "static_home_away" is supported.
-- "static_home_away": Home attacks right (+x) entire match
-(TODO: Other orientations)</p>
-              </div>
-            </td>
-            <td>
-                  <code>&#34;static_home_away&#34;</code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -4144,8 +4170,7 @@ Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If True, only include frames where ball is in play (play field == "In").
-Uses HawkEye's "play" field instead of typical "live" field.</p>
+                <p>Standard kwargs (see source).</p>
               </div>
             </td>
             <td>
@@ -4157,16 +4182,15 @@ Uses HawkEye's "play" field instead of typical "live" field.</p>
                 <code>pitch_length</code>
             </td>
             <td>
-                  <code><span title="float">float</span></code>
+                  <code><span title="bool">bool</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Pitch length in meters. Used as fallback if not in metadata.
-Metadata values take precedence if present.</p>
+                <p>Standard kwargs (see source).</p>
               </div>
             </td>
             <td>
-                  <code>105.0</code>
+                  <code>True</code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -4174,16 +4198,15 @@ Metadata values take precedence if present.</p>
                 <code>pitch_width</code>
             </td>
             <td>
-                  <code><span title="float">float</span></code>
+                  <code><span title="bool">bool</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Pitch width in meters. Used as fallback if not in metadata.
-Metadata values take precedence if present.</p>
+                <p>Standard kwargs (see source).</p>
               </div>
             </td>
             <td>
-                  <code>68.0</code>
+                  <code>True</code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -4191,34 +4214,11 @@ Metadata values take precedence if present.</p>
                 <code>object_id</code>
             </td>
             <td>
-                  <code>(<span title="fifa">fifa</span>, <span title="uefa">uefa</span>, <span title="he">he</span>, <span title="auto">auto</span>)</code>
+                  <code><span title="bool">bool</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Object ID preference for team and player identification:
-- "fifa": Use FIFA IDs (error if not present)
-- "uefa": Use UEFA IDs (error if not present)
-- "he": Use HawkEye IDs
-- "auto": Prefer FIFA &gt; UEFA &gt; HawkEye (automatic fallback)
-- Custom string: Use custom ID field (error if not found)</p>
-              </div>
-            </td>
-            <td>
-                  <code>&#34;fifa&#34;</code>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>include_game_id</code>
-            </td>
-            <td>
-                  <code><span title="bool">bool</span> or <span title="str">str</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>If True, add game_id column to tracking_df, team_df, and player_df from metadata.
-If False, no game_id column is added.
-If str, use the provided string as the game_id value.</p>
+                <p>Standard kwargs (see source).</p>
               </div>
             </td>
             <td>
@@ -4234,12 +4234,47 @@ If str, use the provided string as the game_id value.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If True, include officials in player_df and tracking data with team_id="officials"
-and position codes: REF (Main Referee), AREF (Assistant Referee).</p>
+                <p>Standard kwargs (see source).</p>
               </div>
             </td>
             <td>
-                  <code>False</code>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>period</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Single-file mode toggle. When both provided, single-file mode activates.
+When both absent, multi-file mode. Providing one without the other
+raises <code>ValueError</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>minute</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Single-file mode toggle. When both provided, single-file mode activates.
+When both absent, multi-file mode. Providing one without the other
+raises <code>ValueError</code>.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -4247,13 +4282,15 @@ and position codes: REF (Main Referee), AREF (Assistant Referee).</p>
                 <code>engine</code>
             </td>
             <td>
-                  <code>(<span title="polars">polars</span>, <span title="pyspark">pyspark</span>)</code>
+                  <code>(&#39;polars&#39;, &#39;pyspark&#39;, &#39;arrow&#39;, &#39;arrow[spark]&#39;)</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>DataFrame engine to use:
-- "polars": Return Polars DataFrames (default)
-- "pyspark": Return PySpark DataFrames</p>
+                <p>DataFrame engine. Output type matches:
+- "polars" → <code>pl.DataFrame</code> tables
+- "pyspark" → <code>spark.DataFrame</code> tables
+- "arrow" → <code>pyarrow.Table</code> tables with Polars-style Arrow types
+- "arrow[spark]" → <code>pyarrow.Table</code> tables with Spark-compat types</p>
               </div>
             </td>
             <td>
@@ -4269,8 +4306,7 @@ and position codes: REF (Main Referee), AREF (Assistant Referee).</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>PySpark SparkSession to use. If None and engine="pyspark",
-will get or create a session automatically.</p>
+                <p>PySpark session for engine="pyspark".</p>
               </div>
             </td>
             <td>
@@ -4296,9 +4332,7 @@ will get or create a session automatically.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Object with .tracking, .metadata, .teams, .players, .periods properties.
-If engine="polars", .tracking returns pl.DataFrame.
-If engine="pyspark", all DataFrames are PySpark DataFrames.</p>
+                <p>With <code>.tracking</code>, <code>.metadata</code>, <code>.teams</code>, <code>.players</code>, <code>.periods</code>.</p>
               </div>
             </td>
           </tr>
@@ -4306,27 +4340,23 @@ If engine="pyspark", all DataFrames are PySpark DataFrames.</p>
     </table>
 
 
-<details class="note" open>
-  <summary>Notes</summary>
-  <ul>
-<li>Officials are excluded by default; set include_officials=True to include them</li>
-<li>Period and minute are extracted from filename patterns like hawkeye_1_1.ball</li>
-</ul>
-</details>
-
 <p><span class="doc-section-title">Examples:</span></p>
-    <p>Load from file paths:</p>
-    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">ball_files</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;hawkeye_1_1.ball&quot;</span><span class="p">,</span> <span class="s2">&quot;hawkeye_1_2.ball&quot;</span><span class="p">]</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">player_files</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;hawkeye_1_1.centroids&quot;</span><span class="p">,</span> <span class="s2">&quot;hawkeye_1_2.centroids&quot;</span><span class="p">]</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">load_tracking</span><span class="p">(</span><span class="n">ball_files</span><span class="p">,</span> <span class="n">player_files</span><span class="p">,</span> <span class="s2">&quot;hawkeye_meta.json&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">tracking_df</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">tracking</span>
+    <p>Multi-file from disk (existing behavior):</p>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">ds</span> <span class="o">=</span> <span class="n">hawkeye</span><span class="o">.</span><span class="n">load_tracking</span><span class="p">(</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">... </span>    <span class="n">ball_data</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;hawkeye_1_1.ball&quot;</span><span class="p">,</span> <span class="s2">&quot;hawkeye_1_2.ball&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">... </span>    <span class="n">player_data</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;hawkeye_1_1.centroids&quot;</span><span class="p">,</span> <span class="s2">&quot;hawkeye_1_2.centroids&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="gp">... </span>    <span class="n">meta_data</span><span class="o">=</span><span class="s2">&quot;hawkeye_meta.json&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="gp">... </span>    <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;polars&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="gp">... </span><span class="p">)</span>
 </code></pre></div>
-    <p>Load with specific object ID preference:</p>
-    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">load_tracking</span><span class="p">(</span><span class="n">ball_files</span><span class="p">,</span> <span class="n">player_files</span><span class="p">,</span> <span class="s2">&quot;hawkeye_meta.json&quot;</span><span class="p">,</span> <span class="n">object_id</span><span class="o">=</span><span class="s2">&quot;fifa&quot;</span><span class="p">)</span>
-</code></pre></div>
-    <p>PySpark engine:</p>
-    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">load_tracking</span><span class="p">(</span><span class="n">ball_files</span><span class="p">,</span> <span class="n">player_files</span><span class="p">,</span> <span class="s2">&quot;hawkeye_meta.json&quot;</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;pyspark&quot;</span><span class="p">)</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span><span class="o">.</span><span class="n">tracking</span><span class="o">.</span><span class="n">show</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+    <p>Single-file for distributed compute:</p>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">ds</span> <span class="o">=</span> <span class="n">hawkeye</span><span class="o">.</span><span class="n">load_tracking</span><span class="p">(</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">... </span>    <span class="n">ball_data</span><span class="o">=</span><span class="n">ball_bytes</span><span class="p">,</span> <span class="n">player_data</span><span class="o">=</span><span class="n">player_bytes</span><span class="p">,</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">... </span>    <span class="n">meta_data</span><span class="o">=</span><span class="n">meta_bytes</span><span class="p">,</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="gp">... </span>    <span class="n">period</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">minute</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="gp">... </span>    <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;arrow[spark]&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="gp">... </span>    <span class="n">include_game_id</span><span class="o">=</span><span class="s2">&quot;match_uuid_42&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="gp">... </span><span class="p">)</span>
 </code></pre></div>
 
 
@@ -4343,6 +4373,21 @@ If engine="pyspark", all DataFrames are PySpark DataFrames.</p>
     <div class="doc doc-contents first">
 
         <p>Load Signality tracking data.</p>
+<p>Supports two modes, distinguished by whether <code>period</code> is provided:</p>
+<ul>
+<li><strong>Multi-file mode</strong> (no <code>period</code>): load a full match.
+  <code>raw_data_feeds</code> is a list — either <code>List[FileLike]</code> (polars/pyspark
+  only; kloppy resolves) or <code>List[(period, bytes)]</code> pairs (any engine; no
+  kloppy).</li>
+<li><strong>Single-file mode</strong> (<code>period</code> provided): load one period of one match.
+  <code>raw_data_feeds</code> is single-shaped: bytes-like (any engine) or single
+  <code>FileLike</code> (polars/pyspark only). <code>include_game_id</code> should be a
+  string match_id when used for distributed compute (so rows from
+  different matches don't collide after union).</li>
+</ul>
+<p>Arrow engines (<code>"arrow"</code> / <code>"arrow[spark]"</code>) require bytes-only inputs
+— same kloppy-free contract as the other 11 providers. FileLike inputs on
+arrow engines raise <code>TypeError</code>.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -4361,12 +4406,11 @@ If engine="pyspark", all DataFrames are PySpark DataFrames.</p>
                 <code>meta_data</code>
             </td>
             <td>
-                  <code><span title="kloppy.io.FileLike">FileLike</span></code>
+                  <code><span title="kloppy.io.FileLike">FileLike</span> or <span title="bytes">bytes</span> - <span title="like">like</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Path to metadata file (JSON), or bytes, or file-like object.
-Contains team names, player info, lineups, and match timestamp.</p>
+                <p>Metadata file (JSON).</p>
               </div>
             </td>
             <td>
@@ -4378,14 +4422,11 @@ Contains team names, player info, lineups, and match timestamp.</p>
                 <code>raw_data_feeds</code>
             </td>
             <td>
-                  <code><span title="kloppy.io.FileLike">FileLike</span> or <span title="typing.List">List</span>[<span title="kloppy.io.FileLike">FileLike</span>]</code>
+                  <code>FileLike, List[FileLike], bytes-like, or List[(period, bytes)]</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Raw tracking data file(s). Can be:
-- Single FileLike: Path, bytes, or file-like object
-- List[FileLike]: Multiple files (one per period)
-Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths.</p>
+                <p>Raw-data input. See mode descriptions above.</p>
               </div>
             </td>
             <td>
@@ -4397,11 +4438,11 @@ Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths.</p>
                 <code>venue_information</code>
             </td>
             <td>
-                  <code><span title="kloppy.io.FileLike">FileLike</span></code>
+                  <code><span title="kloppy.io.FileLike">FileLike</span> or <span title="bytes">bytes</span> - <span title="like">like</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Path to venue information file (JSON) containing pitch dimensions.</p>
+                <p>Venue information file (JSON).</p>
               </div>
             </td>
             <td>
@@ -4413,14 +4454,11 @@ Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths.</p>
                 <code>layout</code>
             </td>
             <td>
-                  <code>(<span title="long">long</span>, <span title="long_ball">long_ball</span>, <span title="wide">wide</span>)</code>
+                  <code>(&#39;long&#39;, &#39;long_ball&#39;, &#39;wide&#39;)</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>DataFrame layout:
-- "long": Ball as row with team_id="ball", player_id="ball"
-- "long_ball": Ball in separate columns, only player rows
-- "wide": One row per frame, player_id in column names</p>
+                <p>Layout. <code>wide</code> rejected on arrow engines.</p>
               </div>
             </td>
             <td>
@@ -4436,10 +4474,7 @@ Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Coordinate system. Options:
-- "cdf": Common Data Format (origin at center, meters)
-- "signality": Native coordinates (same as CDF)
-- Other provider coordinate systems</p>
+                <p>Coordinate system to transform into.</p>
               </div>
             </td>
             <td>
@@ -4455,9 +4490,7 @@ Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Coordinate orientation:
-- "static_home_away": Home attacks right (+x) entire match
-- Other orientations available</p>
+                <p>Orientation convention.</p>
               </div>
             </td>
             <td>
@@ -4473,7 +4506,7 @@ Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If True, only include frames where ball is in play ("running" state).</p>
+                <p>If True, drop frames where the ball is not alive.</p>
               </div>
             </td>
             <td>
@@ -4489,9 +4522,8 @@ Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If True, add game_id column from metadata.
-If False, no game_id column is added.
-If str, use the provided string as the game_id value.</p>
+                <p>Whether to include a <code>game_id</code> column. Pass a string to override the
+match id (required in single-file mode for distributed compute).</p>
               </div>
             </td>
             <td>
@@ -4507,8 +4539,7 @@ If str, use the provided string as the game_id value.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If True, include officials in player_df and tracking data with team_id="officials"
-and position codes: REF (Main Referee), AREF (Assistant Referee), FOURTH (4th Official).</p>
+                <p>Include referees/assistants as rows in the tracking dataframe.</p>
               </div>
             </td>
             <td>
@@ -4517,18 +4548,19 @@ and position codes: REF (Main Referee), AREF (Assistant Referee), FOURTH (4th Of
           </tr>
           <tr class="doc-section-item">
             <td>
-                <code>parallel</code>
+                <code>period</code>
             </td>
             <td>
-                  <code><span title="bool">bool</span></code>
+                  <code><span title="int">int</span></code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If True, process multiple files in parallel using rayon.</p>
+                <p>Single-file mode toggle. When provided, single-file mode activates and
+<code>raw_data_feeds</code> must be single-shaped.</p>
               </div>
             </td>
             <td>
-                  <code>True</code>
+                  <code>None</code>
             </td>
           </tr>
           <tr class="doc-section-item">
@@ -4536,13 +4568,15 @@ and position codes: REF (Main Referee), AREF (Assistant Referee), FOURTH (4th Of
                 <code>engine</code>
             </td>
             <td>
-                  <code>(<span title="polars">polars</span>, <span title="pyspark">pyspark</span>)</code>
+                  <code>(&#39;polars&#39;, &#39;pyspark&#39;, &#39;arrow&#39;, &#39;arrow[spark]&#39;)</code>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>DataFrame engine to use:
-- "polars": Return Polars DataFrames (default)
-- "pyspark": Return PySpark DataFrames</p>
+                <p>DataFrame engine. Output type matches:
+- "polars" → <code>pl.DataFrame</code> tables
+- "pyspark" → <code>spark.DataFrame</code> tables
+- "arrow" → <code>pyarrow.Table</code> tables with Polars-style Arrow types
+- "arrow[spark]" → <code>pyarrow.Table</code> tables with Spark-compat types</p>
               </div>
             </td>
             <td>
@@ -4558,8 +4592,7 @@ and position codes: REF (Main Referee), AREF (Assistant Referee), FOURTH (4th Of
             </td>
             <td>
               <div class="doc-md-description">
-                <p>PySpark SparkSession to use. If None and engine="pyspark",
-will get or create a session automatically.</p>
+                <p>PySpark session for engine="pyspark".</p>
               </div>
             </td>
             <td>
@@ -4585,7 +4618,7 @@ will get or create a session automatically.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Object with .tracking, .metadata, .teams, .players, .periods properties.</p>
+                <p>With <code>.tracking</code>, <code>.metadata</code>, <code>.teams</code>, <code>.players</code>, <code>.periods</code>.</p>
               </div>
             </td>
           </tr>
@@ -4593,24 +4626,24 @@ will get or create a session automatically.</p>
     </table>
 
 
-<details class="note" open>
-  <summary>Notes</summary>
-  <ul>
-<li>Signality uses center-origin coordinates in meters (same as CDF)</li>
-<li>Period is extracted from filename patterns like signality_p1_raw_data.json</li>
-<li>Frame rate is typically 25 Hz (40ms between frames)</li>
-</ul>
-</details>
-
 <p><span class="doc-section-title">Examples:</span></p>
-    <p>Load from file paths:</p>
-    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">fastforward</span><span class="w"> </span><span class="kn">import</span> <span class="n">signality</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">signality</span><span class="o">.</span><span class="n">load_tracking</span><span class="p">(</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">... </span>    <span class="n">meta_data</span><span class="o">=</span><span class="s2">&quot;signality_meta_data.json&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="gp">... </span>    <span class="n">raw_data_feeds</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;signality_p1_raw_data.json&quot;</span><span class="p">,</span> <span class="s2">&quot;signality_p2_raw_data.json&quot;</span><span class="p">],</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="gp">... </span>    <span class="n">venue_information</span><span class="o">=</span><span class="s2">&quot;signality_venue_information.json&quot;</span><span class="p">,</span>
+    <p>Multi-file from disk (existing behavior):</p>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">ds</span> <span class="o">=</span> <span class="n">signality</span><span class="o">.</span><span class="n">load_tracking</span><span class="p">(</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">... </span>    <span class="n">meta_data</span><span class="o">=</span><span class="s2">&quot;signality_meta_data.json&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">... </span>    <span class="n">raw_data_feeds</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;signality_p1_raw_data.json&quot;</span><span class="p">,</span> <span class="s2">&quot;signality_p2_raw_data.json&quot;</span><span class="p">],</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="gp">... </span>    <span class="n">venue_information</span><span class="o">=</span><span class="s2">&quot;signality_venue_information.json&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="gp">... </span>    <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;polars&quot;</span><span class="p">,</span>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="gp">... </span><span class="p">)</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">tracking_df</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">tracking</span>
+</code></pre></div>
+    <p>Single-file (per-period) for distributed compute:</p>
+    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">ds</span> <span class="o">=</span> <span class="n">signality</span><span class="o">.</span><span class="n">load_tracking</span><span class="p">(</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">... </span>    <span class="n">meta_data</span><span class="o">=</span><span class="n">meta_bytes</span><span class="p">,</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">... </span>    <span class="n">raw_data_feeds</span><span class="o">=</span><span class="n">raw_bytes</span><span class="p">,</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="gp">... </span>    <span class="n">venue_information</span><span class="o">=</span><span class="n">venue_bytes</span><span class="p">,</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="gp">... </span>    <span class="n">period</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="gp">... </span>    <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;arrow[spark]&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="gp">... </span>    <span class="n">include_game_id</span><span class="o">=</span><span class="s2">&quot;match_uuid_42&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="gp">... </span><span class="p">)</span>
 </code></pre></div>
 
 
@@ -4711,7 +4744,7 @@ pitch dimensions, so this must be provided. Default: 68.0m.</p>
                 <code>layout</code>
             </td>
             <td>
-                  <code>(<span title="long">long</span>, <span title="long_ball">long_ball</span>, <span title="wide">wide</span>)</code>
+                  <code>(&#39;long&#39;, &#39;long_ball&#39;, &#39;wide&#39;)</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -4811,6 +4844,45 @@ with team_id="officials" and appropriate position codes (REF, AREF, 4TH).</p>
                   <code>False</code>
             </td>
           </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>engine</code>
+            </td>
+            <td>
+                  <code>(&#39;polars&#39;, &#39;pyspark&#39;, &#39;arrow&#39;, &#39;arrow[spark]&#39;)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataFrame engine to use:
+- "polars": Return Polars DataFrames (default)
+- "pyspark": Return PySpark DataFrames
+- "arrow": Return pyarrow.Tables with Polars-style Arrow types
+  (string_view, duration[ms]). For Dask/Ray workers.
+- "arrow[spark]": Return pyarrow.Tables pre-normalized for Spark
+  consumption (string, int64 ms). For Spark mapInArrow UDFs.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;polars&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>spark_session</code>
+            </td>
+            <td>
+                  <code><span title="pyspark.sql.SparkSession">SparkSession</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>PySpark SparkSession to use. If None and engine="pyspark",
+will get or create a session automatically.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
       </tbody>
     </table>
 
@@ -4884,7 +4956,8 @@ with team_id="officials" and appropriate position codes (REF, AREF, 4TH).</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Path to JSONL tracking file</p>
+                <p>Path to JSONL tracking file, or bytes, or file-like object.
+Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.</p>
               </div>
             </td>
             <td>
@@ -4900,7 +4973,7 @@ with team_id="officials" and appropriate position codes (REF, AREF, 4TH).</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Path to JSON metadata file</p>
+                <p>Path to JSON metadata file, or bytes, or file-like object.</p>
               </div>
             </td>
             <td>
@@ -4916,7 +4989,9 @@ with team_id="officials" and appropriate position codes (REF, AREF, 4TH).</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Path to JSON roster file</p>
+                <p>Path to JSON roster file, or bytes, or file-like object.
+Resolved to bytes by the framework before dispatch — engine-aware
+(kloppy on polars/pyspark, no-kloppy on arrow).</p>
               </div>
             </td>
             <td>
@@ -4928,7 +5003,7 @@ with team_id="officials" and appropriate position codes (REF, AREF, 4TH).</p>
                 <code>layout</code>
             </td>
             <td>
-                  <code>(<span title="long">long</span>, <span title="long_ball">long_ball</span>, <span title="wide">wide</span>)</code>
+                  <code>(&#39;long&#39;, &#39;long_ball&#39;, &#39;wide&#39;)</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5012,7 +5087,7 @@ If False (default), only include frames with complete data.</p>
                 <code>include_game_id</code>
             </td>
             <td>
-                  <code><span title="typing.Union">Union</span>[<span title="bool">bool</span>, <span title="str">str</span>]</code>
+                  <code><span title="bool">bool</span> or <span title="str">str</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5023,6 +5098,45 @@ If str, use the provided string as the game_id value.</p>
             </td>
             <td>
                   <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>engine</code>
+            </td>
+            <td>
+                  <code>(&#39;polars&#39;, &#39;pyspark&#39;, &#39;arrow&#39;, &#39;arrow[spark]&#39;)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>DataFrame engine to use:
+- "polars": Return Polars DataFrames (default)
+- "pyspark": Return PySpark DataFrames
+- "arrow": Return pyarrow.Tables with Polars-style Arrow types
+  (string_view, duration[ms]). For Dask/Ray workers.
+- "arrow[spark]": Return pyarrow.Tables pre-normalized for Spark
+  consumption (string, int64 ms). For Spark mapInArrow UDFs.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;polars&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>spark_session</code>
+            </td>
+            <td>
+                  <code><span title="pyspark.sql.SparkSession">SparkSession</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>PySpark SparkSession to use. If None and engine="pyspark",
+will get or create a session automatically.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
             </td>
           </tr>
       </tbody>
@@ -5092,7 +5206,10 @@ YYYYMMDD-HomeTeam-AwayTeam-*.jsonl.</p>
               <div class="doc-md-description">
                 <p>Path to JSONL tracking file, or bytes, or file-like object.
 Filename pattern: YYYYMMDD-HomeTeam-AwayTeam-*.jsonl
-Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths.</p>
+Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths.
+For <code>engine="arrow"</code> / <code>"arrow[spark]"</code>, only bytes-like input is
+accepted (no FileLike resolution; see <code>filename</code> for game_id
+derivation in that case).</p>
               </div>
             </td>
             <td>
@@ -5104,7 +5221,7 @@ Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths.</p>
                 <code>layout</code>
             </td>
             <td>
-                  <code>(<span title="long">long</span>, <span title="long_ball">long_ball</span>, <span title="wide">wide</span>)</code>
+                  <code>(&#39;long&#39;, &#39;long_ball&#39;, &#39;wide&#39;)</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -5147,9 +5264,7 @@ Note: Wide layout does not include joint angles.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Coordinate orientation:
-- "static_home_away": Home attacks right (+x) entire match
-- Other orientations available</p>
+                <p>Coordinate orientation.</p>
               </div>
             </td>
             <td>
@@ -5181,8 +5296,7 @@ Note: Wide layout does not include joint angles.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>If True, exclude frames where ball coordinates are missing (null).
-Respovision data may have frames where ball tracking failed.</p>
+                <p>If True, exclude frames where ball coordinates are missing (null).</p>
               </div>
             </td>
             <td>
@@ -5198,7 +5312,7 @@ Respovision data may have frames where ball tracking failed.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Pitch length in meters. Used for coordinate transformation.</p>
+                <p>Pitch length in meters.</p>
               </div>
             </td>
             <td>
@@ -5214,7 +5328,7 @@ Respovision data may have frames where ball tracking failed.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>Pitch width in meters. Used for coordinate transformation.</p>
+                <p>Pitch width in meters.</p>
               </div>
             </td>
             <td>
@@ -5274,16 +5388,39 @@ Only applies to long and long_ball layouts.</p>
           </tr>
           <tr class="doc-section-item">
             <td>
+                <code>filename</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Explicit filename for game_id derivation. Required when <code>raw_data</code> is
+bytes and you want auto-derived game_id (engine="arrow" can't extract
+a filename from raw bytes). When raw_data is a FileLike, the filename
+is auto-extracted and this kwarg is ignored.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
                 <code>engine</code>
             </td>
             <td>
-                  <code>(<span title="polars">polars</span>, <span title="pyspark">pyspark</span>)</code>
+                  <code>(&#39;polars&#39;, &#39;pyspark&#39;, &#39;arrow&#39;, &#39;arrow[spark]&#39;)</code>
             </td>
             <td>
               <div class="doc-md-description">
                 <p>DataFrame engine to use:
 - "polars": Return Polars DataFrames (default)
-- "pyspark": Return PySpark DataFrames</p>
+- "pyspark": Return PySpark DataFrames
+- "arrow": Return pyarrow.Tables with Polars-style Arrow types
+  (string_view, duration[ms]). For Dask/Ray workers.
+- "arrow[spark]": Return pyarrow.Tables pre-normalized for Spark
+  consumption (string, int64 ms). For Spark mapInArrow UDFs.</p>
               </div>
             </td>
             <td>
@@ -5348,24 +5485,6 @@ will get or create a session automatically.</p>
 <li>Joint angles may contain null values (especially for goalkeepers)</li>
 </ul>
 </details>
-
-<p><span class="doc-section-title">Examples:</span></p>
-    <p>Load from file path:</p>
-    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">fastforward</span><span class="w"> </span><span class="kn">import</span> <span class="n">respovision</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">respovision</span><span class="o">.</span><span class="n">load_tracking</span><span class="p">(</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">... </span>    <span class="s2">&quot;20240714-Argentina-Colombia-2d_tracking-tactical.jsonl&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="gp">... </span>    <span class="n">pitch_length</span><span class="o">=</span><span class="mf">105.0</span><span class="p">,</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="gp">... </span>    <span class="n">pitch_width</span><span class="o">=</span><span class="mf">68.0</span><span class="p">,</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="gp">... </span><span class="p">)</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">tracking_df</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">tracking</span>
-</code></pre></div>
-    <p>Load without joint angles:</p>
-    <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">respovision</span><span class="o">.</span><span class="n">load_tracking</span><span class="p">(</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="gp">... </span>    <span class="s2">&quot;tracking.jsonl&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="gp">... </span>    <span class="n">include_joint_angles</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="gp">... </span><span class="p">)</span>
-</code></pre></div>
-
 
     </div>
 

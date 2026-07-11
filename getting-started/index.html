@@ -803,6 +803,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/distributed-compute/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Distributed Compute
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -983,6 +1011,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../providers/optavision/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OptaVision
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../providers/respovision/" class="md-nav__link">
         
   
@@ -991,6 +1047,34 @@
     
   
     Respovision
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../providers/scisports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SciSports
   
 
     
@@ -1434,7 +1518,7 @@
 <a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">orientation</span><span class="o">=</span><span class="s2">&quot;static_home_away&quot;</span><span class="p">,</span>   <span class="c1"># Target orientation</span>
 <a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">only_alive</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>                  <span class="c1"># Only include frames where ball is in play</span>
 <a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="n">include_game_id</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>             <span class="c1"># Add game_id column to tracking data</span>
-<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;polars&quot;</span><span class="p">,</span>                  <span class="c1"># &quot;polars&quot; or &quot;pyspark&quot;</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;polars&quot;</span><span class="p">,</span>                  <span class="c1"># &quot;polars&quot;, &quot;pyspark&quot;, &quot;arrow&quot;, or &quot;arrow[spark]&quot;</span>
 <a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="p">)</span>
 </code></pre></div>
 <p>See <a href="../concepts/layouts/">Layouts</a>, <a href="../concepts/coordinate-systems/">Coordinate Systems</a>, and <a href="../concepts/orientations/">Orientations</a> for details on each parameter.</p>
@@ -1476,6 +1560,7 @@
 <a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="n">polars_dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">to_polars</span><span class="p">()</span>
 <a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="n">spark_dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">to_pyspark</span><span class="p">()</span>
 </code></pre></div>
+<p>For Spark <code>mapInArrow</code>, Ray <code>map_batches</code>, or Dask <code>map_partitions</code> patterns, see <a href="../concepts/distributed-compute/">Distributed Compute</a>.</p>
 
 
 

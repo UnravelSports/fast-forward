@@ -13,7 +13,7 @@
         <link rel="canonical" href="https://unravelsports.github.io/fast-forward/providers/">
       
       
-        <link rel="prev" href="../concepts/transformations/">
+        <link rel="prev" href="../concepts/distributed-compute/">
       
       
         <link rel="next" href="cdf/">
@@ -679,6 +679,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../concepts/distributed-compute/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Distributed Compute
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -942,6 +970,34 @@
   
   
     <li class="md-nav__item">
+      <a href="optavision/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OptaVision
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="respovision/" class="md-nav__link">
         
   
@@ -950,6 +1006,34 @@
     
   
     Respovision
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="scisports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SciSports
   
 
     
@@ -1299,7 +1383,7 @@
 
 
 <h1 id="providers">Providers<a class="headerlink" href="#providers" title="Permanent link">&para;</a></h1>
-<p>fast-forward supports 10 tracking data providers. Each provider has a <code>load_tracking()</code> function that returns a <a href="../concepts/dataset/"><code>TrackingDataset</code></a>.</p>
+<p>fast-forward supports 12 tracking data providers. Each provider has a <code>load_tracking()</code> function that returns a <a href="../concepts/dataset/"><code>TrackingDataset</code></a>.</p>
 <h2 id="comparison-table">Comparison Table<a class="headerlink" href="#comparison-table" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -1338,12 +1422,28 @@
 <td><code>pitch_length</code>, <code>pitch_width</code>, <code>object_id</code>, <code>include_officials</code>, <code>parallel</code></td>
 </tr>
 <tr>
+<td><a href="optavision/">OptaVision</a></td>
+<td>2</td>
+<td>Text + XML</td>
+<td>CDF</td>
+<td>long, long_ball, wide</td>
+<td><code>include_ball_owning_player</code></td>
+</tr>
+<tr>
 <td><a href="respovision/">Respovision</a></td>
 <td>1</td>
 <td>JSONL</td>
 <td>Sportec Event</td>
 <td>long, long_ball, wide</td>
 <td><code>pitch_length</code>, <code>pitch_width</code>, <code>include_joint_angles</code>, <code>include_officials</code></td>
+</tr>
+<tr>
+<td><a href="scisports/">SciSports</a></td>
+<td>2</td>
+<td>EPTS XML + Text</td>
+<td>SportVU</td>
+<td>long, long_ball, wide</td>
+<td>none</td>
 </tr>
 <tr>
 <td><a href="secondspectrum/">SecondSpectrum</a></td>
@@ -1391,7 +1491,7 @@
 <td>DAT/JSON + XML/JSON</td>
 <td>Tracab (cm)</td>
 <td>long, long_ball, wide</td>
-<td>—</td>
+<td>none</td>
 </tr>
 </tbody>
 </table>
@@ -1441,7 +1541,7 @@
 <td><code>engine</code></td>
 <td>str</td>
 <td><code>"polars"</code></td>
-<td>DataFrame engine: <code>"polars"</code> or <code>"pyspark"</code></td>
+<td>DataFrame engine: <code>"polars"</code>, <code>"pyspark"</code>, <code>"arrow"</code>, or <code>"arrow[spark]"</code></td>
 </tr>
 <tr>
 <td><code>spark_session</code></td>

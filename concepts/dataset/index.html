@@ -664,6 +664,39 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#per-engine-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-engine schema
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#obtaining-schemas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Obtaining schemas
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#engine-converters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Engine converters
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#methods" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -687,10 +720,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#to_polars-to_pyspark" class="md-nav__link">
+  <a href="#to_polars-to_pyspark-to_arrow" class="md-nav__link">
     <span class="md-ellipsis">
       
-        to_polars() / to_pyspark()
+        to_polars() / to_pyspark() / to_arrow()
       
     </span>
   </a>
@@ -838,6 +871,34 @@
     
   
     Transformations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../distributed-compute/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Distributed Compute
   
 
     
@@ -1031,6 +1092,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../providers/optavision/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OptaVision
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../providers/respovision/" class="md-nav__link">
         
   
@@ -1039,6 +1128,34 @@
     
   
     Respovision
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../providers/scisports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SciSports
   
 
     
@@ -1418,6 +1535,39 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#per-engine-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-engine schema
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#obtaining-schemas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Obtaining schemas
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#engine-converters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Engine converters
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#methods" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1441,10 +1591,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#to_polars-to_pyspark" class="md-nav__link">
+  <a href="#to_polars-to_pyspark-to_arrow" class="md-nav__link">
     <span class="md-ellipsis">
       
-        to_polars() / to_pyspark()
+        to_polars() / to_pyspark() / to_arrow()
       
     </span>
   </a>
@@ -1477,7 +1627,7 @@
 
 
 <h1 id="trackingdataset">TrackingDataset<a class="headerlink" href="#trackingdataset" title="Permanent link">&para;</a></h1>
-<p>The <code>TrackingDataset</code> is the central object returned by every provider's <code>load_tracking()</code> function. It contains all tracking data and metadata as Polars DataFrames.</p>
+<p>The <code>TrackingDataset</code> is the central object returned by every provider's <code>load_tracking()</code> function. It contains all tracking data and metadata. The underlying type of each table (Polars, PySpark, or pyarrow) is determined by the <code>engine</code> kwarg passed to <code>load_tracking</code>.</p>
 <h2 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -1490,33 +1640,38 @@
 <tbody>
 <tr>
 <td><code>tracking</code></td>
-<td><code>pl.DataFrame</code></td>
+<td><code>pl.DataFrame</code> / <code>SparkDataFrame</code> / <code>pyarrow.Table</code></td>
 <td>Positional data for all players and the ball</td>
 </tr>
 <tr>
 <td><code>metadata</code></td>
-<td><code>pl.DataFrame</code></td>
+<td><code>pl.DataFrame</code> / <code>SparkDataFrame</code> / <code>pyarrow.Table</code></td>
 <td>Match-level information (1 row)</td>
 </tr>
 <tr>
 <td><code>teams</code></td>
-<td><code>pl.DataFrame</code></td>
+<td><code>pl.DataFrame</code> / <code>SparkDataFrame</code> / <code>pyarrow.Table</code></td>
 <td>Team information (2 rows: home and away)</td>
 </tr>
 <tr>
 <td><code>players</code></td>
-<td><code>pl.DataFrame</code></td>
+<td><code>pl.DataFrame</code> / <code>SparkDataFrame</code> / <code>pyarrow.Table</code></td>
 <td>Player roster with positions and starter status</td>
 </tr>
 <tr>
 <td><code>periods</code></td>
-<td><code>pl.DataFrame</code></td>
+<td><code>pl.DataFrame</code> / <code>SparkDataFrame</code> / <code>pyarrow.Table</code></td>
 <td>Period boundaries with start/end frame IDs</td>
 </tr>
 <tr>
 <td><code>engine</code></td>
 <td><code>str</code></td>
-<td>Current engine: <code>"polars"</code> or <code>"pyspark"</code></td>
+<td>One of <code>"polars"</code>, <code>"pyspark"</code>, <code>"arrow"</code>, <code>"arrow[spark]"</code></td>
+</tr>
+<tr>
+<td><code>schemas</code></td>
+<td><code>Schemas</code></td>
+<td>Namespace exposing Arrow + PySpark schemas for all 5 tables (kwargs auto-bound from the load). See <a href="#obtaining-schemas">Obtaining schemas</a>.</td>
 </tr>
 <tr>
 <td><code>coordinate_system</code></td>
@@ -1536,6 +1691,7 @@
 </tbody>
 </table>
 <h2 id="dataframe-schemas">DataFrame Schemas<a class="headerlink" href="#dataframe-schemas" title="Permanent link">&para;</a></h2>
+<p>The dtypes below are for <code>engine="polars"</code>. Arrow engines emit different physical types for some columns. See <a href="#per-engine-schema">Per-engine schema</a> for the full comparison.</p>
 <h3 id="tracking">tracking<a class="headerlink" href="#tracking" title="Permanent link">&para;</a></h3>
 <p>The main DataFrame containing positional data. Schema depends on the <a href="../layouts/">layout</a>.</p>
 <p><strong>Long layout</strong> (default):</p>
@@ -1870,23 +2026,144 @@
 </tr>
 </tbody>
 </table>
+<h2 id="per-engine-schema">Per-engine schema<a class="headerlink" href="#per-engine-schema" title="Permanent link">&para;</a></h2>
+<p>The tracking schema dtypes for SkillCorner (long layout, all include flags on), shown across the four engine values:</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th><code>engine="polars"</code> (default)</th>
+<th><code>engine="arrow"</code> (Polars-style Arrow)</th>
+<th><code>engine="arrow[spark]"</code> (Spark-compat)</th>
+<th><code>engine="pyspark"</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>game_id</code></td>
+<td><code>String</code></td>
+<td><code>string_view</code></td>
+<td><code>string</code></td>
+<td><code>StringType</code></td>
+</tr>
+<tr>
+<td><code>frame_id</code></td>
+<td><code>UInt32</code></td>
+<td><code>int64</code></td>
+<td><code>int64</code></td>
+<td><code>LongType</code></td>
+</tr>
+<tr>
+<td><code>period_id</code></td>
+<td><code>Int32</code></td>
+<td><code>int32</code></td>
+<td><code>int32</code></td>
+<td><code>IntegerType</code></td>
+</tr>
+<tr>
+<td><code>timestamp</code></td>
+<td><code>Duration(ms)</code></td>
+<td><code>duration[ms]</code></td>
+<td><code>int64</code> (ms)</td>
+<td><code>LongType</code></td>
+</tr>
+<tr>
+<td><code>ball_state</code></td>
+<td><code>String</code></td>
+<td><code>string_view</code></td>
+<td><code>string</code></td>
+<td><code>StringType</code></td>
+</tr>
+<tr>
+<td><code>ball_owning_team_id</code></td>
+<td><code>String</code></td>
+<td><code>string_view</code></td>
+<td><code>string</code></td>
+<td><code>StringType</code></td>
+</tr>
+<tr>
+<td><code>team_id</code></td>
+<td><code>String</code></td>
+<td><code>string_view</code></td>
+<td><code>string</code></td>
+<td><code>StringType</code></td>
+</tr>
+<tr>
+<td><code>player_id</code></td>
+<td><code>String</code></td>
+<td><code>string_view</code></td>
+<td><code>string</code></td>
+<td><code>StringType</code></td>
+</tr>
+<tr>
+<td><code>x</code>, <code>y</code>, <code>z</code></td>
+<td><code>Float32</code></td>
+<td><code>float</code> (float32)</td>
+<td><code>float</code> (float32)</td>
+<td><code>FloatType</code></td>
+</tr>
+<tr>
+<td><code>ball_owning_player_id</code></td>
+<td><code>String</code></td>
+<td><code>string_view</code></td>
+<td><code>string</code></td>
+<td><code>StringType</code></td>
+</tr>
+<tr>
+<td><code>is_detected</code></td>
+<td><code>Boolean</code></td>
+<td><code>bool</code></td>
+<td><code>bool</code></td>
+<td><code>BooleanType</code></td>
+</tr>
+</tbody>
+</table>
+<p>Two columns differ between the two arrow dialects: <code>string_view</code> vs <code>string</code>, and <code>duration[ms]</code> vs <code>int64</code>. The other arrow columns are identical between <code>engine="arrow"</code> and <code>engine="arrow[spark]"</code>. The choice between them is dictated by what your downstream framework accepts, not by which one is more correct. See the <a href="../distributed-compute/">Distributed Compute</a> page for guidance.</p>
+<p>The non-tracking tables (<code>metadata</code>, <code>teams</code>, <code>players</code>, <code>periods</code>) follow the same dialect convention. The dtype list above applies to their string and integer columns equivalently.</p>
+<h2 id="obtaining-schemas">Obtaining schemas<a class="headerlink" href="#obtaining-schemas" title="Permanent link">&para;</a></h2>
+<p>Two ways to get the Arrow + PySpark schemas. Both produce the same <code>Schemas</code> namespace with 10 lazy properties: <code>tracking</code>, <code>metadata</code>, <code>teams</code>, <code>players</code>, <code>periods</code> (Arrow), and <code>tracking_spark</code>, <code>metadata_spark</code>, <code>teams_spark</code>, <code>players_spark</code>, <code>periods_spark</code> (PySpark <code>StructType</code>).</p>
+<p><strong><code>dataset.schemas</code></strong> is available on any loaded dataset, with the load's kwargs already bound.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">dataset</span> <span class="o">=</span> <span class="n">skillcorner</span><span class="o">.</span><span class="n">load_tracking</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="n">meta</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;arrow[spark]&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">dataset</span><span class="o">.</span><span class="n">schemas</span><span class="o">.</span><span class="n">tracking_spark</span>   <span class="c1"># StructType you&#39;d pass to mapInArrow</span>
+</code></pre></div>
+<p><strong><code>skillcorner.schemas(...)</code></strong> is for when you don't have data loaded yet (for example, declaring a Spark <code>mapInArrow</code> output schema before any worker runs). It accepts the same kwargs as <code>load_tracking</code>, so unpack a single config dict into both:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">LOAD_KWARGS</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;arrow[spark]&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">layout</span><span class="o">=</span><span class="s2">&quot;long&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">include_game_id</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">include_ball_owning_player</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">include_is_detected</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="p">)</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">out_schema</span> <span class="o">=</span> <span class="n">skillcorner</span><span class="o">.</span><span class="n">schemas</span><span class="p">(</span><span class="o">**</span><span class="n">LOAD_KWARGS</span><span class="p">)</span><span class="o">.</span><span class="n">tracking_spark</span>
+</code></pre></div>
+<p>See the <a href="../distributed-compute/#schema-helpers">Distributed Compute</a> page for the deeper explanation of when <code>tracking</code> vs <code>tracking_spark</code> matters and how the engine value controls the Arrow dialect.</p>
+<h2 id="engine-converters">Engine converters<a class="headerlink" href="#engine-converters" title="Permanent link">&para;</a></h2>
+<p>Every <code>TrackingDataset</code> can be converted between engines. Polars ↔ Arrow is zero-copy via the Arrow C Data Interface capsule.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">ds_pl</span> <span class="o">=</span> <span class="n">skillcorner</span><span class="o">.</span><span class="n">load_tracking</span><span class="p">(</span><span class="n">raw</span><span class="p">,</span> <span class="n">meta</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s2">&quot;polars&quot;</span><span class="p">)</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">ds_arr</span> <span class="o">=</span> <span class="n">ds_pl</span><span class="o">.</span><span class="n">to_arrow</span><span class="p">()</span>                       <span class="c1"># engine=&quot;arrow&quot;</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">ds_arr_spark</span> <span class="o">=</span> <span class="n">ds_pl</span><span class="o">.</span><span class="n">to_arrow</span><span class="p">(</span><span class="n">engine</span><span class="o">=</span><span class="s2">&quot;arrow[spark]&quot;</span><span class="p">)</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">ds_back</span> <span class="o">=</span> <span class="n">ds_arr</span><span class="o">.</span><span class="n">to_polars</span><span class="p">()</span>                    <span class="c1"># back to engine=&quot;polars&quot;</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="n">ds_spark</span> <span class="o">=</span> <span class="n">ds_pl</span><span class="o">.</span><span class="n">to_pyspark</span><span class="p">(</span><span class="n">spark_session</span><span class="p">)</span>      <span class="c1"># engine=&quot;pyspark&quot;</span>
+</code></pre></div>
+<p>Round-trip preserves values exactly. <code>arrow</code> to <code>polars</code> to <code>arrow</code> produces a tracking table with the same column names, row count, and column values as the original.</p>
 <h2 id="methods">Methods<a class="headerlink" href="#methods" title="Permanent link">&para;</a></h2>
 <h3 id="transform">transform()<a class="headerlink" href="#transform" title="Permanent link">&para;</a></h3>
 <p>Transform coordinates, orientation, or pitch dimensions:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">transformed</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">to_coordinates</span><span class="o">=</span><span class="s2">&quot;opta&quot;</span><span class="p">,</span>           <span class="c1"># Target coordinate system</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">to_orientation</span><span class="o">=</span><span class="s2">&quot;home_away&quot;</span><span class="p">,</span>      <span class="c1"># Target orientation</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">to_dimensions</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span>        <span class="c1"># Target (length, width) in meters</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">transformed</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">transform</span><span class="p">(</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">to_coordinates</span><span class="o">=</span><span class="s2">&quot;opta&quot;</span><span class="p">,</span>           <span class="c1"># Target coordinate system</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">to_orientation</span><span class="o">=</span><span class="s2">&quot;home_away&quot;</span><span class="p">,</span>      <span class="c1"># Target orientation</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">to_dimensions</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span>        <span class="c1"># Target (length, width) in meters</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="p">)</span>
 </code></pre></div>
 <p>All three parameters are optional. Transforms are applied in a fixed order: orientation, then dimensions, then coordinates. See <a href="../transformations/">Transformations</a> for details.</p>
-<h3 id="to_polars-to_pyspark">to_polars() / to_pyspark()<a class="headerlink" href="#to_polars-to_pyspark" title="Permanent link">&para;</a></h3>
-<p>Convert between DataFrame engines:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Convert to PySpark</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">spark_dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">to_pyspark</span><span class="p">()</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Convert back to Polars</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">polars_dataset</span> <span class="o">=</span> <span class="n">spark_dataset</span><span class="o">.</span><span class="n">to_polars</span><span class="p">()</span>
+<h3 id="to_polars-to_pyspark-to_arrow">to_polars() / to_pyspark() / to_arrow()<a class="headerlink" href="#to_polars-to_pyspark-to_arrow" title="Permanent link">&para;</a></h3>
+<p>Convert between DataFrame engines. See <a href="#engine-converters">Engine converters</a> above for the full table; brief examples:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">spark_dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">to_pyspark</span><span class="p">()</span>             <span class="c1"># engine=&quot;pyspark&quot;</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">polars_dataset</span> <span class="o">=</span> <span class="n">spark_dataset</span><span class="o">.</span><span class="n">to_polars</span><span class="p">()</span>       <span class="c1"># engine=&quot;polars&quot;</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">arrow_dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">to_arrow</span><span class="p">()</span>               <span class="c1"># engine=&quot;arrow&quot;</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">arrow_spark_dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">to_arrow</span><span class="p">(</span><span class="n">engine</span><span class="o">=</span><span class="s2">&quot;arrow[spark]&quot;</span><span class="p">)</span>
 </code></pre></div>
 
 

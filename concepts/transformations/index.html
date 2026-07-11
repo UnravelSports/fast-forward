@@ -16,7 +16,7 @@
         <link rel="prev" href="../orientations/">
       
       
-        <link rel="next" href="../../providers/">
+        <link rel="next" href="../distributed-compute/">
       
       
         
@@ -806,6 +806,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../distributed-compute/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Distributed Compute
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -986,6 +1014,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../providers/optavision/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OptaVision
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../providers/respovision/" class="md-nav__link">
         
   
@@ -994,6 +1050,34 @@
     
   
     Respovision
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../providers/scisports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SciSports
   
 
     
@@ -1395,13 +1479,13 @@
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">to_dimensions</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span>
 </code></pre></div>
-<p>All three parameters are optional — you can transform any combination.</p>
+<p>All three parameters are optional; you can transform any combination.</p>
 <h2 id="transform-order">Transform Order<a class="headerlink" href="#transform-order" title="Permanent link">&para;</a></h2>
 <p>When multiple transforms are applied in a single call, they are always executed in this order:</p>
 <ol>
-<li><strong>Orientation</strong> — flip coordinates if needed</li>
-<li><strong>Dimensions</strong> — scale to new pitch dimensions</li>
-<li><strong>Coordinates</strong> — convert between coordinate systems</li>
+<li><strong>Orientation</strong>: flip coordinates if needed</li>
+<li><strong>Dimensions</strong>: scale to new pitch dimensions</li>
+<li><strong>Coordinates</strong>: convert between coordinate systems</li>
 </ol>
 <p>This order is enforced internally to ensure correct results.</p>
 <h2 id="coordinate-transforms">Coordinate Transforms<a class="headerlink" href="#coordinate-transforms" title="Permanent link">&para;</a></h2>
