@@ -75,6 +75,7 @@ nav:
     - Coordinate Systems: concepts/coordinate-systems.md
     - Orientations: concepts/orientations.md
     - Transformations: concepts/transformations.md
+    - Distributed Compute: concepts/distributed-compute.md
   - Providers:
     - Overview: providers/index.md
     - CDF: providers/cdf.md
@@ -89,8 +90,6 @@ nav:
     - Sportec: providers/sportec.md
     - StatsPerform: providers/statsperform.md
     - Tracab: providers/tracab.md
-  - Usage:
-    - Distributed Compute: usage/spark.md
   - Benchmarks: benchmarks.md
   - API Reference: api/index.md
   - Reporting Issues: reporting-issues.md

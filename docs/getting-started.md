@@ -122,4 +122,4 @@ polars_dataset = dataset.to_polars()
 spark_dataset = dataset.to_pyspark()
 ```
 
-For Spark `mapInArrow`, Ray `map_batches`, or Dask `map_partitions` patterns, see [Distributed Compute](usage/spark.md).
+For Spark `mapInArrow`, Ray `map_batches`, or Dask `map_partitions` patterns, see [Distributed Compute](concepts/distributed-compute.md).

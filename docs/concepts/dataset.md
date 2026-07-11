@@ -132,7 +132,7 @@ The tracking schema dtypes for SkillCorner (long layout, all include flags on), 
 | `ball_owning_player_id` | `String`                    | `string_view`                         | `string`                                | `StringType`       |
 | `is_detected`           | `Boolean`                   | `bool`                                | `bool`                                  | `BooleanType`      |
 
-Two columns differ between the two arrow dialects: `string_view` vs `string`, and `duration[ms]` vs `int64`. The other arrow columns are identical between `engine="arrow"` and `engine="arrow[spark]"`. The choice between them is dictated by what your downstream framework accepts, not by which one is more correct. See the [Distributed Compute](../usage/spark.md) page for guidance.
+Two columns differ between the two arrow dialects: `string_view` vs `string`, and `duration[ms]` vs `int64`. The other arrow columns are identical between `engine="arrow"` and `engine="arrow[spark]"`. The choice between them is dictated by what your downstream framework accepts, not by which one is more correct. See the [Distributed Compute](distributed-compute.md) page for guidance.
 
 The non-tracking tables (`metadata`, `teams`, `players`, `periods`) follow the same dialect convention. The dtype list above applies to their string and integer columns equivalently.
 
@@ -160,7 +160,7 @@ LOAD_KWARGS = dict(
 out_schema = skillcorner.schemas(**LOAD_KWARGS).tracking_spark
 ```
 
-See the [Distributed Compute](../usage/spark.md#schema-helpers) page for the deeper explanation of when `tracking` vs `tracking_spark` matters and how the engine value controls the Arrow dialect.
+See the [Distributed Compute](distributed-compute.md#schema-helpers) page for the deeper explanation of when `tracking` vs `tracking_spark` matters and how the engine value controls the Arrow dialect.
 
 ## Engine converters
 

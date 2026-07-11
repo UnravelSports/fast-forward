@@ -26,7 +26,7 @@ dataset = scisports.load_tracking(
 | `include_game_id` | bool \| str | `True` | Add game_id column |
 | `engine` | str | `"polars"` | `"polars"`, `"pyspark"`, `"arrow"`, or `"arrow[spark]"` |
 
-All four engines are supported. For distributed compute (Spark, Ray, Dask), see [Distributed Compute](../usage/spark.md).
+All four engines are supported. For distributed compute (Spark, Ray, Dask), see [Distributed Compute](../concepts/distributed-compute.md).
 
 ## File Format
 
