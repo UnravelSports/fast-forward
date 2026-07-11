@@ -338,6 +338,7 @@ def assert_dataset_schemas_property_matches_factory(
     assert ds.schemas.tracking == factory.tracking, (
         "ds.schemas.tracking differs from factory.tracking"
     )
+    pytest.importorskip("pyspark")  # tracking_spark builds a real pyspark StructType
     assert ds.schemas.tracking_spark == factory.tracking_spark, (
         "ds.schemas.tracking_spark differs from factory.tracking_spark"
     )
