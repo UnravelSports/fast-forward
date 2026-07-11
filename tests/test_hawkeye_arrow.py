@@ -485,6 +485,7 @@ class TestHawkeyeArrowSchemas:
         )
         factory = hawkeye.schemas(layout="long", engine="arrow[spark]")
         assert ds.schemas.tracking == factory.tracking
+        pytest.importorskip("pyspark")  # tracking_spark builds a real pyspark StructType
         assert ds.schemas.tracking_spark == factory.tracking_spark
 
     def test_wide_layout_schemas_raises(self):
