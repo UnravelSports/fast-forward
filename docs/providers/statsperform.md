@@ -71,6 +71,4 @@ print(dataset.metadata)
 ## Notes
 
 - StatsPerform/SportVU native coordinates have **origin at top-left** with **Y-axis inverted** (top to bottom). fast-forward converts to the target coordinate system automatically
-- Frame rate is typically 10 Hz (100ms between frames)
 - MA1 metadata format (JSON vs XML) is auto-detected based on file content
-- Officials position codes: `REF`, `AREF`, `4TH`

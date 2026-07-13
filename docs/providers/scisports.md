@@ -50,8 +50,5 @@ print(dataset.players)
 
 ## Notes
 
-- SciSports EPTS uses SportVU-equivalent coordinates natively (top-left origin, meters, X along length, Y along width). fast-forward converts to the target coordinate system (CDF by default).
 - Attacking direction is detected from data on the first frame of each period, since SciSports metadata does not carry a side hint.
 - Frames outside any period's `[Start Frame, End Frame]` range (pre-kickoff, half-time intermission, post-game) are dropped at parse time.
-- The ball `air` channel is read but not surfaced.
-- A producer quirk worth knowing: the SciSports `PlayerChannel` declarations list `_x` before `_y`, but the actual positions file emits the two coordinates in `y, x` order. fast-forward swaps on read so the output matches the labels you would expect.

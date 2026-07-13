@@ -21,7 +21,7 @@ dataset = hawkeye.load_tracking(
 | `ball_data` | FileLike \| list[FileLike] | *required* | Ball tracking file(s) |
 | `player_data` | FileLike \| list[FileLike] | *required* | Player centroid file(s) |
 | `meta_data` | FileLike | *required* | JSON or XML metadata file |
-| `layout` | str | `"long"` | Currently only `"long"` is supported |
+| `layout` | str | `"long"` | `"long"`, `"long_ball"`, or `"wide"` |
 | `coordinates` | str | `"cdf"` | Target coordinate system |
 | `orientation` | str | `"static_home_away"` | Target orientation |
 | `only_alive` | bool | `True` | Only include frames where play field is "In" |
@@ -100,5 +100,3 @@ print(dataset.periods)
 - HawkEye uses CDF-compatible coordinates natively (center origin, meters)
 - Pitch dimensions are read from metadata when available; `pitch_length`/`pitch_width` parameters are fallbacks
 - The `parallel=True` default uses Rayon for concurrent file processing
-- Only the `"long"` layout is currently supported; `"long_ball"` and `"wide"` are planned
-- Officials position codes: `REF`, `AREF`

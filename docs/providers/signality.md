@@ -72,7 +72,5 @@ print(dataset.players)
 ## Notes
 
 - Signality uses CDF-compatible coordinates natively (center origin, meters)
-- Frame rate is typically 25 Hz (40ms between frames)
 - Period IDs are extracted from filename patterns (`p1`, `p2`, etc.)
-- Officials position codes: `REF`, `AREF`, `FOURTH`
 - The `parallel=True` default enables concurrent processing of per-period files

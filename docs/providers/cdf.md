@@ -54,4 +54,3 @@ print(dataset.tracking.head())
 
 - CDF is the intermediate format used for all coordinate transformations
 - Coordinates are in meters with center origin
-- Setting `coordinates="cdf"` is effectively a no-op (data is already in CDF)
