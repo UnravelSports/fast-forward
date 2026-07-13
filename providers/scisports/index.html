@@ -1514,11 +1514,8 @@
 </code></pre></div>
 <h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>
 <ul>
-<li>SciSports EPTS uses SportVU-equivalent coordinates natively (top-left origin, meters, X along length, Y along width). fast-forward converts to the target coordinate system (CDF by default).</li>
 <li>Attacking direction is detected from data on the first frame of each period, since SciSports metadata does not carry a side hint.</li>
 <li>Frames outside any period's <code>[Start Frame, End Frame]</code> range (pre-kickoff, half-time intermission, post-game) are dropped at parse time.</li>
-<li>The ball <code>air</code> channel is read but not surfaced.</li>
-<li>A producer quirk worth knowing: the SciSports <code>PlayerChannel</code> declarations list <code>_x</code> before <code>_y</code>, but the actual positions file emits the two coordinates in <code>y, x</code> order. fast-forward swaps on read so the output matches the labels you would expect.</li>
 </ul>
 
 

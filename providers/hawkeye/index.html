@@ -1536,7 +1536,7 @@
 <td><code>layout</code></td>
 <td>str</td>
 <td><code>"long"</code></td>
-<td>Currently only <code>"long"</code> is supported</td>
+<td><code>"long"</code>, <code>"long_ball"</code>, or <code>"wide"</code></td>
 </tr>
 <tr>
 <td><code>coordinates</code></td>
@@ -1672,8 +1672,6 @@
 <li>HawkEye uses CDF-compatible coordinates natively (center origin, meters)</li>
 <li>Pitch dimensions are read from metadata when available; <code>pitch_length</code>/<code>pitch_width</code> parameters are fallbacks</li>
 <li>The <code>parallel=True</code> default uses Rayon for concurrent file processing</li>
-<li>Only the <code>"long"</code> layout is currently supported; <code>"long_ball"</code> and <code>"wide"</code> are planned</li>
-<li>Officials position codes: <code>REF</code>, <code>AREF</code></li>
 </ul>
 
 
