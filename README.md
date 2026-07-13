@@ -2,11 +2,11 @@
   <img src="docs/assets/logos/fastforward-gradient-logo.png" alt="fast-forward logo" width="400">
 </p>
 
-[![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue)](https://pypi.org/project/fast-forward-football/)
+[![Python](<https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue>)](https://pypi.org/project/fast-forward-football/)
 
 ## Fast, Robust, Rust-powered Positional Tracking Data Loading for Football Analytics
 
-FAST<i>FORWARD</i> Supports 11 positional tracking data providers: SecondSpectrum, SkillCorner, Sportec, Tracab, HawkEye, GradientSports, Signality, StatsPerform, RespoVision, OptaVision. Additionally, it supports the [Common Data Format](https://www.cdf.football).
+FAST<i>FORWARD</i> Supports 12 positional tracking data providers: SecondSpectrum, SkillCorner, Sportec, Tracab, HawkEye, GradientSports, Signality, StatsPerform, RespoVision, OptaVision, SciSports. Additionally, it supports the [Common Data Format](https://www.cdf.football).
 
 This project owes a depth of gratitude to [Kloppy](https://kloppy.pysport.org/) and all its contributors.
 
@@ -23,7 +23,7 @@ pip install fast-forward-football
 ## Usage
 
 ```python
-from fastforward import secondspectrum, skillcorner, sportec, tracab, hawkeye, cdf, gradientsports, signality, statsperform, respovision, optavision
+from fastforward import secondspectrum, skillcorner, sportec, tracab, hawkeye, cdf, gradientsports, signality, statsperform, respovision, optavision, scisports
 
 # Load tracking data (example with SecondSpectrum)
 dataset = secondspectrum.load_tracking(
@@ -50,8 +50,9 @@ periods_df = dataset.periods      # Period info
 | [CDF][cdf]                       |      ✓      |                        |      [↗][cdf-doc]      |                                                    |
 | [GradientSports][gradientsports] |      ✓      |     [↗][pff-data]     | [↗][gradientsports-doc] | Formerly PFF                                       |
 | [Hawkeye (2D)][hawkeye]          |      ✓      |                        |    [↗][hawkeye-doc]    | Joint tracking data is not yet supported           |
-| [OptaVision][optavision]         |      ✓      |                        |   [↗][optavision-doc]   | StatsPerform FIFA EPTS format                      |
+| [OptaVision][optavision]         |      ✓      |                        |   [↗][optavision-doc]   |                                                    |
 | [RespoVision][respovision]       |      ✓      |                        |  [↗][respovision-doc]  | Includes support for v1 data                       |
+| [SciSports][scisports]           |      ✓      |                        |   [↗][scisports-doc]   |                                                    |
 | [SecondSpectrum][ss]             |      ✓      |                        |       [↗][ss-doc]       |                                                    |
 | [Signality][signality]           |      ✓      |                        |   [↗][signality-doc]   |                                                    |
 | [SkillCorner][skillcorner]       |      ✓      | [↗][skillcorner-data] |  [↗][skillcorner-doc]  | Includes support for v3 data                       |
@@ -61,7 +62,7 @@ periods_df = dataset.periods      # Period info
 
 ## Distributed Compute
 
-For Spark, Ray, and Dask workflows, fast-forward exposes `engine="arrow"` and `engine="arrow[spark]"` paths that return `pyarrow.Table` directly without importing kloppy on executors. See [Distributed Compute](docs/usage/spark.md).
+For Spark, Ray, and Dask workflows, fast-forward exposes `engine="arrow"` and `engine="arrow[spark]"` paths that return `pyarrow.Table` directly without importing kloppy on executors. See [Distributed Compute](docs/concepts/distributed-compute.md).
 
 ## Benchmarks
 
@@ -78,6 +79,8 @@ For Spark, Ray, and Dask workflows, fast-forward exposes `engine="arrow"` and `e
 [pff-data]: https://drive.google.com/drive/u/0/folders/1_a_q1e9CXeEPJ3GdCv_3-rNO3gPqacfa
 [respovision]: https://respo.vision/
 [respovision-doc]: https://fast-forward.readthedocs.io/en/latest/providers/respovision/
+[scisports]: https://www.scisports.com/
+[scisports-doc]: https://fast-forward.readthedocs.io/en/latest/providers/scisports/
 [signality]: https://www.spiideo.com/
 [signality-doc]: https://fast-forward.readthedocs.io/en/latest/providers/signality/
 [skillcorner]: https://skillcorner.com/
@@ -92,4 +95,3 @@ For Spark, Ray, and Dask workflows, fast-forward exposes `engine="arrow"` and `e
 [statsperform-doc]: https://fast-forward.readthedocs.io/en/latest/providers/statsperform/
 [tracab]: https://tracab.com/products/tracab-technologies/
 [tracab-doc]: https://fast-forward.readthedocs.io/en/latest/providers/tracab/
-
