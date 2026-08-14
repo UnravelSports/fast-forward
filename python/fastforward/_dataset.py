@@ -9,6 +9,59 @@ if TYPE_CHECKING:
     from pyspark.sql import DataFrame as SparkDataFrame, SparkSession
 
 
+# The Rust core's fourth-official variant is `Position::FOURTH` but its output string is the terse
+# "4TH". Outward-facing player metadata uses "FOURTH" instead, matching the variant name and sitting
+# alongside the other terse official codes (REF/AREF/VAR/AVAR). This relabels it wherever a players
+# frame surfaces, across whichever frame type the active engine produced (polars / pyarrow /
+# pyspark). It is idempotent and leaves every other position code untouched.
+_OFFICIAL_POSITION_RELABEL = {"4TH": "FOURTH"}
+
+
+def _relabel_official_position(players):
+    """Return `players` with official position codes relabelled for outward-facing use."""
+    if players is None:
+        return players
+
+    if isinstance(players, (pl.DataFrame, pl.LazyFrame)):
+        cols = (
+            players.collect_schema().names()
+            if isinstance(players, pl.LazyFrame)
+            else players.columns
+        )
+        if "position" in cols:
+            return players.with_columns(pl.col("position").replace(_OFFICIAL_POSITION_RELABEL))
+        return players
+
+    try:
+        import pyarrow as pa
+        import pyarrow.compute as pc
+
+        if isinstance(players, pa.Table) and "position" in players.column_names:
+            # Cast to utf8 for the comparison — the arrow output can be string_view, which has no
+            # `equal` kernel against a plain string. We keep the result as utf8 rather than casting
+            # back to string_view: a freshly cast string_view array crashes `pl.from_arrow` on the
+            # round trip, and the position column's arrow dtype isn't part of any public contract.
+            position = players.column("position").cast(pa.string())
+            for old, new in _OFFICIAL_POSITION_RELABEL.items():
+                position = pc.if_else(pc.equal(position, old), new, position)
+            return players.set_column(
+                players.column_names.index("position"), "position", position
+            )
+    except ImportError:
+        pass
+
+    # pyspark DataFrame — duck-typed so pyspark is only imported when it's actually in use.
+    if hasattr(players, "withColumn") and "position" in getattr(players, "columns", []):
+        from pyspark.sql import functions as F
+
+        expr = F.col("position")
+        for old, new in _OFFICIAL_POSITION_RELABEL.items():
+            expr = F.when(F.col("position") == old, F.lit(new)).otherwise(expr)
+        return players.withColumn("position", expr)
+
+    return players
+
+
 def extract_players_from_tracking(
     tracking_df: pl.DataFrame,
     periods_df: pl.DataFrame,
@@ -198,7 +251,7 @@ class TrackingDataset:
         self._tracking = tracking
         self._metadata = metadata
         self._teams = teams
-        self._players = players
+        self._players = _relabel_official_position(players)
         self._periods = periods
         self._engine = _engine
 

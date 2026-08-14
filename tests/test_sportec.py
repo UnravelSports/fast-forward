@@ -152,6 +152,11 @@ class TestPlayerDataFrame:
             "jersey_number",
             "position",
             "is_starter",
+            "nickname",
+            "minutes_played",
+            "minutes_ball_in_play",
+            "minutes_in_possession",
+            "minutes_out_possession",
         }
         assert set(player_df.columns) == expected_columns
 
@@ -561,10 +566,26 @@ class TestIncludeOfficials:
         officials_rows = player_df.filter(pl.col("team_id") == "officials")
         positions = set(officials_rows["position"].to_list())
 
-        # Should have REF, AREF (2x), and 4TH
-        expected_positions = {"REF", "AREF", "4TH"}
+        # Should have REF, AREF (2x), and FOURTH
+        expected_positions = {"REF", "AREF", "FOURTH"}
         assert positions.issubset(expected_positions | {"UNK"})
         assert "REF" in positions  # Main official must be present
+
+    def test_fourth_official_relabelled_across_engines(self):
+        """The core emits '4TH'; outward player metadata must read 'FOURTH' on every
+        engine. The arrow path also guards a regression where relabelling crashed to_polars()."""
+        raw = open(RAW_DATA_W_REF_PATH, "rb").read()
+        meta = open(META_DATA_PATH, "rb").read()
+
+        polars_ds = sportec.load_tracking(raw, meta, include_officials=True, lazy=False)
+        assert "FOURTH" in polars_ds.players["position"].to_list()
+        assert "4TH" not in polars_ds.players["position"].to_list()
+
+        arrow_ds = sportec.load_tracking(raw, meta, include_officials=True, engine="arrow")
+        arrow_positions = arrow_ds.players.column("position").to_pylist()
+        assert "FOURTH" in arrow_positions and "4TH" not in arrow_positions
+        # arrow → polars round trip must not crash and must keep the relabelled value.
+        assert "FOURTH" in arrow_ds.to_polars().players["position"].to_list()
 
 
 class TestSpecificValues:

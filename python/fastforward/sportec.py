@@ -84,7 +84,7 @@ def load_tracking(
     include_officials : bool, default False
         If True, include officials in player_df with team_id="officials" and position codes:
         REF (Main Referee), AREF (Assistant Referee), VAR (Video Assistant Referee),
-        AVAR (Assistant VAR), 4TH (Fourth Official)
+        AVAR (Assistant VAR), FOURTH (Fourth Official)
     engine : {"polars", "pyspark", "arrow", "arrow[spark]"}, default "polars"
         DataFrame engine to use:
         - "polars": Return Polars DataFrames (default)

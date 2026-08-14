@@ -151,8 +151,10 @@ class TestPlayerDataFrame:
 
     def test_schema(self, player_df):
         expected = {
-            "game_id", "team_id", "player_id", "name",
+            "game_id", "team_id", "player_id", "name", "nickname",
             "first_name", "last_name", "jersey_number", "position", "is_starter",
+            "minutes_played", "minutes_ball_in_play",
+            "minutes_in_possession", "minutes_out_possession",
         }
         assert set(player_df.columns) == expected
 
@@ -172,7 +174,7 @@ class TestPlayerDataFrame:
             "GK", "LB", "RB", "CB", "LCB", "RCB", "LWB", "RWB",
             "LDM", "CDM", "RDM", "LCM", "CM", "RCM", "LAM", "CAM", "RAM",
             "LM", "RM", "LW", "RW", "LF", "ST", "RF", "CF",
-            "SUB", "UNK", "REF", "AREF", "VAR", "AVAR", "4TH",
+            "SUB", "UNK", "REF", "AREF", "VAR", "AVAR", "FOURTH",
         }
         assert set(player_df["position"].to_list()).issubset(valid)
 

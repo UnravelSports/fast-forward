@@ -105,6 +105,7 @@ def load_tracking(
     lazy: bool = False,
     from_cache: bool = False,
     parallel: bool = True,
+    errors: str = "warn",
     engine: Engine = "polars",
     spark_session: Optional["SparkSession"] = None,
 ) -> TrackingDataset:
@@ -232,6 +233,7 @@ def load_tracking(
                 include_game_id=include_game_id,
                 include_officials=include_officials,
                 parallel=parallel,
+                errors=errors,
             )
         )
         if engine == "arrow[spark]":
@@ -274,6 +276,7 @@ def load_tracking(
             include_game_id=include_game_id,
             include_officials=include_officials,
             parallel=parallel,
+            errors=errors,
         )
     )
 
@@ -500,7 +503,7 @@ def load_metadata_only(
     ] = "static_home_away",
     pitch_length: float = 105.0,
     pitch_width: float = 68.0,
-    object_id: Literal["auto", "heId", "fifaId"] = "auto",
+    object_id: Literal["fifa", "uefa", "he", "auto"] = "auto",
     include_game_id: Union[bool, str] = True,
     include_officials: bool = False,
 ) -> Tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, pl.DataFrame]:

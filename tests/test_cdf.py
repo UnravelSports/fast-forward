@@ -161,6 +161,11 @@ class TestPlayerDataFrame:
             "jersey_number",
             "position",
             "is_starter",
+            "nickname",
+            "minutes_played",
+            "minutes_ball_in_play",
+            "minutes_in_possession",
+            "minutes_out_possession",
         }
         assert set(player_df.columns) == expected_columns
 

@@ -107,7 +107,7 @@ def load_tracking(
         If str, use the provided string as the game_id value.
     include_officials : bool, default False
         If True, include match officials (referees) in the players DataFrame
-        with team_id="officials" and appropriate position codes (REF, AREF, 4TH).
+        with team_id="officials" and appropriate position codes (REF, AREF, FOURTH).
     engine : {"polars", "pyspark", "arrow", "arrow[spark]"}, default "polars"
         DataFrame engine to use:
         - "polars": Return Polars DataFrames (default)

@@ -141,7 +141,7 @@ class TestPlayerDataFrame:
 
     def test_schema(self, player_df):
         """Test that player_df has expected columns."""
-        expected_columns = {"game_id", "team_id", "player_id", "name", "first_name", "last_name", "jersey_number", "position", "is_starter"}
+        expected_columns = {"game_id", "team_id", "player_id", "name", "nickname", "first_name", "last_name", "jersey_number", "position", "is_starter", "minutes_played", "minutes_ball_in_play", "minutes_in_possession", "minutes_out_possession"}
         assert set(player_df.columns) == expected_columns
 
     def test_has_players(self, player_df):
@@ -237,11 +237,13 @@ class TestTrackingDataFrameLong:
             "timestamp",
             "ball_state",
             "ball_owning_team_id",
+            "ball_owning_player_id",
             "team_id",
             "player_id",
             "x",
             "y",
             "z",
+            "is_detected",
         }
         assert set(tracking_df.columns) == expected_columns
 
@@ -287,6 +289,7 @@ class TestTrackingDataFrameLongBall:
             "timestamp",
             "ball_state",
             "ball_owning_team_id",
+            "ball_owning_player_id",
             "ball_x",
             "ball_y",
             "ball_z",
@@ -295,6 +298,7 @@ class TestTrackingDataFrameLongBall:
             "x",
             "y",
             "z",
+            "is_detected",
         }
         assert set(tracking_df.columns) == expected_columns
 
@@ -573,21 +577,16 @@ EXPECTED_BALL_OWNING_PLAYER_NON_NULL_WIDE = 36
 
 
 class TestSkillCornerExtras:
-    """Tests for the staged-rollout extras: `include_ball_owning_player` and
-    `include_is_detected`. Both default to False in 0.1.x with a FutureWarning
-    that announces the 0.2.0 default flip.
-    """
+    """Tests for `include_ball_owning_player` and `include_is_detected`, which
+    default to True (both columns present unless explicitly disabled)."""
 
     # ---- warning behaviour --------------------------------------------------
 
-    def test_default_emits_two_future_warnings(self):
-        """Calling load_tracking without the two kwargs should emit a
-        FutureWarning for each missing flag."""
-        with pytest.warns(FutureWarning) as caught:
-            skillcorner.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
-        messages = [str(w.message) for w in caught]
-        assert any("include_ball_owning_player" in m and "0.2.0" in m for m in messages)
-        assert any("include_is_detected" in m and "0.2.0" in m for m in messages)
+    def test_default_no_future_warning(self, recwarn):
+        """The default (both flags on) must not emit a FutureWarning."""
+        skillcorner.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
+        future_warnings = [w for w in recwarn.list if issubclass(w.category, FutureWarning)]
+        assert future_warnings == []
 
     def test_explicit_false_no_warning(self, recwarn):
         skillcorner.load_tracking(
@@ -611,11 +610,10 @@ class TestSkillCornerExtras:
 
     # ---- column presence / absence ------------------------------------------
 
-    def test_default_omits_extras_columns(self):
-        with pytest.warns(FutureWarning):
-            ds = skillcorner.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
-        assert "ball_owning_player_id" not in ds.tracking.columns
-        assert "is_detected" not in ds.tracking.columns
+    def test_default_includes_extras_columns(self):
+        ds = skillcorner.load_tracking(RAW_DATA_PATH, META_DATA_PATH, lazy=False)
+        assert "ball_owning_player_id" in ds.tracking.columns
+        assert "is_detected" in ds.tracking.columns
 
     def test_include_ball_owning_player_adds_column(self):
         ds = skillcorner.load_tracking(

@@ -168,9 +168,11 @@ class TestPySparkPlayers:
     def test_schema_columns(self, dataset):
         """Test that players has expected columns."""
         expected_columns = {
-            "game_id", "team_id", "player_id", "name",
+            "game_id", "team_id", "player_id", "name", "nickname",
             "first_name", "last_name", "jersey_number",
-            "position", "is_starter"
+            "position", "is_starter",
+            "minutes_played", "minutes_ball_in_play",
+            "minutes_in_possession", "minutes_out_possession",
         }
         assert set(dataset.players.columns) == expected_columns
 

@@ -190,6 +190,11 @@ class TestPlayerDataFrame:
             "jersey_number",
             "position",
             "is_starter",
+            "nickname",
+            "minutes_played",
+            "minutes_ball_in_play",
+            "minutes_in_possession",
+            "minutes_out_possession",
         }
         assert set(player_df.columns) == expected_columns
 
@@ -849,8 +854,8 @@ class TestOfficials:
         )
         officials = dataset.players.filter(pl.col("team_id") == "officials")
         positions = set(officials["position"].to_list())
-        # REF (Main), AREF (2x Assistant referee), 4TH (Fourth official)
-        assert positions == {"REF", "AREF", "4TH"}
+        # REF (Main), AREF (2x Assistant referee), FOURTH (Fourth official)
+        assert positions == {"REF", "AREF", "FOURTH"}
 
     def test_officials_team_exists(self):
         """Officials team added when include_officials=True."""

@@ -8,8 +8,17 @@ the ``engine='arrow'`` worker-safety contract on Spark executors.
 
 from __future__ import annotations
 
-from fastforward._fastforward import __version__
+from importlib.metadata import PackageNotFoundError, version as _pkg_version
+
+# `__cargo_pkg_version__` is the underlying Rust crate version — kept available for debugging but
+# intentionally left out of `__all__`. Public `__version__` tracks the installed Python wheel.
+from fastforward._fastforward import __cargo_pkg_version__
 from fastforward._dataset import TrackingDataset
+
+try:
+    __version__ = _pkg_version("fast-forward-football")
+except PackageNotFoundError:  # running from a source tree with no install metadata
+    __version__ = __cargo_pkg_version__
 
 __all__ = [
     "__version__",

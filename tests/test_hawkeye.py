@@ -495,6 +495,24 @@ class TestHawkEyeCoordinates:
         assert tracking_df['y'].min() >= -0.05
         assert tracking_df['y'].max() <= 1.05
 
+    def test_opta_coordinates(self):
+        """Test Opta coordinate system (normalized 0-100).
+
+        Regression guard for the phase-order bug: orientation must be detected and applied in CDF
+        (centre origin) BEFORE the coordinate shift. If it runs after, the flip reflects the
+        normalized 0-100 coords about 0 into -100..0.
+        """
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, coordinates="opta", lazy=False
+        )
+        tracking_df = dataset.tracking
+
+        # Opta: bottom-left origin, normalized 0-100
+        assert tracking_df['x'].min() >= -1.0  # small margin for out of bounds
+        assert tracking_df['x'].max() <= 101.0
+        assert tracking_df['y'].min() >= -1.0
+        assert tracking_df['y'].max() <= 101.0
+
     def test_tracab_coordinates(self):
         """Test Tracab coordinate system (centimeters)."""
         dataset = hawkeye.load_tracking(

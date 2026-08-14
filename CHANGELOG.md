@@ -6,6 +6,23 @@ All notable changes to **fast-forward** are documented here. Format loosely foll
 
 ---
 
+## [v0.3.0] — 2026-08-11
+
+### New
+- Tracking player metadata gains minute columns: `minutes_played` (time on the pitch, measured as the per-period first-to-last-frame span), `minutes_ball_in_play`, `minutes_in_possession`, `minutes_out_possession`. The in-play/possession columns are null for feeds that carry no ball status or ball ownership.
+- `hawkeye.load_tracking` accepts `errors` (`"raise"` | `"warn"` | `"skip"`) for corrupt-file handling.
+
+### Fixed
+- Sportec: away-team possession (`BallPossession="2"`) was attributed to the home team, so possession-derived output was wrong for both teams.
+- HawkEye and Signality: `kloppy` and `opta` coordinates were negated (kloppy came out in `[-1, 0]` instead of `[0, 1]`) because orientation was applied after the coordinate shift. Orientation is now applied in CDF first.
+- HawkEye `load_metadata_only`: the `object_id` type hint listed invalid values (`heId`/`fifaId`); corrected to `fifa`/`uefa`/`he`/`auto`.
+
+### Breaking
+- Fourth-official position code changed from `4TH` to `FOURTH`.
+- SkillCorner: `include_ball_owning_player` and `include_is_detected` now default to `True` (the flip announced by the `FutureWarning` in 0.1.x/0.2.0), so `ball_owning_player_id` and `is_detected` columns are present by default. Pass `False` to omit them; the warning is gone.
+
+---
+
 ## [v0.2.0] — 2026-07-10
 
 ### New

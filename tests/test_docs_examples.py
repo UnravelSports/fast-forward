@@ -1,8 +1,15 @@
-"""Docs-as-test: execute the runnable Python code blocks in docs/usage/spark.md.
+"""Docs-as-test: execute the runnable Python code blocks in docs/concepts/distributed-compute.md.
 
 This is the contract test that stops the docs from silently rotting. If a
 function name changes, an argument disappears, or the example pattern breaks,
 this test fails.
+
+The page's Spark example is provider-agnostic (`{provider}` stands in for any
+single-file provider) and fetches bytes from object-store URIs via a
+`read_bytes(uri)` placeholder. The test makes it runnable with the minimum
+substitutions: pick a concrete provider (skillcorner), inject a `read_bytes`
+that maps two fixture URIs to the committed fixture bytes, and no-op the final
+`.write.parquet(...)` so nothing hits object storage.
 
 Gated on pyspark, pyarrow, and markdown-it-py being installed.
 """
@@ -22,7 +29,10 @@ from pyspark.sql import SparkSession
 from tests.config import SC_RAW, SC_META
 
 
-DOCS_PAGE = Path(__file__).parent.parent / "docs" / "usage" / "spark.md"
+DOCS_PAGE = Path(__file__).parent.parent / "docs" / "concepts" / "distributed-compute.md"
+
+# The concrete provider substituted for the page's `{provider}` template token.
+DOCS_PROVIDER = "skillcorner"
 
 
 @pytest.fixture(scope="module")
@@ -51,77 +61,70 @@ def _extract_python_blocks(md_text: str) -> list[str]:
 
 
 def test_docs_page_exists():
-    assert DOCS_PAGE.exists(), (
-        f"docs/usage/spark.md missing — Step 7 of the spark-udf plan didn't run."
-    )
+    assert DOCS_PAGE.exists(), f"{DOCS_PAGE} missing — the distributed-compute doc moved or was removed."
 
 
 def test_docs_page_has_python_examples():
     blocks = _extract_python_blocks(DOCS_PAGE.read_text())
-    assert len(blocks) > 0, "spark.md has no python fenced code blocks"
+    assert len(blocks) > 0, f"{DOCS_PAGE.name} has no python fenced code blocks"
 
 
-def test_docs_example_runs(spark, monkeypatch):
-    """Execute the main Spark mapInArrow example end-to-end.
+def test_docs_example_runs(spark):
+    """Execute the Spark ``mapInArrow`` walkthrough end-to-end.
 
-    We exec the python fenced block that contains the full mapInArrow
-    walkthrough. Other python blocks on the page (LOAD_KWARGS snippet, Dask,
-    Ray) are reference snippets that intentionally reference
-    framework-specific variables (``matches_ddf``, ``matches_ds``) which we
-    don't construct here.
+    Other python blocks on the page (Ray ``map_batches``, the ``schemas()``
+    snippet) are reference snippets that reference framework-specific variables
+    we don't construct here, so we only exec the Spark block.
     """
+    from pyspark.sql import Row
+    from pyspark.sql.types import StructType, StructField, StringType
+
     blocks = _extract_python_blocks(DOCS_PAGE.read_text())
-    assert blocks, "spark.md has no python code blocks"
+    assert blocks, f"{DOCS_PAGE.name} has no python code blocks"
     spark_blocks = [b for b in blocks if "mapInArrow" in b and "from pyspark.sql" in b]
-    assert spark_blocks, "no Spark walkthrough block found in spark.md"
+    assert spark_blocks, "no Spark mapInArrow walkthrough block found in distributed-compute.md"
     code = spark_blocks[0]
 
-    # Build the test fixture: one row per match
-    from pyspark.sql import Row
-    from pyspark.sql.types import StructType, StructField, StringType, BinaryType
+    # Resolve the provider-agnostic template to a concrete provider.
+    assert "{provider}" in code, "Spark block no longer uses the {provider} template token"
+    code = code.replace("{provider}", DOCS_PROVIDER)
+
+    # The example uses `matches_df = ...   # your source of matches` as a placeholder for the
+    # caller's match source. Neutralize it so the fixture matches_df injected via globals survives.
+    placeholder = "matches_df = ...   # your source of matches"
+    assert placeholder in code, "Spark block's matches_df placeholder changed — update this test"
+    code = code.replace(placeholder, "pass  # docs-test injects matches_df + read_bytes via globals")
+
+    # No-op the final write so nothing touches object storage; capture a cheap row count instead.
+    write_line = 'tracking_df.write.partitionBy("game_id").parquet("s3a://my-bucket/tracking/")'
+    assert write_line in code, "Spark block's write line changed — update this test"
+    code = code.replace(write_line, "_docs_test_count = tracking_df.count()")
+
+    # Fixture: one match, addressed by URI. `read_bytes` maps those URIs to the committed bytes,
+    # standing in for the object-store client the doc tells the reader to bring.
     with open(SC_RAW, "rb") as f:
         raw_bytes = f.read()
     with open(SC_META, "rb") as f:
         meta_bytes = f.read()
+    store = {"raw://m1": raw_bytes, "meta://m1": meta_bytes}
     matches_input_schema = StructType([
         StructField("match_id", StringType(), False),
-        StructField("tracking_bytes", BinaryType(), False),
-        StructField("meta_bytes", BinaryType(), False),
+        StructField("raw_data_uri", StringType(), False),
+        StructField("meta_data_uri", StringType(), False),
     ])
     fixture_matches_df = spark.createDataFrame(
-        [Row(match_id="m1", tracking_bytes=raw_bytes, meta_bytes=meta_bytes)],
+        [Row(match_id="m1", raw_data_uri="raw://m1", meta_data_uri="meta://m1")],
         schema=matches_input_schema,
     )
 
-    # Wrap the example so:
-    #   - The spark.read.parquet(...) line is replaced by our fixture.
-    #   - The tracking_df.write.... line is no-op'd (we don't want to write to s3).
-    # Conventional substitutions: docs use these specific variable names.
     globals_ns = {
         "__name__": "__docs_example__",
         "spark": spark,
-        # Provide a stub for the parquet read used in the example
         "matches_df": fixture_matches_df,
+        "read_bytes": lambda uri: store[uri],
     }
-    # Replace likely lines that would fail outside the docs context.
-    sanitized = code
-    # The example uses `matches_df = ...   # build however fits your environment`
-    # as a placeholder. Neutralize that assignment so the fixture matches_df
-    # injected via globals_ns survives.
-    sanitized = sanitized.replace(
-        "matches_df = ...   # build however fits your environment",
-        "pass  # docs-test injects matches_df via globals_ns",
-    )
-    # The final .write.parquet(...) — replace with .count() to materialize cheaply.
-    sanitized = sanitized.replace(
-        'tracking_df.write.mode("append").parquet("s3a://my-bucket/skillcorner-tracking/")',
-        "_docs_test_count = tracking_df.count()",
-    )
+    exec(compile(code, str(DOCS_PAGE), "exec"), globals_ns)
 
-    exec(compile(sanitized, str(DOCS_PAGE), "exec"), globals_ns)
-
-    # Confirm the example actually produced rows
+    # Confirm the example actually produced rows.
     count = globals_ns.get("_docs_test_count")
-    assert count is None or count > 0, (
-        f"docs example ran but produced 0 rows (count={count})"
-    )
+    assert count and count > 0, f"docs example ran but produced 0 rows (count={count})"

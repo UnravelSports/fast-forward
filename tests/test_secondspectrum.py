@@ -156,7 +156,7 @@ class TestPlayerDataFrame:
 
     def test_schema(self, player_df):
         """Test that player_df has expected columns."""
-        expected_columns = {"game_id", "team_id", "player_id", "name", "first_name", "last_name", "jersey_number", "position", "is_starter"}
+        expected_columns = {"game_id", "team_id", "player_id", "name", "nickname", "first_name", "last_name", "jersey_number", "position", "is_starter", "minutes_played", "minutes_ball_in_play", "minutes_in_possession", "minutes_out_possession"}
         assert set(player_df.columns) == expected_columns
 
     def test_name_fields(self, player_df):

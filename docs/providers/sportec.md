@@ -51,4 +51,4 @@ print(dataset.teams)
 ## Notes
 
 - Sportec uses CDF-compatible coordinates natively (center origin, meters)
-- When `include_officials=True`, officials are included with `team_id="officials"` and position codes: `REF`, `AREF`, `VAR`, `AVAR`, `4TH`
+- When `include_officials=True`, officials are included with `team_id="officials"` and position codes: `REF`, `AREF`, `VAR`, `AVAR`, `FOURTH`

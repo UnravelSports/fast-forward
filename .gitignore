@@ -210,7 +210,7 @@ __marimo__/
 
 /notebooks
 /data
-/scripts
+/scripts/
 /fake
 
 */.DS_Store

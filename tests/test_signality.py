@@ -244,6 +244,41 @@ class TestSignalityParameters:
         # Signality coordinates are same as CDF
         assert metadata_df["coordinate_system"][0] == "signality"
 
+    def test_kloppy_coordinates(self):
+        """Kloppy coordinate system (normalized 0-1).
+
+        Regression guard for the phase-order bug: orientation must be detected and applied in CDF
+        (centre origin) BEFORE the coordinate shift, else the flip reflects normalized coords about
+        0 into -1..0.
+        """
+        dataset = signality.load_tracking(
+            meta_data=META_DATA,
+            raw_data_feeds=RAW_DATA_FEEDS,
+            venue_information=VENUE_INFO,
+            coordinates="kloppy",
+        )
+        tracking_df = dataset.tracking
+
+        assert tracking_df["x"].min() >= -0.05  # 5% margin for out of bounds
+        assert tracking_df["x"].max() <= 1.05
+        assert tracking_df["y"].min() >= -0.05
+        assert tracking_df["y"].max() <= 1.05
+
+    def test_opta_coordinates(self):
+        """Opta coordinate system (normalized 0-100)."""
+        dataset = signality.load_tracking(
+            meta_data=META_DATA,
+            raw_data_feeds=RAW_DATA_FEEDS,
+            venue_information=VENUE_INFO,
+            coordinates="opta",
+        )
+        tracking_df = dataset.tracking
+
+        assert tracking_df["x"].min() >= -1.0
+        assert tracking_df["x"].max() <= 101.0
+        assert tracking_df["y"].min() >= -1.0
+        assert tracking_df["y"].max() <= 101.0
+
 
 class TestPeriodsDataFrame:
     """Tests for the periods DataFrame."""
