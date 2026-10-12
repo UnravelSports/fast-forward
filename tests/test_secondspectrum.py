@@ -6,6 +6,8 @@ This file contains tests for both:
 """
 
 import datetime
+import json
+from pathlib import Path
 
 import pytest
 import polars as pl
@@ -21,6 +23,9 @@ from tests.config import (
     SS_META_FAKE as KLOPPY_META_DATA_PATH,
     SS_META_FAKE_XML as KLOPPY_XML_META_DATA_PATH,
     SS_META_FAKE_XML_BOM as KLOPPY_XML_BOM_META_DATA_PATH,
+    SS_RAW_MAPPING as MAPPING_RAW_DATA_PATH,
+    SS_META_MAPPING as MAPPING_META_DATA_PATH,
+    SS_META_MAPPING_EQUIV as MAPPING_EQUIV_META_DATA_PATH,
 )
 
 
@@ -1153,3 +1158,121 @@ class TestBomHandling:
 
         assert dataset_bom.tracking.height == dataset_normal.tracking.height
         assert dataset_bom.players.height == dataset_normal.players.height
+
+
+# =============================================================================
+# Mapping-file metadata and object_id
+# =============================================================================
+
+MAPPING_FSP_IDS = ["800001", "800004", "800009", "800014", "800012", "800101", "800105", "800110", "800113"]
+TRACKED_FSP_IDS = {"800001", "800004", "800009", "800014", "800101", "800105", "800110"}
+
+
+def _load_mapping_match(meta_data, **kwargs):
+    kwargs.setdefault("only_alive", False)
+    return secondspectrum.load_tracking(MAPPING_RAW_DATA_PATH, meta_data, lazy=False, **kwargs)
+
+
+def _tracked_player_ids(dataset):
+    return set(dataset.tracking.filter(pl.col("player_id") != "ball")["player_id"].unique().to_list())
+
+
+class TestMappingMetadata:
+    """A mapping file as metadata: match info from the file, fps and periods from the tracking,
+    players linked to the tracking by playerExternalIds.fspId."""
+
+    def test_match_info_from_mapping_file(self):
+        meta = _load_mapping_match(MAPPING_META_DATA_PATH).metadata.row(0, named=True)
+        assert meta["game_id"] == "900001"
+        assert meta["game_date"] == datetime.date(2020, 1, 1)
+        assert (meta["home_team_id"], meta["away_team_id"]) == ("9001", "9002")
+        assert (meta["home_team"], meta["away_team"]) == ("Home FC", "Away FC")
+        assert (meta["pitch_length"], meta["pitch_width"]) == (105.0, 68.0)
+
+    def test_fps_and_periods_from_tracking(self):
+        dataset = _load_mapping_match(MAPPING_META_DATA_PATH)
+        assert dataset.metadata["fps"][0] == pytest.approx(25.0)
+        assert dataset.periods["period_id"].to_list() == [1, 2]
+        assert dataset.periods["start_frame_id"].to_list() == [0, 10]
+        assert dataset.periods["end_frame_id"].to_list() == [9, 19]
+
+    def test_same_output_as_equivalent_secondspectrum_metadata(self):
+        """The same tracking must load the same way whichever metadata file describes the match."""
+        mapping = _load_mapping_match(MAPPING_META_DATA_PATH)
+        ss_json = _load_mapping_match(MAPPING_EQUIV_META_DATA_PATH)
+        assert mapping.tracking.equals(ss_json.tracking)
+        assert mapping.periods.equals(ss_json.periods)
+        # position and is_starter only exist in SecondSpectrum JSON metadata.
+        cols = ["team_id", "player_id", "name", "first_name", "last_name", "jersey_number"]
+        assert mapping.players.select(cols).equals(ss_json.players.select(cols))
+
+    def test_ss_lists_players_who_appear_in_the_tracking(self):
+        dataset = _load_mapping_match(MAPPING_META_DATA_PATH)
+        assert dataset.players.height == 7
+        assert not {"Eli Bench", "Ian Bench"} & set(dataset.players["name"].to_list())
+        assert _tracked_player_ids(dataset) == set(dataset.players["player_id"].to_list())
+
+    def test_fsp_lists_every_mapping_player(self):
+        dataset = _load_mapping_match(MAPPING_META_DATA_PATH, object_id="fsp")
+        assert dataset.players["player_id"].to_list() == MAPPING_FSP_IDS
+        assert _tracked_player_ids(dataset) == TRACKED_FSP_IDS
+
+    def test_auto_equals_fsp_with_a_mapping_file(self):
+        auto = _load_mapping_match(MAPPING_META_DATA_PATH, object_id="auto")
+        fsp = _load_mapping_match(MAPPING_META_DATA_PATH, object_id="fsp")
+        assert auto.tracking.equals(fsp.tracking)
+        assert auto.players.equals(fsp.players)
+
+    def test_arrow_engine_matches_polars(self):
+        pytest.importorskip("pyarrow")
+        raw, meta = Path(MAPPING_RAW_DATA_PATH).read_bytes(), Path(MAPPING_META_DATA_PATH).read_bytes()
+        kwargs = dict(only_alive=False, object_id="fsp", lazy=False)
+        polars_ds = secondspectrum.load_tracking(raw, meta, **kwargs)
+        # The arrow engines take bytes, not paths.
+        arrow_ds = secondspectrum.load_tracking(raw, meta, engine="arrow", **kwargs)
+        assert arrow_ds.tracking.num_rows == polars_ds.tracking.height
+        assert arrow_ds.tracking["player_id"].to_pylist() == polars_ds.tracking["player_id"].to_list()
+        assert arrow_ds.players["player_id"].to_pylist() == MAPPING_FSP_IDS
+
+    def test_mapping_file_for_another_match_raises(self, tmp_path):
+        mapping = json.loads(Path(MAPPING_META_DATA_PATH).read_text())
+        mapping["HomeTeam"]["Players"][1]["JerseyNumber"] = 44
+        edited = tmp_path / "mapping.json"
+        edited.write_text(json.dumps(mapping))
+        with pytest.raises(ValueError, match="wears 4 in the tracking but 44 in the mapping file") as exc:
+            _load_mapping_match(str(edited))
+        # A data mismatch, not an unsupported format.
+        assert "might not be supported yet" not in str(exc.value)
+
+
+class TestObjectId:
+    """object_id picks which id player_id carries; team ids always come from the metadata."""
+
+    def test_default_is_ss(self):
+        default = secondspectrum.load_tracking(ANON_RAW_DATA_PATH, ANON_META_DATA_PATH, lazy=False)
+        ss = secondspectrum.load_tracking(ANON_RAW_DATA_PATH, ANON_META_DATA_PATH, object_id="ss", lazy=False)
+        assert default.tracking.equals(ss.tracking)
+        assert default.players.equals(ss.players)
+
+    def test_fsp_with_secondspectrum_metadata_rekeys_players(self):
+        """With SecondSpectrum JSON metadata the players table is re-keyed to the FSP ids the
+        frames carry, so tracking and players still join."""
+        dataset = _load_mapping_match(MAPPING_EQUIV_META_DATA_PATH, object_id="fsp")
+        assert set(dataset.players["player_id"].to_list()) == TRACKED_FSP_IDS
+        assert _tracked_player_ids(dataset) == TRACKED_FSP_IDS
+        assert dataset.players.filter(pl.col("player_id") == "800009")["jersey_number"].to_list() == [9]
+
+    def test_fsp_without_fsp_ids_raises(self):
+        # This fixture has no playerExternalIds.
+        with pytest.raises(ValueError, match="playerExternalIds.fspId"):
+            secondspectrum.load_tracking(ANON_RAW_DATA_PATH, ANON_META_DATA_PATH, object_id="fsp", lazy=False)
+
+    def test_auto_without_fsp_ids_keeps_uuids(self):
+        auto = secondspectrum.load_tracking(ANON_RAW_DATA_PATH, ANON_META_DATA_PATH, object_id="auto", lazy=False)
+        ss = secondspectrum.load_tracking(ANON_RAW_DATA_PATH, ANON_META_DATA_PATH, lazy=False)
+        assert auto.tracking.equals(ss.tracking)
+        assert auto.players.equals(ss.players)
+
+    def test_invalid_object_id_raises(self):
+        with pytest.raises(ValueError, match="object_id must be 'ss', 'fsp' or 'auto'"):
+            secondspectrum.load_tracking(ANON_RAW_DATA_PATH, ANON_META_DATA_PATH, object_id="uefa", lazy=False)

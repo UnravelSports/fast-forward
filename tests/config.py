@@ -20,6 +20,10 @@ SS_RAW_FAKE_UTF8SIG = str(DATA_DIR / "second_spectrum_fake_data_utf8sig.jsonl")
 SS_META_FAKE = str(DATA_DIR / "second_spectrum_fake_metadata.json")
 SS_META_FAKE_XML = str(DATA_DIR / "second_spectrum_fake_metadata.xml")
 SS_META_FAKE_XML_BOM = str(DATA_DIR / "second_spectrum_fake_metadata_bom.xml")
+# Mapping-file metadata (regenerate with tests/make_secondspectrum_mapping_fixtures.py)
+SS_RAW_MAPPING = str(DATA_DIR / "secondspectrum_tracking_mapping_anon.jsonl")
+SS_META_MAPPING = str(DATA_DIR / "secondspectrum_mapping_anon.json")
+SS_META_MAPPING_EQUIV = str(DATA_DIR / "secondspectrum_meta_mapping_equiv_anon.json")
 
 # =============================================================================
 # SkillCorner

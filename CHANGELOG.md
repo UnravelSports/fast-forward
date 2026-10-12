@@ -6,6 +6,17 @@ All notable changes to **fast-forward** are documented here. Format loosely foll
 
 ---
 
+## [Unreleased]
+
+### New
+- SecondSpectrum: `meta_data` accepts a mapping file, detected from its content. Its rosters are keyed by FSP id and linked to the tracking through `playerExternalIds.fspId`; fps and periods are taken from the tracking. A side or shirt-number mismatch between the two raises an error.
+- SecondSpectrum: `object_id` (`"ss"` | `"fsp"` | `"auto"`, default `"ss"`) picks which id `player_id` carries. The default keeps SecondSpectrum's player UUIDs, as before.
+
+### Fixed
+- HawkEye: frame ids were computed by truncating `time × fps`, so a sample a hair early, at 1.33999 s instead of 1.34 s, landed on the previous frame id. From there on, frames carried the next sample's data, 20 ms late at 50 fps. Where two samples met on one id, every player was listed twice in that frame and the next frame was missing. Frame ids are now rounded, and ball timestamps are rounded to the nearest millisecond instead of truncated. HawkEye data loaded with 0.3.0 differs from this version: most frames now hold the sample one step earlier, and a few frames that were missing are back.
+
+---
+
 ## [v0.3.0] — 2026-08-11
 
 ### New

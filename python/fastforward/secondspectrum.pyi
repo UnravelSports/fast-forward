@@ -32,6 +32,9 @@ def load_tracking(
         "static_away_home",
     ] = "static_home_away",
     only_alive: bool = False,
+    exclude_missing_ball_frames: bool = True,
+    include_game_id: Union[bool, str] = True,
+    object_id: Literal["ss", "fsp", "auto"] = "ss",
     *,
     lazy: bool = True,
 ) -> TrackingDataset:
@@ -43,7 +46,8 @@ def load_tracking(
     raw_data : str
         Path to JSONL tracking file
     meta_data : str
-        Path to JSON metadata file
+        Path to the metadata file: SecondSpectrum JSON, SecondSpectrum XML, or a
+        mapping file (detected from the content)
     layout : {"long", "long_ball", "wide"}, default "long"
         DataFrame layout:
         - "long": Ball as row with team_id="ball", player_id="ball"
@@ -62,6 +66,9 @@ def load_tracking(
         - "attack_left": Attacking team always attacks left
     only_alive : bool, default False
         If True, only include frames where ball is in play (ball_state == "alive")
+    object_id : {"ss", "fsp", "auto"}, default "ss"
+        Which id player_id carries: SecondSpectrum's UUID ("ss"), the FSP id from
+        playerExternalIds.fspId ("fsp"), or the FSP id where present, else the UUID ("auto").
     lazy : bool, default True
         If True, return a TrackingDataset with LazyTrackingLoader for tracking.
         If False, return a TrackingDataset with eager DataFrame for tracking.
