@@ -42,6 +42,7 @@ def load_tracking(
     only_alive: bool = True,
     exclude_missing_ball_frames: bool = True,
     include_game_id: Union[bool, str] = True,
+    object_id: Literal["ss", "fsp", "auto"] = "ss",
     *,
     lazy: bool = False,
     from_cache: bool = False,
@@ -57,7 +58,16 @@ def load_tracking(
         Path to JSONL tracking file, or bytes, or file-like object.
         Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.
     meta_data : FileLike
-        Path to JSON metadata file, or bytes, or file-like object.
+        Path to the metadata file, or bytes, or file-like object. The format is
+        detected from the content:
+        - SecondSpectrum JSON metadata
+        - SecondSpectrum XML metadata. It has no team or player info, so team ids
+          are "home"/"away" and players come from the tracking.
+        - A mapping file (top-level ``MatchId``, ``HomeTeam``/``AwayTeam`` with
+          ``Players``, ``Stadium``). Fps and periods are taken from the tracking.
+          Each roster player is linked to the tracking by
+          ``playerExternalIds.fspId``; a player on the other side or wearing a
+          different number in the tracking raises an error.
         Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.
     layout : {"long", "long_ball", "wide"}, default "long"
         DataFrame layout:
@@ -84,6 +94,14 @@ def load_tracking(
         If True, add game_id column to tracking_df, team_df, and player_df from metadata.
         If False, no game_id column is added.
         If str, use the provided string as the game_id value.
+    object_id : {"ss", "fsp", "auto"}, default "ss"
+        Which id ``player_id`` carries, in the tracking and the players table:
+        - "ss": SecondSpectrum's player UUID. Players who never appear in the
+          tracking have none and are left out of the players table.
+        - "fsp": The FSP id (``playerExternalIds.fspId``); error if a tracking
+          player has none.
+        - "auto": The FSP id where present, otherwise the UUID.
+        Team ids always come from the metadata.
     engine : {"polars", "pyspark", "arrow", "arrow[spark]"}, default "polars"
         DataFrame engine to use:
         - "polars": Return Polars DataFrames (default)
@@ -117,6 +135,7 @@ def load_tracking(
         engine=engine,
         spark_session=spark_session,
         exclude_missing_ball_frames=exclude_missing_ball_frames,
+        object_id=object_id,
     )
 
 

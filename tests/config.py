@@ -4,10 +4,30 @@ This module provides all test data file paths in one place to avoid
 duplication across test files.
 """
 
+import os
+import sys
 from pathlib import Path
 
-# Base directory for all test data files
-DATA_DIR = Path(__file__).parent / "files"
+# Test data files live in the private Rust repo (`rust/tests/files/`), never in this public
+# repo. FASTFORWARD_TEST_DATA points elsewhere, e.g. a CI checkout of that folder.
+DATA_DIR = Path(
+    os.environ.get(
+        "FASTFORWARD_TEST_DATA",
+        Path(__file__).resolve().parent.parent / "rust" / "tests" / "files",
+    )
+)
+
+if not DATA_DIR.is_dir():
+    _msg = (
+        f"test data not found at {DATA_DIR}: it lives in the private fast-forward-rs repo "
+        "(rust/tests/files); set FASTFORWARD_TEST_DATA to its location"
+    )
+    if "pytest" in sys.modules:
+        import pytest
+
+        # Skips each test module that needs the data; tests that don't still run.
+        pytest.skip(_msg, allow_module_level=True)
+    raise FileNotFoundError(_msg)
 
 # =============================================================================
 # SecondSpectrum
@@ -20,6 +40,10 @@ SS_RAW_FAKE_UTF8SIG = str(DATA_DIR / "second_spectrum_fake_data_utf8sig.jsonl")
 SS_META_FAKE = str(DATA_DIR / "second_spectrum_fake_metadata.json")
 SS_META_FAKE_XML = str(DATA_DIR / "second_spectrum_fake_metadata.xml")
 SS_META_FAKE_XML_BOM = str(DATA_DIR / "second_spectrum_fake_metadata_bom.xml")
+# Mapping-file metadata (regenerate with tests/make_secondspectrum_mapping_fixtures.py)
+SS_RAW_MAPPING = str(DATA_DIR / "secondspectrum_tracking_mapping_anon.jsonl")
+SS_META_MAPPING = str(DATA_DIR / "secondspectrum_mapping_anon.json")
+SS_META_MAPPING_EQUIV = str(DATA_DIR / "secondspectrum_meta_mapping_equiv_anon.json")
 
 # =============================================================================
 # SkillCorner

@@ -27,7 +27,7 @@ class TestHawkEyeBasic:
         assert isinstance(dataset.players, pl.DataFrame)
 
         # With include_officials=False (default), officials are excluded
-        assert len(dataset.tracking) == 130291
+        assert len(dataset.tracking) == 130295
         assert len(dataset.metadata) == 1
         assert len(dataset.teams) == 2  # Home and away
         assert len(dataset.players) == 42
@@ -39,7 +39,7 @@ class TestHawkEyeBasic:
         )
 
         # With include_officials=False (default), officials are excluded
-        assert len(dataset.tracking) == 68147
+        assert len(dataset.tracking) == 68149
         assert len(dataset.metadata) == 1
         assert len(dataset.teams) == 2
         assert len(dataset.players) == 42
@@ -173,7 +173,7 @@ class TestHawkEyeParameters:
             BALL_FILES, PLAYER_FILES, META_JSON, object_id="auto", lazy=False
         )
         tracking_df = dataset.tracking
-        assert len(tracking_df) == 130291
+        assert len(tracking_df) == 130295
 
     def test_pitch_dimensions(self):
         """Test pitch dimension parameters."""
@@ -244,7 +244,7 @@ class TestHawkEyeData:
         tracking_df = dataset.tracking
 
         ball_rows = tracking_df.filter(pl.col('team_id') == 'ball')
-        assert len(ball_rows) == 5661
+        assert len(ball_rows) == 5665
         # Ball should have z coordinate (all rows have z values)
         assert ball_rows['z'].null_count() == 0
 
@@ -332,6 +332,34 @@ class TestHawkEyeMetadataOnly:
         assert all(col in metadata_df.columns for col in expected_cols)
 
 
+class TestHawkEyeFrameIds:
+    """Frame ids used to be computed by truncating time x fps. A sample a hair early (1.33999 s
+    instead of 1.34 s) then landed on the previous frame id: frames carried the next sample's
+    data, and where two samples met on one id every player was listed twice."""
+
+    @pytest.fixture(scope="class")
+    def frames(self):
+        dataset = hawkeye.load_tracking(
+            BALL_FILES, PLAYER_FILES, META_JSON, only_alive=False, lazy=False
+        )
+        return dataset.tracking
+
+    def test_each_player_once_per_frame(self, frames):
+        players = frames.filter(pl.col("player_id") != "ball")
+        assert players.select("frame_id", "player_id").is_duplicated().sum() == 0
+
+    def test_frame_time_matches_frame_id(self, frames):
+        # 50 fps: each frame is 20 ms after the previous id, give or take the feed's
+        # sub-frame jitter. Truncation put most frames a whole sample (20 ms) late.
+        ball = frames.filter(pl.col("player_id") == "ball").with_columns(
+            ms=pl.col("timestamp").dt.total_milliseconds(),
+            expected_ms=(pl.col("frame_id") - pl.col("frame_id").min().over("period_id")) * 20
+            + pl.col("timestamp").dt.total_milliseconds().first().over("period_id"),
+        )
+        worst = ball.select((pl.col("ms") - pl.col("expected_ms")).abs().max()).item()
+        assert worst < 10
+
+
 class TestHawkEyeEdgeCases:
     """Test edge cases and error handling."""
 
@@ -344,7 +372,7 @@ class TestHawkEyeEdgeCases:
             META_JSON, lazy=False
         )
         tracking_df = dataset.tracking
-        assert len(tracking_df) == 68147
+        assert len(tracking_df) == 68149
 
     def test_coordinate_system_validation(self):
         """Test that invalid coordinate systems are rejected."""
@@ -367,7 +395,7 @@ class TestHawkEyeEdgeCases:
             BALL_FILES, PLAYER_FILES, META_JSON, layout="long", lazy=False
         )
         tracking_df = dataset.tracking
-        assert len(tracking_df) == 130291
+        assert len(tracking_df) == 130295
 
         # Test invalid layout
         with pytest.raises(Exception):
@@ -388,7 +416,7 @@ class TestHawkEyeLayouts:
 
         # Ball should be a row with team_id="ball"
         ball_rows = tracking_df.filter(pl.col('team_id') == 'ball')
-        assert len(ball_rows) == 5661
+        assert len(ball_rows) == 5665
         assert 'player_id' in tracking_df.columns
         assert ball_rows['player_id'][0] == 'ball'
 
@@ -418,8 +446,8 @@ class TestHawkEyeLayouts:
         )
         tracking_df = dataset.tracking
 
-        # One row per frame (5661 unique frames)
-        assert len(tracking_df) == 5661
+        # One row per frame (5665 unique frames)
+        assert len(tracking_df) == 5665
         frame_count = len(tracking_df['frame_id'].unique())
         assert len(tracking_df) == frame_count
 
@@ -443,8 +471,8 @@ class TestHawkEyeLayouts:
         )
         tracking_df = dataset.tracking
 
-        # One row per frame (5661 unique frames)
-        assert len(tracking_df) == 5661
+        # One row per frame (5665 unique frames)
+        assert len(tracking_df) == 5665
 
         # Player positions in column names
         # With include_officials=True, all 26 people are included
@@ -540,7 +568,7 @@ class TestHawkEyeOrientations:
         tracking_df1 = dataset.tracking
 
         # Home team attacks right (+x) entire match
-        assert len(tracking_df1) == 130291
+        assert len(tracking_df1) == 130295
 
     def test_static_away_home(self):
         """Test static_away_home orientation."""
@@ -554,8 +582,8 @@ class TestHawkEyeOrientations:
         tracking_df2 = dataset.tracking
 
         # Both should load successfully (coordinates may or may not be flipped depending on detected direction)
-        assert len(tracking_df1) == 130291
-        assert len(tracking_df2) == 130291
+        assert len(tracking_df1) == 130295
+        assert len(tracking_df2) == 130295
 
         # If the data already has home team attacking right, static_away_home will flip
         # Check that at least one coordinate differs
@@ -563,7 +591,7 @@ class TestHawkEyeOrientations:
         ball2 = tracking_df2.filter(pl.col('team_id') == 'ball')
 
         # They should be different (either same or flipped depending on detection)
-        assert len(ball1) == len(ball2) == 5661
+        assert len(ball1) == len(ball2) == 5665
 
     def test_home_away_orientation(self):
         """Test home_away orientation (alternating)."""
@@ -573,7 +601,7 @@ class TestHawkEyeOrientations:
         tracking_df = dataset.tracking
 
         # Should work (alternates by period)
-        assert len(tracking_df) == 130291
+        assert len(tracking_df) == 130295
 
 
 class TestHawkEyeFilenameExtraction:
@@ -617,8 +645,8 @@ class TestHawkEyeFilenameExtraction:
         # Check that period 1 and period 2 both have data
         period_1_rows = tracking_df.filter(pl.col("period_id") == 1).height
         period_2_rows = tracking_df.filter(pl.col("period_id") == 2).height
-        assert period_1_rows == 68147
-        assert period_2_rows == 62144
+        assert period_1_rows == 68149
+        assert period_2_rows == 62146
 
     def test_filename_parsing_with_path(self):
         """Test that filename extraction works with full paths."""
@@ -652,8 +680,8 @@ class TestHawkEyeFilenameExtraction:
         # Verify each period has the expected amount of data
         period_1_data = tracking_df.filter(pl.col("period_id") == 1)
         period_2_data = tracking_df.filter(pl.col("period_id") == 2)
-        assert len(period_1_data) == 68147
-        assert len(period_2_data) == 62144
+        assert len(period_1_data) == 68149
+        assert len(period_2_data) == 62146
 
     def test_filename_order_independence(self):
         """Test that files can be loaded in any order and periods are still correct."""
@@ -700,7 +728,7 @@ class TestHawkEyeLazyLoading:
         tracking_df = dataset.tracking.collect()
 
         # Should have tracking data
-        assert len(tracking_df) == 130291
+        assert len(tracking_df) == 130295
         assert "period_id" in tracking_df.columns
         assert "x" in tracking_df.columns
         assert "y" in tracking_df.columns
@@ -717,7 +745,7 @@ class TestHawkEyeLazyLoading:
         # Should only have period 1 data
         periods = result["period_id"].unique().to_list()
         assert periods == [1]
-        assert len(result) == 68147
+        assert len(result) == 68149
 
     def test_lazy_loading_select(self):
         """Test that select operations work correctly."""
@@ -730,7 +758,7 @@ class TestHawkEyeLazyLoading:
 
         # Should only have selected columns
         assert set(result.columns) == {"frame_id", "x", "y"}
-        assert len(result) == 130291
+        assert len(result) == 130295
 
     def test_lazy_loading_filter_select(self):
         """Test combined filter and select operations."""
@@ -760,7 +788,7 @@ class TestHawkEyeLazyLoading:
         result = dataset.tracking.collect()
 
         # Long layout includes ball as rows
-        assert len(result) == 130291
+        assert len(result) == 130295
         assert "team_id" in result.columns
 
     def test_lazy_wide_layout_raises_error(self):
@@ -798,7 +826,7 @@ class TestHawkEyeLazyLoading:
         result = dataset.tracking.collect()
 
         # Should successfully load with custom parameters
-        assert len(result) == 130291
+        assert len(result) == 130295
 
     def test_lazy_single_file(self):
         """Test lazy loading with single file (not list)."""
@@ -809,7 +837,7 @@ class TestHawkEyeLazyLoading:
         result = dataset.tracking.collect()
 
         # Should load single file correctly
-        assert len(result) == 68147
+        assert len(result) == 68149
         periods = result["period_id"].unique().to_list()
         assert periods == [1]  # Only loaded first file
 
@@ -847,7 +875,7 @@ class TestHawkEyeDirectoryLoading:
                 lazy=False
             )
 
-            assert len(dataset.tracking) == 130291
+            assert len(dataset.tracking) == 130295
             # Should have loaded both files
             periods = dataset.tracking["period_id"].unique().sort().to_list()
             assert periods == [1, 2]
@@ -872,7 +900,7 @@ class TestHawkEyeDirectoryLoading:
                 lazy=False
             )
 
-            assert len(dataset.tracking) == 130291
+            assert len(dataset.tracking) == 130295
 
     def test_directory_auto_sorts_files(self):
         """Test that files are sorted correctly by period/minute."""
@@ -898,7 +926,7 @@ class TestHawkEyeDirectoryLoading:
 
             # Should have loaded files from both periods
             assert periods == [1, 2]
-            assert len(dataset.tracking) == 130291
+            assert len(dataset.tracking) == 130295
 
     def test_directory_nonexistent(self):
         """Test error on nonexistent file."""
@@ -997,7 +1025,7 @@ class TestHawkEyeDirectoryLoading:
             result = dataset.tracking.collect()
 
             # Now data should be loaded
-            assert len(result) == 130291
+            assert len(result) == 130295
 
 
 class TestHawkEyeOfficials:
@@ -1037,7 +1065,7 @@ class TestHawkEyeOfficials:
         assert len(dataset.players) == 45
 
         # With officials included, tracking row count should match original (before officials exclusion)
-        assert len(dataset.tracking) == 147286
+        assert len(dataset.tracking) == 147290
 
     def test_officials_team_in_teams_df(self):
         """Test that officials team appears in teams_df when enabled."""

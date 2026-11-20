@@ -243,4 +243,5 @@ LATEST_RELEASE.md
 # Local-only planning notes (parked plans, not committed)
 /plans/
 
-
+# Test data lives in the private Rust repo (rust/tests/files); never commit it here.
+tests/files/

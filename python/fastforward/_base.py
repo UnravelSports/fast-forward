@@ -805,8 +805,8 @@ def _register_standard_providers() -> None:
         name="secondspectrum",
         rust_module=_ss,
         metadata_params=[],
-        tracking_params=["exclude_missing_ball_frames"],
-        # exclude_missing_ball_frames affects rows, not columns.
+        tracking_params=["exclude_missing_ball_frames", "object_id"],
+        # exclude_missing_ball_frames affects rows and object_id affects id values, not columns.
         schema_params=[],
         schemas_factory="fastforward.secondspectrum:schemas",
     )

@@ -24,7 +24,7 @@ from collections import defaultdict
 from pathlib import Path
 from statistics import mean
 
-FIXTURE_DIR = Path(__file__).parent / "files"
+from config import DATA_DIR as FIXTURE_DIR  # noqa: E402  (run as a script from tests/)
 META_PATH = FIXTURE_DIR / "optavision_meta.xml"
 RAW_PATH = FIXTURE_DIR / "optavision_tracking.txt"
 

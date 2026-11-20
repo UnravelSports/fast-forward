@@ -89,8 +89,41 @@ jobs:
       - name: Install test dependencies
         run: pip install pytest
 
+      # Test data lives in the private repo, never here. Take it from the release tag
+      # the wheels were built from, so tests and data match that release. Only
+      # tests/files/ is checked out, minus the fixtures of Rust-only surfaces that no
+      # public test reads (this runner's logs are public), and the token isn't left in
+      # test-data/.git while pytest and third-party packages run.
+      - name: Fetch test data from private repo
+        uses: actions/checkout@v4
+        with:
+          repository: UnravelSports/fast-forward-rs
+          token: ${{ secrets.PRIVATE_REPO_PAT }}
+          ref: ${{ inputs.version }}
+          path: test-data
+          sparse-checkout: |
+            /tests/files/
+            !/tests/files/versa_*
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
+      # Without the data, tests/config.py skips every module that needs it, so every
+      # file it names must exist here, or the run would pass as a run of skips.
       - name: Run tests
+        shell: bash
+        env:
+          FASTFORWARD_TEST_DATA: ${{ github.workspace }}/test-data/tests/files
         run: |
+          python - <<'EOF'
+          import os, sys
+          sys.path.insert(0, "tests")
+          import config  # raises if the data folder is missing
+          root = str(config.DATA_DIR)
+          missing = [v for k, v in vars(config).items()
+                     if k.isupper() and isinstance(v, str) and v.startswith(root) and not os.path.exists(v)]
+          if missing:
+              sys.exit("test data missing: " + ", ".join(missing))
+          EOF
           pytest tests/ -v -o "pythonpath="
 
   create-release:
