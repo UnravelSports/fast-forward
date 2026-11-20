@@ -1,4 +1,5 @@
-"""Regenerate the synthetic SecondSpectrum mapping-file fixtures in tests/files/.
+"""Regenerate the synthetic SecondSpectrum mapping-file fixtures in the test data folder
+(the private Rust repo's rust/tests/files/, see tests/config.py).
 
     python tests/make_secondspectrum_mapping_fixtures.py
 
@@ -15,9 +16,8 @@ Writes three files, all made up (no real players, teams or ids):
 """
 
 import json
-from pathlib import Path
 
-FILES = Path(__file__).parent / "files"
+from config import DATA_DIR as FILES  # noqa: E402  (run as a script from tests/)
 
 MATCH_ID = "900001"
 HOME_ID, AWAY_ID = "9001", "9002"

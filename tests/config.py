@@ -4,10 +4,30 @@ This module provides all test data file paths in one place to avoid
 duplication across test files.
 """
 
+import os
+import sys
 from pathlib import Path
 
-# Base directory for all test data files
-DATA_DIR = Path(__file__).parent / "files"
+# Test data files live in the private Rust repo (`rust/tests/files/`), never in this public
+# repo. FASTFORWARD_TEST_DATA points elsewhere, e.g. a CI checkout of that folder.
+DATA_DIR = Path(
+    os.environ.get(
+        "FASTFORWARD_TEST_DATA",
+        Path(__file__).resolve().parent.parent / "rust" / "tests" / "files",
+    )
+)
+
+if not DATA_DIR.is_dir():
+    _msg = (
+        f"test data not found at {DATA_DIR}: it lives in the private fast-forward-rs repo "
+        "(rust/tests/files); set FASTFORWARD_TEST_DATA to its location"
+    )
+    if "pytest" in sys.modules:
+        import pytest
+
+        # Skips each test module that needs the data; tests that don't still run.
+        pytest.skip(_msg, allow_module_level=True)
+    raise FileNotFoundError(_msg)
 
 # =============================================================================
 # SecondSpectrum
