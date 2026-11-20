@@ -61,8 +61,8 @@ def load_tracking(
         Path to the metadata file, or bytes, or file-like object. The format is
         detected from the content:
         - SecondSpectrum JSON metadata
-        - SecondSpectrum XML metadata (no team or player info: team ids are
-          "home"/"away" and players come from the tracking)
+        - SecondSpectrum XML metadata. It has no team or player info, so team ids
+          are "home"/"away" and players come from the tracking.
         - A mapping file (top-level ``MatchId``, ``HomeTeam``/``AwayTeam`` with
           ``Players``, ``Stadium``). Fps and periods are taken from the tracking.
           Each roster player is linked to the tracking by

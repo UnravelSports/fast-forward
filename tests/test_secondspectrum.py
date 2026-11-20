@@ -629,6 +629,19 @@ class TestTimestampBehavior:
             first_timestamp = period_2["timestamp"][0]
             assert first_timestamp.total_seconds() * 1000 == 40.0
 
+    def test_timestamp_is_rounded_not_truncated(self):
+        """gameClock 521.72 s must be 521,720 ms. Read as a 32-bit float it is 521.71997, which
+        truncation turned into 521,719 ms: the frame came out 1 ms early."""
+        dataset = secondspectrum.load_tracking(
+            KLOPPY_RAW_DATA_PATH,
+            KLOPPY_META_DATA_PATH,
+            only_alive=False,
+            exclude_missing_ball_frames=False,
+            lazy=False,
+        )
+        frame = dataset.tracking.filter(pl.col("frame_id") == 87600)
+        assert frame["timestamp"][0] == datetime.timedelta(milliseconds=521_720)
+
     def test_timestamp_matches_fps(self, tracking_df, metadata_df):
         """Test that timestamp increments match the FPS (25fps = 40ms per frame)."""
         period_1 = tracking_df.filter(pl.col("period_id") == 1).sort("frame_id")

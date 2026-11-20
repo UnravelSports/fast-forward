@@ -46,7 +46,7 @@ dataset = secondspectrum.load_tracking(
 
 ### Mapping file
 
-A JSON file with `MatchId`, `KickOffTime`, `Stadium` with `PitchLength` and `PitchWidth`, and `HomeTeam` and `AwayTeam`, each with an `Id`, a `Name` and `Players`. A player's `Id` is the FSP id the tracking carries in `playerExternalIds.fspId`, which is how the roster is linked to the tracking.
+A JSON file with `MatchId`, `KickOffTime`, `Stadium` with `PitchLength` and `PitchWidth`, and `HomeTeam` and `AwayTeam`, each with an `Id`, a `Name` and `Players`. Every player needs an `Id` and a `JerseyNumber`. A player's `Id` is the FSP id the tracking carries in `playerExternalIds.fspId`, which is how the roster is linked to the tracking.
 
 - `game_id` is `MatchId`, the team ids are the mapping file's team `Id`s, and `game_date` is `KickOffTime.Date`.
 - Without `Stadium`, the pitch is assumed to be 105 by 68 metres.
