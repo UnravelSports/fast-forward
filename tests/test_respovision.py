@@ -936,9 +936,9 @@ class TestRespovisionExcludeMissingBallFrames:
             (pl.col("team_id") == "ball") & (pl.col("frame_id") == 6)
         )
         assert len(ball_frame6) == 1
-        assert ball_frame6["x"].is_nan()[0]
-        assert ball_frame6["y"].is_nan()[0]
-        assert ball_frame6["z"].is_nan()[0]
+        assert ball_frame6["x"].is_null()[0]
+        assert ball_frame6["y"].is_null()[0]
+        assert ball_frame6["z"].is_null()[0]
 
     def test_exclude_missing_ball_frames_filters_correct_count(self):
         """Test exact filtering: 8 frames total, 1 missing ball = 7 included."""

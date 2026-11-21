@@ -62,7 +62,7 @@ transformed = dataset.transform(
 | [SciSports](providers/scisports.md)           | EPTS XML + Text            | 2              |
 | [SecondSpectrum](providers/secondspectrum.md) | JSONL + JSON               | 2              |
 | [Signality](providers/signality.md)           | JSON (per-period)          | 3+             |
-| [SkillCorner](providers/skillcorner.md)       | JSONL + JSON               | 2              |
+| [SkillCorner](providers/skillcorner.md)       | JSONL or parquet + JSON    | 2              |
 | [Sportec](providers/sportec.md)               | XML                        | 2              |
 | [StatsPerform](providers/statsperform.md)     | MA25 text + MA1 JSON/XML   | 2              |
 | [Tracab](providers/tracab.md)                 | DAT/JSON + XML/JSON        | 2              |
@@ -114,7 +114,7 @@ Per-period JSON tracking files plus JSON metadata and venue files.
 
 ### [SkillCorner](providers/skillcorner.md)
 
-JSONL tracking plus JSON metadata.
+JSONL (v3, Tracking v4) or parquet (Tracking v4) tracking plus JSON metadata; the frame rate is read from the file.
 
 ### [Sportec](providers/sportec.md)
 

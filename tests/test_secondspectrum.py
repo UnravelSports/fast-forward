@@ -78,6 +78,7 @@ class TestMetadataDataFrame:
             "pitch_length",
             "pitch_width",
             "fps",
+            "version",
             "coordinate_system",
             "orientation",
         }
@@ -1134,9 +1135,9 @@ class TestNullBallXyz:
             (pl.col("frame_id") == 1) & (pl.col("player_id") == "ball")
         )
         assert frame_1_ball.height == 1
-        assert math.isnan(frame_1_ball["x"][0])
-        assert math.isnan(frame_1_ball["y"][0])
-        assert math.isnan(frame_1_ball["z"][0])
+        assert frame_1_ball["x"][0] is None
+        assert frame_1_ball["y"][0] is None
+        assert frame_1_ball["z"][0] is None
 
     def test_null_ball_xyz_does_not_crash(self):
         """Test that loading data with null ball xyz does not raise an error."""

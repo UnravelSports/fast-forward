@@ -93,7 +93,7 @@ class TestMetadataDataFrame:
         expected = {
             "provider", "game_id", "game_date",
             "home_team", "home_team_id", "away_team", "away_team_id",
-            "pitch_length", "pitch_width", "fps",
+            "pitch_length", "pitch_width", "fps", "version",
             "coordinate_system", "orientation",
         }
         assert set(metadata_df.columns) == expected

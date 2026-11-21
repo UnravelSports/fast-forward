@@ -14,7 +14,7 @@ fast-forward supports 12 tracking data providers. Each provider has a `load_trac
 | [SciSports](scisports.md) | 2 | EPTS XML + Text | SportVU | long, long_ball, wide | none |
 | [SecondSpectrum](secondspectrum.md) | 2 | JSONL + JSON | CDF | long, long_ball, wide | `exclude_missing_ball_frames` |
 | [Signality](signality.md) | 3+ | JSON | CDF | long, long_ball, wide | `include_officials`, `parallel`, `venue_information` |
-| [SkillCorner](skillcorner.md) | 2 | JSONL + JSON | CDF | long, long_ball, wide | `include_empty_frames` |
+| [SkillCorner](skillcorner.md) | 2 | JSONL or parquet + JSON | CDF | long, long_ball, wide | `include_empty_frames`, `include_ball_owning_player`, `include_is_detected`, `include_velocity`, `include_acceleration`, `include_prediction_error`, `include_officials` |
 | [Sportec](sportec.md) | 2 | XML | CDF | long, long_ball, wide | `include_officials` |
 | [StatsPerform](statsperform.md) | 2 | MA25 + MA1 | SportVU | long, long_ball, wide | `pitch_length`, `pitch_width`, `include_officials` |
 | [Tracab](tracab.md) | 2 | DAT/JSON + XML/JSON | Tracab (cm) | long, long_ball, wide | none |

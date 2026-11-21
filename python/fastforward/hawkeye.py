@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, List, Literal, Optional, Tuple, Union
 import polars as pl
 
 from fastforward._base import (
+    _maybe_gunzip,
     discover_files_in_directory,
     get_filename_from_filelike,
 )
@@ -52,18 +53,6 @@ def _extract_period_minute(filename: str) -> Tuple[int, int]:
     return int(m.group(1)), int(m.group(2))
 
 
-def _maybe_gunzip(data: bytes) -> bytes:
-    """Inflate gzip-compressed payloads (magic 0x1f 0x8b); pass others through.
-
-    Applied to the byte buffers handed to Rust so the arrow engines (which are
-    bytes-only and never touch kloppy) accept ``.gz`` inputs too. FileLike inputs
-    are already decompressed by kloppy, so the magic check is a no-op there.
-    """
-    if len(data) >= 2 and data[0] == 0x1F and data[1] == 0x8B:
-        import gzip
-
-        return gzip.decompress(data)
-    return data
 
 
 @with_error_handler

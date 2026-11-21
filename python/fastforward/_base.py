@@ -127,6 +127,20 @@ def get_schemas_factory(name: str) -> Callable[..., Any]:
     return getattr(importlib.import_module(module_path), attr_name)
 
 
+def _maybe_gunzip(data: bytes) -> bytes:
+    """Inflate gzip-compressed payloads (magic 0x1f 0x8b); pass others through.
+
+    Applied to every byte buffer handed to Rust, so a ``.jsonl.gz`` delivery works as
+    bytes on the arrow engines (which never touch kloppy) as well as from a path. kloppy
+    already decompresses path and stream inputs, so the magic check is a no-op there.
+    """
+    if len(data) >= 2 and data[0] == 0x1F and data[1] == 0x8B:
+        import gzip
+
+        return gzip.decompress(data)
+    return data
+
+
 def _to_bytes(obj: Any, kind: str, engine: str = "arrow") -> bytes:
     """Convert bytes-like or stdlib file-like input to bytes (no kloppy).
 
@@ -352,8 +366,8 @@ def load_tracking_impl(
                 "Call dataset.to_pyspark(spark) afterwards if you need both."
             )
 
-        raw_bytes_b = _to_bytes(raw_data, "raw_data", engine)
-        meta_bytes_b = _to_bytes(meta_data, "meta_data", engine)
+        raw_bytes_b = _maybe_gunzip(_to_bytes(raw_data, "raw_data", engine))
+        meta_bytes_b = _maybe_gunzip(_to_bytes(meta_data, "meta_data", engine))
 
         # Provider-specific extra byte buffers (e.g. gradientsports' roster_data).
         # Convert them via _to_bytes — same contract as raw/meta — so the arrow
@@ -361,7 +375,9 @@ def load_tracking_impl(
         # tracking_kwargs forwarding loop below picks the bytes value up.
         for param_name in config["extra_bytes_params"]:
             if param_name in provider_kwargs:
-                provider_kwargs[param_name] = _to_bytes(provider_kwargs[param_name], param_name, engine)
+                provider_kwargs[param_name] = _maybe_gunzip(
+                    _to_bytes(provider_kwargs[param_name], param_name, engine)
+                )
 
         tracking_kwargs = {
             "layout": layout,
@@ -442,7 +458,7 @@ def load_tracking_impl(
     for param_name in config["extra_bytes_params"]:
         if param_name in provider_kwargs:
             with open_as_file(provider_kwargs[param_name]) as extra_file:
-                provider_kwargs[param_name] = extra_file.read() if extra_file else b""
+                provider_kwargs[param_name] = _maybe_gunzip(extra_file.read() if extra_file else b"")
 
     # Build config string for cache key (must match _lazy.py)
     config_str = f"{layout}|{coordinates}|{orientation}|{only_alive}|{include_game_id}"
@@ -598,10 +614,10 @@ def load_tracking_impl(
     else:
         # Eager loading
         with open_as_file(meta_data) as meta_file:
-            meta_bytes = meta_file.read() if meta_file else b""
+            meta_bytes = _maybe_gunzip(meta_file.read() if meta_file else b"")
 
         with open_as_file(raw_data) as raw_file:
-            raw_bytes = raw_file.read() if raw_file else b""
+            raw_bytes = _maybe_gunzip(raw_file.read() if raw_file else b"")
 
         # Build kwargs for load_tracking
         tracking_kwargs = {
@@ -819,11 +835,18 @@ def _register_standard_providers() -> None:
             "include_empty_frames",
             "include_ball_owning_player",
             "include_is_detected",
+            "include_velocity",
+            "include_acceleration",
+            "include_prediction_error",
+            "include_officials",
         ],
-        # include_empty_frames affects rows, not columns — exclude from schema.
+        # include_empty_frames and include_officials affect rows, not columns — exclude from schema.
         schema_params=[
             "include_ball_owning_player",
             "include_is_detected",
+            "include_velocity",
+            "include_acceleration",
+            "include_prediction_error",
         ],
         schemas_factory="fastforward.skillcorner:schemas",
     )

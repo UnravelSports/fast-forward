@@ -56,6 +56,7 @@ class TestMetadataDataFrame:
             "pitch_length",
             "pitch_width",
             "fps",
+            "version",
             "coordinate_system",
             "orientation",
         }
@@ -89,6 +90,10 @@ class TestMetadataDataFrame:
     def test_fps(self, metadata_df):
         """Test fps is 10 (SkillCorner default)."""
         assert metadata_df["fps"][0] == pytest.approx(10.0, rel=0.01)
+
+    def test_version(self, metadata_df):
+        """A v3 file reports tracking version 3."""
+        assert metadata_df["version"][0] == "3"
 
     def test_game_date(self, metadata_df):
         """Test game_date is present and valid."""
@@ -569,7 +574,9 @@ EXPECTED_BALL_ROWS = 148
 
 EXPECTED_IS_DETECTED_TRUE = 2862
 EXPECTED_IS_DETECTED_FALSE = 394
-EXPECTED_IS_DETECTED_NULL_LONG = 148  # one per ball row
+# The ball carries its own flag: detected on every one of the 148 alive frames.
+EXPECTED_BALL_IS_DETECTED_TRUE = 148
+EXPECTED_BALL_IS_DETECTED_FALSE = 0
 
 EXPECTED_BALL_OWNING_PLAYER_NON_NULL_LONG = 828
 EXPECTED_BALL_OWNING_PLAYER_NON_NULL_LONG_BALL = 792
@@ -689,10 +696,10 @@ class TestSkillCornerExtras:
         true_n = ds.tracking.filter(pl.col("is_detected") == True).height  # noqa: E712
         false_n = ds.tracking.filter(pl.col("is_detected") == False).height  # noqa: E712
         null_n = ds.tracking.filter(pl.col("is_detected").is_null()).height
-        assert true_n == EXPECTED_IS_DETECTED_TRUE
-        assert false_n == EXPECTED_IS_DETECTED_FALSE
-        # In long layout the ball row has null is_detected by design.
-        assert null_n == EXPECTED_IS_DETECTED_NULL_LONG
+        # In long layout the ball row carries the ball's own flag.
+        assert true_n == EXPECTED_IS_DETECTED_TRUE + EXPECTED_BALL_IS_DETECTED_TRUE
+        assert false_n == EXPECTED_IS_DETECTED_FALSE + EXPECTED_BALL_IS_DETECTED_FALSE
+        assert null_n == 0
 
     def test_is_detected_distribution_long_ball(self):
         ds = skillcorner.load_tracking(
@@ -773,3 +780,30 @@ class TestSkillCornerExtras:
         # n_unique counts non-null distinct values: 0 (no owner) or 1 (one
         # owner broadcast to all rows). Never > 1.
         assert per_frame["distinct"].max() <= 1
+
+
+class TestDirectionFromGoalkeeper:
+    """The pre-kickoff fixture opens both periods on frames where the home
+    team's mean x has the wrong sign for the end it defends. The goalkeeper decides the
+    attacking direction, so with ``static_home_away`` the home keeper stands on the left
+    in both periods."""
+
+    @pytest.fixture(scope="class")
+    def dataset(self):
+        from tests.config import SC_META_PREKICKOFF, SC_RAW_PREKICKOFF
+
+        return skillcorner.load_tracking(
+            SC_RAW_PREKICKOFF, SC_META_PREKICKOFF, only_alive=False, lazy=False
+        )
+
+    @pytest.mark.parametrize("period_id", [1, 2])
+    def test_home_keeper_on_the_left_and_away_keeper_on_the_right(self, dataset, period_id):
+        home_id = dataset.teams.filter(pl.col("ground") == "home")["team_id"][0]
+        keepers = dataset.players.filter(pl.col("position") == "GK")
+        rows = dataset.tracking.filter(pl.col("period_id") == period_id)
+        for team_id, player_id in keepers.select("team_id", "player_id").iter_rows():
+            median_x = rows.filter(pl.col("player_id") == player_id)["x"].median()
+            if team_id == home_id:
+                assert median_x < -20, f"period {period_id}: home keeper at x={median_x}"
+            else:
+                assert median_x > 20, f"period {period_id}: away keeper at x={median_x}"

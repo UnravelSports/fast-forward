@@ -57,6 +57,7 @@ class TestMetadataDataFrame:
             "pitch_length",
             "pitch_width",
             "fps",
+            "version",
             "coordinate_system",
             "orientation",
         }
@@ -474,9 +475,9 @@ class TestExcludeMissingBallFrames:
             (pl.col("team_id") == "ball") & (pl.col("frame_id") == 30281)
         )
         assert len(ball_frame) == 1
-        assert ball_frame["x"].is_nan()[0]
-        assert ball_frame["y"].is_nan()[0]
-        assert ball_frame["z"].is_nan()[0]
+        assert ball_frame["x"].is_null()[0]
+        assert ball_frame["y"].is_null()[0]
+        assert ball_frame["z"].is_null()[0]
 
     def test_exclude_missing_ball_frames_filters_correct_count(self):
         """Filtering removes 1 frame worth of rows."""

@@ -55,7 +55,7 @@ periods_df = dataset.periods      # Period info
 | [SciSports][scisports]           |      ✓      |                        |   [↗][scisports-doc]   |                                                    |
 | [SecondSpectrum][ss]             |      ✓      |                        |       [↗][ss-doc]       |                                                    |
 | [Signality][signality]           |      ✓      |                        |   [↗][signality-doc]   |                                                    |
-| [SkillCorner][skillcorner]       |      ✓      | [↗][skillcorner-data] |  [↗][skillcorner-doc]  | Includes support for v3 data                       |
+| [SkillCorner][skillcorner]       |      ✓      | [↗][skillcorner-data] |  [↗][skillcorner-doc]  | v3 and Tracking v4 (JSONL or parquet, 10 or 25 fps) |
 | [Sportec][sportec]               |      ✓      |   [↗][sportec-data]   |    [↗][sportec-doc]    |                                                    |
 | [Stats Perform][statsperform]    |      ✓      |                        |  [↗][statsperform-doc]  | Includes support for MA1, MA3, and MA25 data feeds |
 | [Tracab][tracab]                 |      ✓      |                        |     [↗][tracab-doc]     |                                                    |
