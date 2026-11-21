@@ -41,6 +41,8 @@ The main DataFrame containing positional data. Schema depends on the [layout](la
 | `y` | Float32 | Y coordinate |
 | `z` | Float32 | Z coordinate (height) |
 
+On a frame the provider delivered without a ball, the ball's coordinates are null: `x`, `y`, `z` on the ball row in `long`, `ball_x`, `ball_y`, `ball_z` in `long_ball` and `wide`.
+
 ### metadata
 
 Single-row DataFrame with match-level information.
