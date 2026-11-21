@@ -62,6 +62,7 @@ class TestMetadataDataFrame:
             "pitch_length",
             "pitch_width",
             "fps",
+            "version",
             "coordinate_system",
             "orientation",
         }
@@ -857,8 +858,9 @@ class TestIncludeIncompleteFrames:
         assert complete_frames == 148
         assert all_frames > complete_frames
 
-    def test_incomplete_frames_have_default_ball(self):
-        """Test that incomplete frames have ball at (0, 0, 0) when included."""
+    def test_incomplete_frames_have_null_ball(self):
+        """An incomplete frame has no ball: its ball row carries null coordinates, never a
+        placeholder position that a model would read as the centre spot."""
         dataset = gradientsports.load_tracking(
             RAW_DATA_PATH,
             META_DATA_PATH,
@@ -869,12 +871,11 @@ class TestIncludeIncompleteFrames:
         )
         ball_rows = dataset.tracking.filter(pl.col("team_id") == "ball")
 
-        # Count frames where ball is at origin (0, 0, 0)
-        origin_ball = ball_rows.filter(
-            (pl.col("x") == 0.0) & (pl.col("y") == 0.0) & (pl.col("z") == 0.0)
-        )
-        # Most frames have null ball data which defaults to (0, 0, 0)
-        assert origin_ball.height > 0
+        null_ball = ball_rows.filter(pl.col("x").is_null())
+        assert null_ball.height > 0
+        assert null_ball["y"].is_null().all() and null_ball["z"].is_null().all()
+        origin_ball = ball_rows.filter((pl.col("x") == 0.0) & (pl.col("y") == 0.0))
+        assert origin_ball.height == 0
 
     def test_default_is_false(self):
         """Test that include_incomplete_frames defaults to False."""

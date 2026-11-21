@@ -99,6 +99,7 @@ class TestPySparkMetadata:
             "pitch_length",
             "pitch_width",
             "fps",
+            "version",
             "coordinate_system",
             "orientation",
         }

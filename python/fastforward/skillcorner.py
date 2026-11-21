@@ -44,6 +44,10 @@ def load_tracking(
     include_game_id: Union[bool, str] = True,
     include_ball_owning_player: bool = True,
     include_is_detected: bool = True,
+    include_velocity: bool = False,
+    include_acceleration: bool = False,
+    include_prediction_error: bool = False,
+    include_officials: bool = False,
     *,
     lazy: bool = False,
     from_cache: bool = False,
@@ -53,10 +57,18 @@ def load_tracking(
     """
     Load SkillCorner tracking data.
 
+    Reads every SkillCorner tracking delivery: v3 JSON Lines
+    (``tracking_extrapolated.jsonl``) and Tracking v4 as JSON Lines or parquet, at
+    10 or 25 frames per second. The format, the version and the frame rate are
+    read from the file, not passed in. ``dataset.metadata["version"]`` is ``"3"``
+    or ``"4"``; ``dataset.metadata["fps"]`` and the period frame bounds are on the
+    file's own clock.
+
     Parameters
     ----------
     raw_data : FileLike
-        Path to JSONL tracking file (e.g., tracking_extrapolated.jsonl), or bytes, or file-like object.
+        Path to the tracking file (JSON Lines, gzipped or not, or parquet), or bytes,
+        or file-like object.
         Supports: file paths (str/Path), bytes, file objects, URLs, S3 paths, zip files.
     meta_data : FileLike
         Path to JSON match file (e.g., match.json), or bytes, or file-like object.
@@ -92,12 +104,32 @@ def load_tracking(
         the column.
     include_is_detected : bool, default True
         If True, attach an ``is_detected`` column to the tracking DataFrame
-        (long / long_ball layouts) indicating whether each player position
-        was camera-detected (True) or imputed/extrapolated (False). Ball
-        rows in long layout receive null since the concept doesn't apply.
-        Wide layout doesn't surface the flag yet; long or long_ball is
-        recommended for detection-aware analyses. Pass False to omit the
+        (long / long_ball layouts): whether each position was camera-detected
+        (True) or extrapolated (False). In long layout the ball row carries the
+        ball's own flag. Wide layout doesn't surface the flag; long or long_ball
+        is recommended for detection-aware analyses. Pass False to omit the
         column.
+    include_velocity : bool, default False
+        If True, add ``vx``, ``vy``, ``vz`` next to ``x``, ``y``, ``z`` for every
+        entity (``ball_vx`` and so on where the ball has its own columns, and
+        ``<player_id>_vx`` in wide layout). Tracking v4 only; null on a v3 file.
+        Players have ``vz`` 0, as they have ``z`` 0. Values follow the chosen
+        orientation and coordinate system: metres per second for ``"cdf"``.
+    include_acceleration : bool, default False
+        If True, add ``ax``, ``ay``, ``az`` the same way. Tracking v4 only.
+    include_prediction_error : bool, default False
+        If True, add ``dist_pred_error`` (expected position error, metres) and
+        ``speed_pred_error`` (expected speed error, m/s) for every ball and
+        player row in long layout; in long_ball the ball's come as
+        ``ball_dist_pred_error`` and ``ball_speed_pred_error``. Tracking v4
+        only; null on a v3 file.
+    include_officials : bool, default False
+        If True, the referees Tracking v4 tracks (the main referee, for now) are
+        rows with ``team_id="officials"`` and a ``player_id`` of SkillCorner's
+        referee id, or ``"main_referee"`` when the file gives none, and appear in
+        ``dataset.players`` with position ``REF``. They carry the same velocity,
+        acceleration and predicted-error columns as players. v3 files have no
+        referees.
     engine : {"polars", "pyspark", "arrow", "arrow[spark]"}, default "polars"
         DataFrame engine to use:
         - "polars": Return Polars DataFrames (default)
@@ -133,6 +165,10 @@ def load_tracking(
         include_empty_frames=include_empty_frames,
         include_ball_owning_player=include_ball_owning_player,
         include_is_detected=include_is_detected,
+        include_velocity=include_velocity,
+        include_acceleration=include_acceleration,
+        include_prediction_error=include_prediction_error,
+        include_officials=include_officials,
     )
 
 
@@ -142,6 +178,10 @@ def schemas(
     include_game_id: bool = True,
     include_ball_owning_player: bool = True,
     include_is_detected: bool = True,
+    include_velocity: bool = False,
+    include_acceleration: bool = False,
+    include_prediction_error: bool = False,
+    include_officials: bool = False,
     engine: Engine = "polars",
 ) -> Schemas:
     """Return a `Schemas` namespace for SkillCorner.
@@ -151,13 +191,15 @@ def schemas(
     `periods`). Schemas are derived from Rust constants (single source of
     truth with the parser) so they can't drift.
 
-    Accepts the **same kwargs** as ``skillcorner.load_tracking``. The
-    canonical idiom is to define the kwargs once and unpack them into both
-    calls — see the docs example.
+    Accepts the **same kwargs** as ``skillcorner.load_tracking``, so one
+    kwargs dict can be unpacked into both calls (see the docs example).
+    ``include_officials`` is accepted and ignored: the referees are rows, so
+    they change no schema.
 
     Parameters
     ----------
-    layout, include_game_id, include_ball_owning_player, include_is_detected
+    layout, include_game_id, include_ball_owning_player, include_is_detected, \
+    include_velocity, include_acceleration, include_prediction_error, include_officials
         Match the same-named kwargs on ``skillcorner.load_tracking``.
     engine : {"polars", "pyspark", "arrow", "arrow[spark]"}, default "polars"
         Same set as ``load_tracking``. Controls the Arrow type dialect for
@@ -184,6 +226,9 @@ def schemas(
             include_game_id=include_game_id,
             include_ball_owning_player=include_ball_owning_player,
             include_is_detected=include_is_detected,
+            include_velocity=include_velocity,
+            include_acceleration=include_acceleration,
+            include_prediction_error=include_prediction_error,
         ),
         metadata_fn=lambda: _m.metadata_schema_arrow(),
         teams_fn=lambda: _m.teams_schema_arrow(include_game_id=include_game_id),
