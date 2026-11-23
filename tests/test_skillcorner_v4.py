@@ -164,10 +164,10 @@ class TestNewColumns:
         kloppy = load(SC_V4_JSONL_10, coordinates="kloppy", include_velocity=True).tracking.sort(
             ["frame_id", "player_id"]
         )
-        length = cdf.select(pl.col("x")).height and 105.0
-        # kloppy: x / pitch length, y inverted and / pitch width
-        assert kloppy["vx"].to_numpy() == pytest.approx(cdf["vx"].to_numpy() / length, abs=1e-6)
-        assert kloppy["vy"].to_numpy() == pytest.approx(-cdf["vy"].to_numpy() / 68.0, abs=1e-6)
+        # kloppy: x / pitch length, y inverted and / pitch width. Polars only: the release
+        # test environment has no numpy.
+        assert (kloppy["vx"] - cdf["vx"] / 105.0).abs().max() < 1e-6
+        assert (kloppy["vy"] + cdf["vy"] / 68.0).abs().max() < 1e-6
 
     def test_v3_file_gives_null_columns(self):
         t = skillcorner.load_tracking(V3_RAW, V3_META, lazy=False, **ALL_FLAGS).tracking
